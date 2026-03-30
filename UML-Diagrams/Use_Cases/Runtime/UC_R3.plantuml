@@ -1,0 +1,20 @@
+@startuml
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 10
+
+title UC_R3: Fehler behandeln, ohne die Ressource\nfür weitere Prozesse zu sperren
+
+participant "Steuerungssystem\nSM1" as ST
+participant "ExcH-\nLaufzeitumgebung" as RT
+database "FMEA-\nWissensgraph" as KG
+participant "Unterstützende\nRessource\n(VSG)" as ROB
+actor "Nutzende\nInstanz" as US
+
+ST -> RT: Fehler erkannt und Fehlerdaten senden
+RT -> KG: Bedeutung und Behandlung abfragen
+KG --> RT: Behandlungsplan ohne Sperrung, SM1 hat alles richtig gemacht
+RT -> ROB: Ausschuss-Transport ausführen
+ROB --> RT: Werkstück entfernt
+RT -> ST: Ressource für Folgeprozesse freigeben
+RT --> US: Abgeschlossene Behandlung ohne Sperrung und Materialfehler melden
+@enduml

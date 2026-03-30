@@ -1,0 +1,84 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 180
+skinparam ranksep 80
+skinparam nodesep 65
+skinparam DefaultFontSize 14
+left to right direction
+
+package "rag_agent_ui" {
+  class RagAgentUI <<module>> {
+    +streamlit_main(): None
+    +start_analysis(event): None
+    +run_pipeline(cfg, event): dict
+    +write_out_json(blob): str
+  }
+
+  class UiConfig <<dataclass>> {
+    +openai_api_key_file: str
+  }
+
+  class PipelineConfig <<dataclass>> {
+    +enabled: bool
+    +runner: str
+    +config: str
+  }
+
+  class RagConfig <<dataclass>> {
+    +xml_path: str
+    +model: str
+    +temperature: float
+    +top_k: int
+  }
+
+  UiConfig *-- PipelineConfig
+  UiConfig *-- RagConfig
+  RagAgentUI ..> UiConfig : load_ui_config()
+}
+
+package "simple_rag_agent" {
+  class RagSessionBuilder <<module>> {
+    +build_session_from_input(...): SimpleRagSession
+  }
+
+  class RagIncidentContext <<dataclass>> {
+    +from_input(obj, xml_path): RagIncidentContext
+  }
+
+  class SimpleRagSession {
+    +debug_summary(): dict
+    +build_default_prompt(): dict
+    +run_initial_analysis(debug): dict
+    +ask(user_msg, debug): dict
+  }
+
+  RagSessionBuilder ..> RagIncidentContext : from_input()
+  RagSessionBuilder ..> SimpleRagSession : returns
+}
+
+class EventJson <<artifact>>
+class ResultJson <<artifact>>
+
+RagAgentUI ..> EventJson : loads
+RagAgentUI ..> PipelineConfig : optional run_pipeline()
+RagAgentUI ..> RagConfig : passes xml/model/top_k
+RagAgentUI ..> RagSessionBuilder : import + call
+RagAgentUI ..> SimpleRagSession : run_initial_analysis()
+RagAgentUI ..> ResultJson : writes result
+
+RagAgentUI -[hidden]-> RagIncidentContext
+RagIncidentContext -[hidden]-> ResultJson
+
+note right of RagAgentUI
+UI start path:
+1. Event JSON laden
+2. optional Ingestion-Pipeline
+3. Session aufbauen
+4. Initialanalyse starten
+5. Antwort im Chat + out_json speichern
+end note
+
+@enduml

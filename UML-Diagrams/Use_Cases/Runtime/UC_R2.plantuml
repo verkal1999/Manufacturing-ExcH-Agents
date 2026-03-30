@@ -1,0 +1,21 @@
+@startuml
+skinparam maxMessageSize 120
+skinparam ParticipantPadding 10
+
+title UC_R2: Fehler auf der Ressource behandeln und\ndie Ressource für weitere Prozesse sperren
+
+participant "Steuerungssystem\nSM1" as ST
+participant "ExcH-\nLaufzeitumgebung" as RT
+database "FMEA-\nWissensgraph" as KG
+participant "Unterstützende\nRessource\n(VSG)" as SUP
+actor "Nutzende\nInstanz" as US
+
+ST -> RT: Fehler erkannt und Fehlerdaten senden
+RT -> KG: Bedeutung und Behandlung abfragen
+KG --> RT: Behandlungsplan mit Sperrung
+RT -> ST: Ressource anhalten und Fehler anzeigen
+RT -> SUP: Entfernung des Werkstücks anfordern
+SUP --> RT: Werkstück entfernt
+RT -> ST: Ressource für weitere Prozesse sperren
+RT --> US: Sperrstatus und Ergebnis bereitstellen
+@enduml

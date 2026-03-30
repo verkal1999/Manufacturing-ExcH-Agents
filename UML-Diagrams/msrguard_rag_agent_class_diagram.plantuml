@@ -1,0 +1,152 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 180
+skinparam ranksep 80
+skinparam nodesep 70
+skinparam DefaultFontSize 14
+left to right direction
+
+package "rag_agent_ui" {
+  class RagAgentUI <<module>> {
+    +streamlit_main(): None
+    +start_analysis(event): None
+    +run_pipeline(cfg, event): dict
+    +write_out_json(blob): str
+  }
+
+  class PipelineConfig <<dataclass>> {
+    +enabled: bool
+    +dir: str
+    +runner: str
+    +config: str
+    +timeout_sec: int?
+  }
+
+  class RagConfig <<dataclass>> {
+    +xml_path: str
+    +model: str
+    +temperature: float
+    +top_k: int
+  }
+
+  class UiConfig <<dataclass>> {
+    +openai_api_key_file: str
+  }
+
+  UiConfig *-- PipelineConfig
+  UiConfig *-- RagConfig
+  RagAgentUI ..> UiConfig : loads
+}
+
+package "simple_rag_agent" {
+  class RagIncidentContext <<dataclass>> {
+    +correlationId: str
+    +processName: str
+    +summary: str
+    +triggerEvent: str
+    +lastSkill: str
+    +xml_path: str
+    +project_root: str
+    +event: dict
+    +compact_event_context(): dict
+    +runtime_context_note(): str
+    +default_question(): str
+  }
+
+  class RagChunk <<dataclass>> {
+    +chunk_id: str
+    +kind: str
+    +name: str
+    +text: str
+    +metadata: dict
+    +preview(): str
+  }
+
+  class PLCOpenXmlSource {
+    +load_text(xml_path): str
+  }
+
+  class XmlChunker {
+    +chunk_text(text, xml_path): List<RagChunk>
+  }
+
+  class SimpleRagIndex {
+    +search(question, k): List<dict>
+  }
+
+  class SimpleRagAgent {
+    +xml_path: str
+    +top_k: int
+    +debug_summary(): dict
+    +ask(question, ctx, extra_context): dict
+  }
+
+  class SimpleRagSession {
+    +history: List<dict>
+    +debug_summary(): dict
+    +ask(user_msg, debug): dict
+    +build_default_prompt(): dict
+    +run_initial_analysis(debug): dict
+  }
+
+  class RagSessionBuilder <<module>> {
+    +build_session_from_input(obj, xml_path, pipeline_config_path, model, temperature, top_k): SimpleRagSession
+  }
+
+  SimpleRagSession *-- SimpleRagAgent
+  SimpleRagSession *-- RagIncidentContext
+  SimpleRagAgent ..> PLCOpenXmlSource : loads XML
+  SimpleRagAgent ..> XmlChunker : creates chunks
+  SimpleRagAgent --> SimpleRagIndex : builds
+  SimpleRagIndex --> RagChunk : ranks
+  XmlChunker ..> RagChunk : creates
+  RagSessionBuilder ..> RagIncidentContext : from_input()
+  RagSessionBuilder ..> SimpleRagAgent : constructs
+  RagSessionBuilder ..> SimpleRagSession : returns
+}
+
+package "External Inputs" {
+  class EventJson <<artifact>>
+  class ExportXml <<artifact>>
+  class IngestionPipeline <<external>>
+  class LLMFactory <<external>> {
+    +get_llm_invoke(model, temperature)
+  }
+}
+
+RagAgentUI ..> RagSessionBuilder : build_session_from_input()
+RagAgentUI ..> SimpleRagSession : stores in session_state
+RagAgentUI ..> PipelineConfig : optional run_pipeline()
+RagAgentUI ..> RagConfig : passes xml/model/top_k
+RagAgentUI ..> EventJson : loads event context
+RagAgentUI ..> IngestionPipeline : optional refresh of export.xml
+
+RagIncidentContext ..> EventJson : extracts payload
+PLCOpenXmlSource ..> ExportXml : reads
+IngestionPipeline ..> ExportXml : produces / refreshes
+SimpleRagAgent ..> LLMFactory : get_llm_invoke()
+
+RagAgentUI -[hidden]-> RagIncidentContext
+RagIncidentContext -[hidden]-> SimpleRagAgent
+SimpleRagAgent -[hidden]-> ExportXml
+
+note right of SimpleRagAgent
+Minimal RAG path:
+- load export.xml
+- chunk PLCOpenXML
+- lexical retrieval
+- single LLM answer
+No ToolRegistry, BaseAgentTool or planner.
+end note
+
+note bottom of SimpleRagSession
+Initial UI flow:
+build_default_prompt()
+-> run_initial_analysis()
+-> answer stored in chat history
+end note
+
+@enduml

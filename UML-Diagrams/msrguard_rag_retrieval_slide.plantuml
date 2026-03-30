@@ -1,0 +1,74 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 180
+skinparam ranksep 80
+skinparam nodesep 65
+skinparam DefaultFontSize 14
+left to right direction
+
+package "simple_rag_agent" {
+  class PLCOpenXmlSource {
+    +load_text(xml_path): str
+  }
+
+  class XmlChunker {
+    +chunk_text(text, xml_path): List<RagChunk>
+  }
+
+  class RagChunk <<dataclass>> {
+    +chunk_id: str
+    +kind: str
+    +name: str
+    +preview(): str
+  }
+
+  class SimpleRagIndex {
+    +search(question, k): List<dict>
+  }
+
+  class SimpleRagAgent {
+    +xml_path: str
+    +top_k: int
+    +debug_summary(): dict
+    +ask(question, ctx, extra_context): dict
+  }
+
+  PLCOpenXmlSource --> XmlChunker : XML text
+  XmlChunker ..> RagChunk : creates
+  SimpleRagAgent ..> PLCOpenXmlSource : load_text()
+  SimpleRagAgent ..> XmlChunker : chunk_text()
+  SimpleRagAgent --> SimpleRagIndex : builds
+  SimpleRagIndex --> RagChunk : ranks hits
+}
+
+package "External Inputs" {
+  class ExportXml <<artifact>>
+  class LLMFactory <<external>> {
+    +get_llm_invoke(model, temperature)
+  }
+}
+
+PLCOpenXmlSource ..> ExportXml : reads
+SimpleRagAgent ..> LLMFactory : invokes
+
+PLCOpenXmlSource -[hidden]-> SimpleRagIndex
+SimpleRagIndex -[hidden]-> LLMFactory
+
+note right of SimpleRagAgent
+Retrieval path:
+question
+-> lexical search
+-> top-k chunks
+-> one LLM answer
+end note
+
+note bottom of XmlChunker
+Chunking is intentionally simple:
+POU / GVL / DUT / Transition / Action
+plus fallback XML windows.
+end note
+
+@enduml

@@ -45,6 +45,13 @@ static void prepend_to_path_env(const std::filesystem::path& dir) {
 #endif
 }
 
+// UI hier direkt im Code umschalten:
+//   - "excH_agent_ui.py"
+//   - "rag_agent_ui.py"
+
+static constexpr const char* kAgentUiScript = "excH_agent_ui.py";
+//static constexpr const char* kAgentUiScript = "rag_agent_ui.py";
+
 int main() {
     // 1) Interpreter starten (einmalig, global gehalten)
     PythonRuntime::ensure_started();
@@ -165,9 +172,10 @@ int main() {
     auto subAgentAbort2 = bus.subscribe_scoped(EventType::evAgentAbort,   ackLogger, 1);
     auto subAgentFail2  = bus.subscribe_scoped(EventType::evAgentFail,    ackLogger, 1);
 
-    // 9) Neuer Observer: startet Python-UI bei evUnknownFM
-    //    scriptFile liegt unter src_dir (KG_SRC_DIR)
-    auto excHUiObserver = ExcHUiObserver::attach(bus, PY_SRC_DIR, "excH_agent_ui.py", 3);
+    // 9) Python-UI auswaehlen und bei evAgentStart starten.
+    //    Direkt oben ueber kAgentUiScript umschalten.
+    std::cout << "[AgentUI] Using UI script: " << kAgentUiScript << "\n";
+    auto excHUiObserver = ExcHUiObserver::attach(bus, PY_SRC_DIR, kAgentUiScript, 3);
 
     // 10) Trigger-Subscriptions → Events (D1/D2/D3)
     mon.subscribeBool("OPCUA.TriggerD3", opt.nsIndex, 0.0, 10,

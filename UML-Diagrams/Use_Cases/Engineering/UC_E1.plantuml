@@ -1,0 +1,26 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "FMEA-Team" as FMEA
+actor "Prozessingenieur" as PE
+actor "Dokumentenquellen" as DOC
+actor "FMEA-Artefakte" as ART
+
+rectangle "Exception-Handling-Agent" {
+  usecase "Ausnahmewissen aus\nFMEA-Artefakten strukturieren" as UC1
+  usecase "Informationen aus\nArtefakten extrahieren" as UC1a
+  usecase "Fehlermodi, Ursachen,\nWirkungen, Monitoring-Maßnahmen\nund Reaktionen konsolidieren" as UC1b
+  usecase "Konsistente Struktur für\nspätere maschinelle\nAuswertung erzeugen" as UC1c
+}
+
+FMEA --> UC1
+PE --> UC1
+DOC --> UC1a
+ART --> UC1a
+
+UC1 .> UC1a : <<include>>
+UC1 .> UC1b : <<include>>
+UC1 .> UC1c : <<include>>
+@enduml

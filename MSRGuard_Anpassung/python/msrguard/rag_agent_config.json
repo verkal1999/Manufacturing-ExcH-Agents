@@ -1,0 +1,16 @@
+{
+  "openai_api_key_file": "C:\\Users\\Alexander Verkhov\\Desktop\\OpenAI API Key.txt",
+  "pipeline": {
+    "enabled": true,
+    "dir": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline",
+    "runner": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\run_ingestion.py",
+    "config": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion.json",
+    "timeout_sec": null
+  },
+  "rag": {
+    "xml_path": "",
+    "model": "gpt-4o-mini",
+    "temperature": 0,
+    "top_k": 6
+  }
+}

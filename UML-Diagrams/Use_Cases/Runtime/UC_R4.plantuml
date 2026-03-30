@@ -1,0 +1,22 @@
+@startuml
+skinparam maxMessageSize 130
+skinparam ParticipantPadding 10
+
+title UC_R4: Alternativen technischen\nProzess aktivieren
+
+participant "Steuerungssystem\nSM1" as ST
+participant "ExcH-\nLaufzeitumgebung" as RT
+database "FMEA-\nWissensgraph" as KG
+participant "Unterstützende\nRessource\n(VSG)" as ROB
+participant "Unterstützende\nRessource\n(SM2)" as ALT
+actor "Nutzende\nInstanz" as US
+
+ST -> RT: Fehler erkannt und Fehlerdaten senden
+RT -> KG: Bedeutung und Behandlung abfragen
+KG --> RT: Alternatives Produktionsszenario
+RT -> ROB: Werkstück übernehmen und auf alternative Ressource überführen
+ROB --> RT: Übernahme bestätigt
+ROB -> ALT: Werkstück auf alternativer Ressource weiterverarbeiten
+ALT --> RT: Alternativer Prozess bestätigt
+RT --> US: Alternativen technischen Prozess aktiviert melden
+@enduml

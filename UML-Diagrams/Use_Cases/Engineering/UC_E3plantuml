@@ -1,0 +1,26 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "FMEA-Team" as FMEA
+actor "Moderator" as MOD
+actor "FMEA-Artefakte" as ART
+
+rectangle "Exception-Handling-Agent" {
+  usecase "FMEA-Inhalte prüfen\nund vervollständigen" as UC3
+  usecase "Einträge als Ursache,\nFehlerart oder Fehlerfolge\ninterpretieren" as UC3a
+  usecase "Maßnahmenarten\nkonsistent zuordnen" as UC3b
+  usecase "Lücken zwischen Struktur-,\nFunktions- und Fehleranalyse\nidentifizieren" as UC3c
+  usecase "Rückfragen und Hinweise\nfür das FMEA-Team erzeugen" as UC3d
+}
+
+FMEA --> UC3
+MOD --> UC3
+ART --> UC3
+
+UC3 .> UC3a : <<include>>
+UC3 .> UC3b : <<include>>
+UC3 .> UC3c : <<include>>
+UC3 .> UC3d : <<include>>
+@enduml

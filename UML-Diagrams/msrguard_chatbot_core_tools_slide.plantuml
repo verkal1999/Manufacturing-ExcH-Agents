@@ -1,0 +1,119 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 180
+skinparam ranksep 80
+skinparam nodesep 65
+skinparam DefaultFontSize 14
+left to right direction
+
+package "KG + Similarity" {
+  class SensorSnapshot <<dataclass>> {
+    +program_name: str
+    +sensor_values: Dict
+  }
+
+  class RoutineSignature <<dataclass>> {
+    +pou_name: str
+    +reachable_pous: List<str>
+    +called_pou_names: List<str>
+    +used_variable_names: List<str>
+    +hardware_addresses: List<str>
+    +port_names: List<str>
+  }
+
+  class KGStore {
+    +g: Graph
+    +pou_uri_by_name(pou_name): URIRef
+    +get_reachable_pous(root_pou_uri): Set<URIRef>
+    +get_called_pous(pou_uri): Set<URIRef>
+    +get_used_variables(pou_uri): Set<URIRef>
+  }
+
+  class SignatureExtractor {
+    +kg: KGStore
+    +extract_signature(pou_name): RoutineSignature
+  }
+
+  class RoutineIndex {
+    +signatures: List<RoutineSignature>
+    +save(path): None
+    +load(path): RoutineIndex
+    +build_from_kg(kg): RoutineIndex
+    +find_similar(target, top_k): List<dict>
+  }
+
+  SignatureExtractor --> KGStore
+  RoutineIndex o-- RoutineSignature
+  RoutineIndex ..> SignatureExtractor : build_from_kg()
+}
+
+package "Planning + Registry" {
+  abstract class BaseAgentTool {
+    +name: str
+    +description: str
+    +usage_guide: str
+    +run(**kwargs): Any
+  }
+
+  class ToolRegistry {
+    +register(tool): None
+    +execute(tool_name, args): Any
+    +get_system_prompt_part(): str
+  }
+
+  class ChatBot {
+    +registry: ToolRegistry
+    +llm: Callable
+    +history: List<dict>
+    +chat(user_msg, debug): dict
+  }
+
+  ToolRegistry o-- BaseAgentTool
+  ChatBot --> ToolRegistry
+}
+
+package "General Tools" {
+  class ListProgramsTool
+  class StringTripleSearchTool {
+    +graph: Graph
+  }
+  class Text2SparqlTool {
+    +llm_invoke: Callable
+    +schema_card: str
+  }
+  class SemanticSearchTool <<optional>>
+  class ExceptionAnalysisTool {
+    +kg: KGStore
+    +index: RoutineIndex
+  }
+  class GraphInvestigateTool
+
+  BaseAgentTool <|-- ListProgramsTool
+  BaseAgentTool <|-- SearchVariablesTool
+  BaseAgentTool <|-- VariableTraceTool
+  BaseAgentTool <|-- StringTripleSearchTool
+  BaseAgentTool <|-- Text2SparqlTool
+  BaseAgentTool <|-- SemanticSearchTool
+  BaseAgentTool <|-- ExceptionAnalysisTool
+  BaseAgentTool <|-- GraphInvestigateTool
+}
+
+ExceptionAnalysisTool --> KGStore
+ExceptionAnalysisTool --> RoutineIndex
+ExceptionAnalysisTool ..> RoutineSignature
+ExceptionAnalysisTool ..> SensorSnapshot
+StringTripleSearchTool --> KGStore
+
+SensorSnapshot -[hidden]-> BaseAgentTool
+BaseAgentTool -[hidden]-> ListProgramsTool
+ListProgramsTool -[hidden]-> ExceptionAnalysisTool
+
+note bottom of BaseAgentTool
+The evD2-specific tools are shown separately
+in the dedicated trace slide.
+end note
+
+@enduml

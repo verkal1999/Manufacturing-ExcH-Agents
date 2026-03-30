@@ -1,0 +1,68 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 180
+skinparam ranksep 80
+skinparam nodesep 65
+skinparam DefaultFontSize 14
+left to right direction
+
+package "Context Extraction" {
+  class EventJson <<artifact>>
+
+  class RagIncidentContext <<dataclass>> {
+    +correlationId: str
+    +triggerEvent: str
+    +processName: str
+    +lastSkill: str
+    +summary: str
+    +compact_event_context(): dict
+    +runtime_context_note(): str
+    +default_question(): str
+  }
+
+  RagIncidentContext ..> EventJson : extracts payload
+}
+
+package "Prompt + Session" {
+  class SimpleRagSession {
+    +history: List<dict>
+    +build_default_prompt(): dict
+    +run_initial_analysis(debug): dict
+    +ask(user_msg, debug): dict
+  }
+
+  class SimpleRagAgent {
+    +ask(question, ctx, extra_context): dict
+  }
+
+  SimpleRagSession *-- RagIncidentContext
+  SimpleRagSession *-- SimpleRagAgent
+}
+
+class PlcSnapshotJson <<artifact>>
+
+RagIncidentContext ..> PlcSnapshotJson : interprets vars / rows
+SimpleRagSession ..> RagIncidentContext : builds prompt
+SimpleRagSession ..> SimpleRagAgent : initial analysis
+
+RagIncidentContext -[hidden]-> SimpleRagAgent
+
+note right of RagIncidentContext
+Interprets JSON context:
+- triggerEvent / processName / lastSkill
+- summary as external hint
+- plcSnapshot.vars as OPC-UA values
+- plcSnapshot.rows as structure info
+end note
+
+note bottom of SimpleRagSession
+Initial prompt combines:
+default_question()
++ runtime_context_note()
++ shortened Event-/Snapshot-JSON
+end note
+
+@enduml

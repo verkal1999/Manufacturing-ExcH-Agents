@@ -1,0 +1,80 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 180
+skinparam ranksep 80
+skinparam nodesep 70
+skinparam DefaultFontSize 14
+left to right direction
+
+package "rag_agent_ui" {
+  class RagAgentUI <<module>> {
+    +streamlit_main(): None
+    +start_analysis(event): None
+  }
+
+  class UiConfig <<dataclass>>
+  class PipelineConfig <<dataclass>>
+  class RagConfig <<dataclass>>
+
+  UiConfig *-- PipelineConfig
+  UiConfig *-- RagConfig
+  RagAgentUI ..> UiConfig : loads
+}
+
+package "simple_rag_agent" {
+  class RagSessionBuilder <<module>> {
+    +build_session_from_input(...): SimpleRagSession
+  }
+
+  class RagIncidentContext <<dataclass>> {
+    +triggerEvent: str
+    +processName: str
+    +lastSkill: str
+    +summary: str
+  }
+
+  class SimpleRagSession {
+    +run_initial_analysis(debug): dict
+    +ask(user_msg, debug): dict
+  }
+
+  class SimpleRagAgent {
+    +ask(question, ctx, extra_context): dict
+  }
+
+  SimpleRagSession *-- RagIncidentContext
+  SimpleRagSession *-- SimpleRagAgent
+  RagSessionBuilder ..> RagIncidentContext : creates
+  RagSessionBuilder ..> SimpleRagSession : returns
+}
+
+package "External Inputs" {
+  class EventJson <<artifact>>
+  class ExportXml <<artifact>>
+  class IngestionPipeline <<external>>
+  class LLMFactory <<external>>
+}
+
+RagAgentUI ..> EventJson : loads event
+RagAgentUI ..> IngestionPipeline : optional refresh
+RagAgentUI ..> RagSessionBuilder : creates session
+RagAgentUI ..> SimpleRagSession : stores in session_state
+
+SimpleRagAgent ..> ExportXml : reads PLCOpenXML
+SimpleRagAgent ..> LLMFactory : single LLM call
+
+RagAgentUI -[hidden]-> RagIncidentContext
+RagIncidentContext -[hidden]-> ExportXml
+
+note right of SimpleRagAgent
+Minimal architecture:
+- separate UI
+- separate session
+- static PLCOpenXML context
+- no ToolRegistry / planner
+end note
+
+@enduml

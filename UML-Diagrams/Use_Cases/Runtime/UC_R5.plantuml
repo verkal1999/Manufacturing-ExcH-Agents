@@ -1,0 +1,18 @@
+@startuml
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 10
+
+title UC_R5: Unbekannten Fehler erkennen \nund die nutzende Instanz bei der Fehlersuche unterstützen
+
+participant "Steuerungssystem\nSM1" as ST
+participant "ExcH-\nLaufzeitumgebung" as RT
+database "FMEA-\nWissensgraph" as KG
+actor "Nutzende\nInstanz" as US
+
+ST -> RT: Fehler erkannt und Fehlerdaten senden
+RT -> KG: Bedeutung und Behandlung abfragen
+KG --> RT: Kein passender bekannter Fehler und keine definierte Reaktion
+RT -> RT: Fehler als unbekannt kennzeichnen und Kontext bündeln
+RT --> US: Strukturierte Hinweise zur Fehlersuche bereitstellen
+US --> RT: Rückfragen oder weitere Diagnoseschritte anfordern
+@enduml

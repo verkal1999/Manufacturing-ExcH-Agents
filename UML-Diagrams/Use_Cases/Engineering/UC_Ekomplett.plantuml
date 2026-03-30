@@ -1,0 +1,101 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+' Akteure Links (Personen)
+actor "FMEA-Team" as FMEA
+actor "Prozessingenieur" as PE
+actor "Moderator" as MOD
+actor "Operator" as OP
+actor "Instandhalter" as IH
+
+' Akteure Rechts (Systeme / Datenquellen)
+actor "Dokumentenquellen" as DOC
+actor "FMEA-Artefakte" as ART
+actor "SPS / Steuerungssystem" as PLC
+actor "Betriebsdaten /\nFehlerfälle" as OPS
+actor "Wissensgraph" as KG
+
+rectangle "Exception-Handling-Agent\nEngineering-Unterstützung" {
+
+  ' UC1
+  usecase "Ausnahmewissen aus\nFMEA-Artefakten strukturieren" as UC1
+  usecase "Informationen aus\nArtefakten extrahieren" as UC1a
+  UC1 -[hidden]right- UC1a
+  
+  ' UC2
+  usecase "FMEA-Wissensgraph\naufbauen und pflegen" as UC2
+  usecase "Semantische Beziehungen\nmodellieren" as UC2a
+  UC2 -[hidden]right- UC2a
+  
+  ' UC3
+  usecase "FMEA-Inhalte prüfen\nund vervollständigen" as UC3
+  usecase "Konsistenz und Lücken\nidentifizieren" as UC3a
+  UC3 -[hidden]right- UC3a
+  
+  ' UC4
+  usecase "Fragen aus dem\nFMEA-Wissensbestand\nbeantworten" as UC4
+  usecase "Natürlichsprachige Fragen\nauf Wissensabfragen abbilden" as UC4a
+  UC4 -[hidden]right- UC4a
+  
+  ' UC5 (mit mehreren Includes)
+  usecase "Steuerungsänderungen\nnachverfolgen und mit\nFMEA koppeln" as UC5
+  usecase "Änderungen an\nSteuerungsartefakten erkennen" as UC5a
+  usecase "Änderungen einer FMEA-Funktion,\nMonitoring-Maßnahme oder\nSystemreaktion zuordnen" as UC5b
+  usecase "Benachrichtigung erzeugen" as UC5c
+  usecase "Vorschlag für\nSchnittstellenkonfiguration ableiten" as UC5d
+  ' Zwingt den Block nach rechts
+  UC5 -[hidden]right- UC5a 
+  UC5 -[hidden]right- UC5b
+  
+  ' UC6
+  usecase "Betriebserkenntnisse in das\nEngineering zurückführen" as UC6
+  usecase "Neue Fehlerkontexte und\nReaktionsmuster aufbereiten" as UC6a
+  UC6 -[hidden]right- UC6a
+}
+
+' Verbindungen Links (Personen)
+FMEA --> UC1
+FMEA --> UC2
+FMEA --> UC3
+FMEA --> UC4
+FMEA --> UC5
+FMEA --> UC6
+
+PE --> UC1
+PE --> UC2
+PE --> UC4
+PE --> UC5
+
+MOD --> UC3
+
+OP --> UC6
+IH --> UC6
+
+' Verbindungen Rechts (Systeme - Pfeile umgedreht für das Layout)
+UC1a <-- DOC
+UC1 <-- ART
+UC3 <-- ART
+UC5a <-- PLC
+UC6a <-- OPS
+
+UC2 -- KG
+UC4 -- KG
+UC5 -- KG
+UC6 -- KG
+
+' Include-Beziehungen (Ausrichtung nach rechts)
+UC1 .right.> UC1a : <<include>>
+UC2 .right.> UC2a : <<include>>
+UC3 .right.> UC3a : <<include>>
+UC4 .right.> UC4a : <<include>>
+
+UC5 .right.> UC5a : <<include>>
+UC5 .right.> UC5b : <<include>>
+UC5 .right.> UC5c : <<include>>
+UC5 .right.> UC5d : <<include>>
+
+UC6 .right.> UC6a : <<include>>
+
+@enduml

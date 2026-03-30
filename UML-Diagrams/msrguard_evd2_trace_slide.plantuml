@@ -1,0 +1,106 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 180
+skinparam ranksep 80
+skinparam nodesep 65
+skinparam DefaultFontSize 14
+left to right direction
+
+package "excH_chatbot" {
+  class IncidentContext <<dataclass>> {
+    +triggerEvent: str
+    +lastSkill: str
+    +lastGEMMAStateBeforeFailure: str
+    +triggerD2: bool
+    +kg_ttl_path: str
+  }
+
+  class ExcHChatBotSession {
+    +bot: ChatBot
+    +ctx: IncidentContext
+    +bootstrap_evd2_plan: dict
+    +ensure_bootstrap_plan(): dict
+    +ask(user_msg, debug, include_bootstrap): dict
+  }
+
+  class ExcHChatbotFlows <<module>> {
+    +build_evd2_diagnoseplan(session): dict
+    +run_initial_analysis(session): dict
+  }
+
+  ExcHChatBotSession *-- IncidentContext
+  ExcHChatbotFlows ..> ExcHChatBotSession : orchestrates
+}
+
+package "chatbot_core" {
+  abstract class BaseAgentTool
+
+  class ToolRegistry {
+    +register(tool): None
+    +execute(tool_name, args): Any
+  }
+
+  class ChatBot {
+    +registry: ToolRegistry
+    +chat(user_msg, debug): dict
+  }
+
+  class EvD2DiagnosisTool
+  class EvD2UnifiedTraceTool
+  class EvD2RequirementPathsTool
+  class EvD2PathTracingTool
+
+  ToolRegistry o-- BaseAgentTool
+  ChatBot --> ToolRegistry
+
+  BaseAgentTool <|-- EvD2DiagnosisTool
+  BaseAgentTool <|-- EvD2UnifiedTraceTool
+  BaseAgentTool <|-- EvD2RequirementPathsTool
+  BaseAgentTool <|-- EvD2PathTracingTool
+}
+
+package "d2_trace_analysis" {
+  class D2TraceAnalysis <<module>> {
+    +run_unified_set_and_condition_trace(): dict
+    +build_requirement_tables(): dict
+    +extract_assignments_st(): list
+    +condition_to_truth_paths(): list
+    +trace_condition_paths_from_pou(): dict
+  }
+
+  class Tracer <<dataclass>> {
+    +enabled: bool
+    +lines: List<str>
+    +log(msg): None
+  }
+
+  class FbdNode <<dataclass>> {
+    +var: str
+    +func: str
+    +args: List<FbdNode>
+  }
+
+  D2TraceAnalysis *-- Tracer
+  D2TraceAnalysis *-- FbdNode
+}
+
+ExcHChatBotSession --> ChatBot : delegates
+ExcHChatbotFlows ..> ChatBot : uses registry-backed tools
+
+EvD2DiagnosisTool ..> D2TraceAnalysis : FBD/ST evidence
+EvD2UnifiedTraceTool ..> D2TraceAnalysis : unified trace
+EvD2RequirementPathsTool ..> D2TraceAnalysis : table generation
+EvD2PathTracingTool ..> D2TraceAnalysis : path reconstruction
+
+IncidentContext -[hidden]-> ChatBot
+ChatBot -[hidden]-> D2TraceAnalysis
+
+note right of ExcHChatbotFlows
+`build_evd2_diagnoseplan()` combines the four evD2 tools
+through `session.bot.registry.execute(...)`.
+end note
+
+@enduml

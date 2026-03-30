@@ -1,0 +1,18 @@
+@startuml
+skinparam maxMessageSize 190
+skinparam ParticipantPadding 10
+
+title UC_R1: Fehler auf der Ressource selbst beheben,\nohne die Ressource zu sperren
+
+participant "Steuerungssystem\nSM1" as ST
+participant "ExcH-\nLaufzeitumgebung" as RT
+database "FMEA-\nWissensgraph" as KG
+actor "Nutzende\nInstanz" as US
+
+ST -> RT: Fehler erkannt und Fehlerdaten senden
+RT -> KG: Bedeutung und Behandlung abfragen
+KG --> RT: Lokale Behandlungsroutine (Nachstanzen)
+RT -> ST: Lokale Fehlerbehebung ausführen
+ST --> RT: Rückmeldung zur Fehlerbehebung
+RT --> US: Ressource wieder freigeben und Fehler behandelt melden
+@enduml

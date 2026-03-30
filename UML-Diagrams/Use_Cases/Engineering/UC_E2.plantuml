@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "FMEA-Team" as FMEA
+actor "Prozessingenieur" as PE
+actor "Wissensgraph" as KG
+
+rectangle "Exception-Handling-Agent" {
+  usecase "FMEA-Wissensgraph\naufbauen und pflegen" as UC2
+  usecase "Semantische Beziehungen\nmodellieren" as UC2a
+  usecase "Wissensbestand für\nspätere Abfragen vorbereiten" as UC2b
+  usecase "Semantische\nVerknüpfungen aktualisieren" as UC2c
+}
+
+FMEA --> UC2
+PE --> UC2
+UC2 --> KG
+
+UC2 .> UC2a : <<include>>
+UC2 .> UC2b : <<include>>
+UC2 .> UC2c : <<include>>
+@enduml
