@@ -1,0 +1,212 @@
+{
+  "outJson": "D:/MA_Python_Agent/MSRGuard_Anpassung/python\\agent_results\\evD2-61017485173900_result.json",
+  "payload": {
+    "correlationId": "evD2-61017485173900",
+    "ingestion": {
+      "correlationId": "evD2-61017485173900",
+      "message": "ingested via single-call",
+      "rc": 1
+    },
+    "plcSnapshot": {
+      "rows": [
+        {
+          "id": "ns=4;s=OPCUA.bool1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.bool2",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.bool3",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.TriggerD2",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Z1",
+          "nodeClass": "Variable",
+          "t": "Int16"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Z2",
+          "nodeClass": "Variable",
+          "t": "Int16"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Z3",
+          "nodeClass": "Variable",
+          "t": "Int16"
+        },
+        {
+          "id": "ns=4;s=OPCUA.TriggerD1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.TriggerD3",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.LastGEMMAStateBeforeFailure",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.lastExecutedSkill",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.lastExecutedProcess",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.DiagnoseFinished",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.M1",
+          "nodeClass": "Variable",
+          "t": "Int16"
+        },
+        {
+          "id": "ns=4;s=OPCUA.M2",
+          "nodeClass": "Variable",
+          "t": "Int16"
+        },
+        {
+          "id": "ns=4;s=OPCUA.M3",
+          "nodeClass": "Variable",
+          "t": "Int16"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Alt_found",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Alt_abort",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=MAIN.fbJob",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=MAIN.fbJob.M_Methode1",
+          "nodeClass": "Method",
+          "t": "in: [Int32], out: [Int32]"
+        }
+      ],
+      "vars": [
+        {
+          "id": "OPCUA.TriggerD3",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.TriggerD1",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.bool3",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.bool1",
+          "t": "bool",
+          "v": true
+        },
+        {
+          "id": "OPCUA.Alt_found",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.DiagnoseFinished",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.Alt_abort",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.TriggerD2",
+          "t": "bool",
+          "v": true
+        },
+        {
+          "id": "OPCUA.bool2",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.LastGEMMAStateBeforeFailure",
+          "t": "string",
+          "v": "F1"
+        },
+        {
+          "id": "OPCUA.lastExecutedProcess",
+          "t": "string",
+          "v": "ExTechnProcess1"
+        },
+        {
+          "id": "OPCUA.lastExecutedSkill",
+          "t": "string",
+          "v": "TestSkill3"
+        },
+        {
+          "id": "OPCUA.M2",
+          "t": "int16",
+          "v": 0
+        },
+        {
+          "id": "OPCUA.Z3",
+          "t": "int16",
+          "v": 0
+        },
+        {
+          "id": "OPCUA.Z1",
+          "t": "int16",
+          "v": 0
+        },
+        {
+          "id": "OPCUA.M3",
+          "t": "int16",
+          "v": 0
+        },
+        {
+          "id": "OPCUA.M1",
+          "t": "int16",
+          "v": 0
+        },
+        {
+          "id": "OPCUA.Z2",
+          "t": "int16",
+          "v": 0
+        }
+      ]
+    },
+    "processName": "ExTechnProcess1",
+    "summary": "KG: no failure modes for skill 'TestSkill3'",
+    "triggerEvent": "evD2"
+  },
+  "ts_ticks": 61019118024700,
+  "type": "evAgentStart"
+}

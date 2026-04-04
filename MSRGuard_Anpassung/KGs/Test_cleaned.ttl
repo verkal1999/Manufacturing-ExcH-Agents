@@ -284,15 +284,15 @@ ag:dp_hasHypothesisParams rdf:type owl:DatatypeProperty ;
 
 ###  http://www.semanticweb.org/AgentProgramParams/dp_hasOPCUADataAccess
 ag:dp_hasOPCUADataAccess rdf:type owl:DatatypeProperty ;
-                         rdfs:subPropertyOf ag:dp_hasSignalSourceAttribute ;
-                         rdfs:domain ag:class_SignalSource ;
+                         rdfs:subPropertyOf ag:dp_hasVariableAttribute ;
+                         rdfs:domain ag:class_Variable ;
                          rdfs:range xsd:boolean .
 
 
 ###  http://www.semanticweb.org/AgentProgramParams/dp_hasOPCUAWriteAccess
 ag:dp_hasOPCUAWriteAccess rdf:type owl:DatatypeProperty ;
-                          rdfs:subPropertyOf ag:dp_hasSignalSourceAttribute ;
-                          rdfs:domain ag:class_SignalSource ;
+                          rdfs:subPropertyOf ag:dp_hasVariableAttribute ;
+                          rdfs:domain ag:class_Variable ;
                           rdfs:range xsd:boolean .
 
 
