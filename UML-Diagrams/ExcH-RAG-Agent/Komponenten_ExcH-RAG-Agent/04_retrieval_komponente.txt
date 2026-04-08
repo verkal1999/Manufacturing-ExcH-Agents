@@ -1,0 +1,10 @@
+Komponente: Retrieval-Komponente
+
+Zweck:
+Die Retrieval-Komponente waehlt aus den vorbereiteten Dokumentsegmenten diejenigen Ausschnitte aus, die fuer den aktuellen Fehlerkontext am relevantesten sind. Dabei steht Nachvollziehbarkeit vor maximaler Komplexitaet.
+
+Diagrammidee:
+Eine Anfrage wird als `RetrievalQuery` modelliert, ein Scorer bewertet die Dokumentsegmente, und der Index liefert geordnete Treffer zurueck. Dadurch wird sichtbar, dass die Komponente nicht nur Kontext beschafft, sondern auch eine kontrollierte Eingrenzung des Antwortkontexts vornimmt.
+
+Bezug zum Prototyp:
+Die Klasse `SimpleRagIndex` aus `simple_rag_agent.py` ist hier die zentrale technische Referenz.

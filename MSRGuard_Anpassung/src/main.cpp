@@ -45,7 +45,7 @@ static void prepend_to_path_env(const std::filesystem::path& dir) {
 #endif
 }
 
-static constexpr const char* kAgentUiScript = "excH_agent_ui.py";
+static constexpr const char* kAgentUiScript = "excH_kg_agent_ui.py";
 //static constexpr const char* kAgentUiScript = "rag_agent_ui.py";
 
 int main() {

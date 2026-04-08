@@ -1,0 +1,58 @@
+@startuml
+title ExcH-RAG-Agent - Foundation-Modell-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Foundation-Modell-Komponente" {
+  class RagConfig <<value object>> {
+    +model: str
+    +temperature: float
+  }
+
+  class ModelSelectionPolicy {
+    +select_profile(task_kind: str): ModelProfile
+  }
+
+  class ModelProfile <<value object>> {
+    +name: str
+    +cost_class: str
+    +context_window: int
+  }
+
+  class PromptRequest <<value object>> {
+    +system_prompt: str
+    +user_prompt: str
+  }
+
+  class FoundationModelGateway {
+    +invoke(req: PromptRequest): ModelResponse
+  }
+
+  class ModelResponse <<value object>> {
+    +answer: str
+    +finish_reason: str
+  }
+
+  RagConfig --> ModelSelectionPolicy : parametrisiert
+  ModelSelectionPolicy --> ModelProfile : waehlt
+  FoundationModelGateway --> ModelProfile : nutzt
+  FoundationModelGateway ..> PromptRequest : verarbeitet
+  FoundationModelGateway --> ModelResponse : erzeugt
+}
+
+note right of FoundationModelGateway
+Konzeptioneller Fokus aus Kap. 3.4.2:
+- austauschbare Modellbasis
+- abgestufte Modellnutzung
+- spaeterer Modellvergleich
+
+Prototypischer Bezug:
+get_llm_invoke(...) + LLM-Aufruf
+innerhalb von SimpleRagAgent
+end note
+
+@enduml

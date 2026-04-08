@@ -1,0 +1,92 @@
+@startuml
+title ExcH-KG-Agent - Artefakt- und Ingestion-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Artefakt- und Ingestion-Komponente" {
+  class PipelineConfig <<dataclass>> {
+    +project_dir: Path
+    +sln_path: Path
+    +kg_cleaned_path: Path
+    +kg_after_loader_path: Path
+    +kg_final_path: Path
+  }
+
+  class PipelineContext <<dataclass>> {
+    +artifacts: Dict<str, Any>
+    +set(key: str, value: Any): None
+    +get(key: str): Any
+  }
+
+  class Pipeline {
+    +steps: List<Step>
+    +run(ctx: PipelineContext): None
+  }
+
+  abstract class Step {
+    +name: str
+    +outputs(ctx: PipelineContext): List<Path>
+    +should_skip(ctx: PipelineContext, force: bool): bool
+    +run(ctx: PipelineContext): None
+  }
+
+  class ExportPLCopenXMLStep
+  class BuildProgramIOMappingStep
+  class BuildIOMappingsStep
+
+  class PLCOpenXMLParserWithHW {
+    +scan_project_and_write_objects_json(): None
+    +export_plcopen_xml(): None
+    +build_program_io_mapping(): None
+    +build_gvl_globals(): None
+    +build_io_mappings(): None
+  }
+
+  class ProgramMapping <<dataclass>> {
+    +programm_name: str
+    +inputs: List<IOEntry>
+    +outputs: List<IOEntry>
+    +subcalls: List<Subcall>
+  }
+
+  class GVL <<dataclass>> {
+    +name: str
+    +globals: List<GlobalVar>
+  }
+
+  class IoHardwareAddress <<dataclass>> {
+    +plc_path: str
+    +channel_label: str
+    +direction: str
+  }
+
+  class ArtifactQualityGate {
+    +validate(ctx: PipelineContext): bool
+  }
+
+  Step <|-- ExportPLCopenXMLStep
+  Step <|-- BuildProgramIOMappingStep
+  Step <|-- BuildIOMappingsStep
+  Pipeline *-- Step
+  Pipeline --> PipelineContext : arbeitet auf
+  Pipeline --> ArtifactQualityGate : validiert ueber
+  PipelineContext ..> PLCOpenXMLParserWithHW : haelt Parser
+  PLCOpenXMLParserWithHW ..> ProgramMapping : erzeugt
+  PLCOpenXMLParserWithHW ..> GVL : erzeugt
+  PLCOpenXMLParserWithHW ..> IoHardwareAddress : erzeugt
+}
+
+note right of Pipeline
+Kap. 3.4.3:
+Die Artefaktaufbereitung wird in
+mehrere Transformationsschritte zerlegt.
+Damit werden Prompt-Chaining,
+Routing und technische Guardrails
+in der Ingestion sichtbar.
+end note
+
+@enduml

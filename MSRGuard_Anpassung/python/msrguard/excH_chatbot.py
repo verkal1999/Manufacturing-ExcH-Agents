@@ -862,14 +862,8 @@ class ExcHChatBotSession:
                     response["plan"] = {
                         "steps": [
                             {
-                                "tool": "evd2_path_trace",
-                                "args": {
-                                    "last_skill": self.ctx.lastSkill or "",
-                                    "last_gemma_state": self.ctx.lastGEMMAStateBeforeFailure or "",
-                                    "process_name": self.ctx.processName or "",
-                                    "trigger_var": "OPCUA.TriggerD2",
-                                    "state_name": "D2",
-                                },
+                                "tool": "deterministic_path_search",
+                                "args": _evd2_bootstrap_tool_args(self.ctx),
                             },
                             {
                                 "tool": "llm_prevention_suggestions",
@@ -880,9 +874,9 @@ class ExcHChatBotSession:
                         ]
                     }
                     response["tool_results"] = {
-                        "step_1:evd2_path_trace": diagnoseplan.get("path_trace", {}),
-                        "step_2:evd2_diagnoseplan": diagnoseplan.get("core", {}),
-                        "step_3:evd2_requirement_paths": diagnoseplan.get("requirement_paths", {}),
+                        "step_1:deterministic_path_search": diagnoseplan.get("path_trace", {}),
+                        "step_2:derived_core": diagnoseplan.get("core", {}),
+                        "step_3:derived_requirement_paths": diagnoseplan.get("requirement_paths", {}),
                         "step_4:llm_prevention_suggestions": suggestion_block,
                     }
                 return response
@@ -924,65 +918,28 @@ def _should_build_evd2_plan(ctx: IncidentContext) -> bool:
     return False
 
 
+def _evd2_bootstrap_tool_args(ctx: IncidentContext) -> Dict[str, Any]:
+    return {
+        "preset": "evd2_bootstrap",
+        "last_skill": ctx.lastSkill or "",
+        "last_gemma_state": ctx.lastGEMMAStateBeforeFailure or "",
+        "process_name": ctx.processName or "",
+        "trigger_var": "OPCUA.TriggerD2",
+        "state_name": "D2",
+        "skill_case": ctx.lastSkill or "TestSkill3",
+        "max_depth": 18,
+        "assumed_false_states": "D1,D2,D3",
+    }
+
+
 def build_evd2_diagnoseplan(session: ExcHChatBotSession) -> Dict[str, Any]:
     """Deterministische Composite-Analyse fÃ¼r evD2 (ohne LLM)."""
-    last_state = session.ctx.lastGEMMAStateBeforeFailure or ""
-
-    core = _safe_tool_exec(
-        session,
-        "evd2_diagnoseplan",
-        {
-            "last_skill": session.ctx.lastSkill or "",
-            "last_gemma_state": last_state,
-            "trigger_var": "OPCUA.TriggerD2",
-            "event_name": "evD2",
-            "port_name_contains": "D2",
-            "max_rows": 250,
-        },
-    )
-
-    unified = _safe_tool_exec(
-        session,
-        "evd2_unified_trace",
-        {
-            "last_gemma_state": last_state,
-            "state_name": "D2",
-            "target_var": "",
-            "max_depth": 18,
-            "trace_each_truth_path": True,
-            "assumed_false_states": "D1,D2,D3",
-            "verbose_trace": False,
-        },
-    )
-
-    req = _safe_tool_exec(
-        session,
-        "evd2_requirement_paths",
-        {
-            "last_gemma_state": last_state,
-            "state_name": "D2",
-            "target_var": "",
-            "max_depth": 18,
-            "trace_each_truth_path": True,
-            "assumed_false_states": "D1,D2,D3",
-            "verbose_trace": False,
-        },
-    )
-
-    path_trace = _safe_tool_exec(
-        session,
-        "evd2_path_trace",
-        {
-            "last_skill": session.ctx.lastSkill or "",
-            "last_gemma_state": last_state,
-            "process_name": session.ctx.processName or "",
-            "trigger_var": "OPCUA.TriggerD2",
-            "state_name": "D2",
-            "skill_case": session.ctx.lastSkill or "TestSkill3",
-            "max_depth": 18,
-            "assumed_false_states": "D1,D2,D3",
-        },
-    )
+    bootstrap_args = _evd2_bootstrap_tool_args(session.ctx)
+    path_trace = _safe_tool_exec(session, "deterministic_path_search", bootstrap_args)
+    raw = _as_dict(path_trace.get("raw"))
+    core = _as_dict(raw.get("core"))
+    unified = _as_dict(raw.get("unified_trace"))
+    req = _as_dict(raw.get("requirement_paths"))
 
     compact = _build_evd2_compact_bundle(
         ctx=session.ctx,
@@ -994,6 +951,7 @@ def build_evd2_diagnoseplan(session: ExcHChatBotSession) -> Dict[str, Any]:
 
     return {
         "pipeline": "evd2_composite_v1",
+        "bootstrap_tool": {"tool": "deterministic_path_search", "args": bootstrap_args},
         "core": core,
         "unified_trace": unified,
         "requirement_paths": req,
@@ -1213,21 +1171,15 @@ def run_initial_analysis(session: ExcHChatBotSession, debug: bool = True) -> Dic
                 result["plan"] = {
                     "steps": [
                         {
-                            "tool": "evd2_path_trace",
-                            "args": {
-                                "last_skill": session.ctx.lastSkill or "",
-                                "last_gemma_state": session.ctx.lastGEMMAStateBeforeFailure or "",
-                                "process_name": session.ctx.processName or "",
-                                "trigger_var": "OPCUA.TriggerD2",
-                                "state_name": "D2",
-                            },
+                            "tool": "deterministic_path_search",
+                            "args": _evd2_bootstrap_tool_args(session.ctx),
                         },
                     ]
                 }
                 result["tool_results"] = {
-                    "step_1:evd2_path_trace": diagnoseplan.get("path_trace", {}),
-                    "step_2:evd2_diagnoseplan": diagnoseplan.get("core", {}),
-                    "step_3:evd2_requirement_paths": diagnoseplan.get("requirement_paths", {}),
+                    "step_1:deterministic_path_search": diagnoseplan.get("path_trace", {}),
+                    "step_2:derived_core": diagnoseplan.get("core", {}),
+                    "step_3:derived_requirement_paths": diagnoseplan.get("requirement_paths", {}),
                 }
             return result
 

@@ -1,0 +1,82 @@
+@startuml
+title ExcH-KG-Agent - Modell-, Planner- und Werkzeug-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Modell-, Planner- und Werkzeug-Komponente" {
+  class Planner {
+    +plan(ctx): AnalysisPlan
+    +replan(ctx, partial_results): AnalysisPlan
+  }
+
+  class AnalysisPlan <<value object>> {
+    +goal: str
+    +steps: List<PlanStep>
+  }
+
+  class PlanStep <<value object>> {
+    +tool_name: str
+    +purpose: str
+  }
+
+  class ToolRegistry {
+    +register(tool): None
+    +execute(tool_name: str, args: dict): Any
+  }
+
+  abstract class BaseAgentTool {
+    +name: str
+    +description: str
+    +run(**kwargs): Any
+  }
+
+  class KGQueryTool
+  class StructureCodeAnalysisTool
+  class VariableSignalAnalysisTool
+  class PathReconstructionTool
+
+  class ToolResultBundle <<value object>> {
+    +results: Dict<str, Any>
+  }
+
+  class FoundationModelAdapter {
+    +synthesize(ctx, plan, results): str
+  }
+
+  AnalysisPlan *-- PlanStep
+  Planner --> AnalysisPlan : erzeugt
+  Planner --> ToolRegistry : orchestriert
+  ToolRegistry o-- BaseAgentTool
+  BaseAgentTool <|-- KGQueryTool
+  BaseAgentTool <|-- StructureCodeAnalysisTool
+  BaseAgentTool <|-- VariableSignalAnalysisTool
+  BaseAgentTool <|-- PathReconstructionTool
+  Planner --> ToolResultBundle : sammelt
+  FoundationModelAdapter ..> ToolResultBundle : nutzt
+  Planner --> FoundationModelAdapter : uebergibt Ergebnisse an
+}
+
+note right of Planner
+Kap. 3.4.3:
+Hier liegt der agentische Kern.
+Der Planner waehlt Analysepfade,
+koordiniert Werkzeuge und uebergibt
+deren Ergebnisse an das
+Foundation-Modell zur sprachlichen
+Aufbereitung.
+end note
+
+note bottom of BaseAgentTool
+Die vier Werkzeugtypen entsprechen
+direkt den in Kapitel 3.4.3
+genannten Analyseformen:
+KG-Abfrage, Struktur- und Codeanalyse,
+Variablen- und Signalanalyse,
+Pfadrekonstruktion.
+end note
+
+@enduml

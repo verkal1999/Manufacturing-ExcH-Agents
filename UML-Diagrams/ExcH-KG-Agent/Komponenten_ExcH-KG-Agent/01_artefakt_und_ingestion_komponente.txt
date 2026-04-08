@@ -1,0 +1,10 @@
+Komponente: Artefakt- und Ingestion-Komponente
+
+Zweck:
+Diese Komponente erschliesst das technische Quellenmaterial des ExcH-KG-Agenten. Sie nimmt Engineering-Artefakte auf, normalisiert sie und ueberfuehrt sie in eine strukturierte Wissensbasis.
+
+Diagrammidee:
+Der Schwerpunkt liegt auf der Pipeline-Orchestrierung, den einzelnen Verarbeitungsschritten und dem Parser fuer PLCopenXML und Hardware-Mappings. Zusaetzlich ist ein Quality-Gate aufgenommen, um die im Kapitel beschriebenen Guardrails der Artefaktaufbereitung sichtbar zu machen.
+
+Bezug zum Prototyp:
+Die Diagrammstruktur orientiert sich direkt an `ingestion_pipeline.py`, `plcopen_withHW.py` und den Datamodellen der Ingestion-Pipeline.

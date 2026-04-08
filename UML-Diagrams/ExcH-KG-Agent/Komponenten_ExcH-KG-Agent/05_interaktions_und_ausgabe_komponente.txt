@@ -1,0 +1,10 @@
+Komponente: Interaktions- und Ausgabe-Komponente
+
+Zweck:
+Die Interaktions- und Ausgabe-Komponente stellt Ergebnisse, Rueckfragen und Zwischenschritte fuer eine nutzende Instanz bereit. Gleichzeitig ist sie die Stelle, an der Guardrails, Eskalation und revisionsfaehige Nachvollziehbarkeit praktisch sichtbar werden.
+
+Diagrammidee:
+Das Diagramm kombiniert Ergebnisobjekte, Folgefragen, Guardrails und Audit-Trail in einer Ausgabeschicht. Damit wird die Rolle dieser Komponente als kontrollierte Schnittstelle zwischen Agent und Mensch deutlich.
+
+Bezug zum Prototyp:
+Die UI-Rolle orientiert sich an `excH_kg_agent_ui.py`. Ergebnis-, Guardrail- und Audit-Klassen sind bewusst konzeptionell modelliert, weil Kapitel 3.4.3 genau diese Funktionen beschreibt, auch wenn sie im Prototyp teilweise verteilt umgesetzt sind.

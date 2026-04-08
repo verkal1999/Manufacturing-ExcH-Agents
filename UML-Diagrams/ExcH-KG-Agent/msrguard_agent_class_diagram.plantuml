@@ -10,11 +10,13 @@ title msrguard - Agent Components Class Diagram
 ' Diese Notiz steht nun frei am Anfang
 note "Focus: Python agent components under\nMSRGuard_Anpassung/python/msrguard.\n\nC++ runtime details and the full ingestion pipeline\nare intentionally abstracted." as MainNote
 
-package "excH_agent_ui.py" {
+package "excH_kg_agent_ui.py" {
   class ExcHAgentUI <<module>> {
     +streamlit_main(): None
     +start_analysis(event): None
     +run_pipeline(cfg, event): dict
+    +load_ui_config(): UiConfig
+    +parse_args(): Namespace
   }
 
   class PipelineConfig <<dataclass>> {
@@ -39,7 +41,7 @@ package "excH_agent_ui.py" {
   ExcHAgentUI ..> UiConfig : loads
 }
 
-package "excH_agent_core.py" {
+package "excH_kg_agent_core.py" {
   class ExcHAgentCore <<module>> {
     +handle_event(event): dict
   }
@@ -63,8 +65,11 @@ package "excH_chatbot.py" {
     +summary: str
     +triggerEvent: str
     +lastSkill: str
+    +plcSnapshot: Any
     +lastGEMMAStateBeforeFailure: str
     +kg_ttl_path: str
+    +project_root: str
+    +agent_result: Any
     +triggerD2: bool
     +from_input(obj): IncidentContext
     +from_event(event): IncidentContext
@@ -81,7 +86,7 @@ package "excH_chatbot.py" {
   class ExcHChatbotFlows <<module>> {
     +build_session_from_input(obj): ExcHChatBotSession
     +build_evd2_diagnoseplan(session): dict
-    +run_initial_analysis(session): dict
+    +run_initial_analysis(session, debug): dict
     +build_initial_prompt(ctx, diagnoseplan): str
   }
 
@@ -206,11 +211,13 @@ package "chatbot_core.py" {
     class EvD2UnifiedTraceTool
     class EvD2RequirementPathsTool
     class EvD2PathTracingTool
+    class DeterministicPathSearchTool
 
     BaseAgentTool <|-- EvD2DiagnosisTool
     BaseAgentTool <|-- EvD2UnifiedTraceTool
     BaseAgentTool <|-- EvD2RequirementPathsTool
     BaseAgentTool <|-- EvD2PathTracingTool
+    EvD2PathTracingTool <|-- DeterministicPathSearchTool
   }
 
   ExceptionAnalysisTool --> KGStore
@@ -245,7 +252,7 @@ package "d2_trace_analysis.py" {
 
 ' Cross-Package Relationships
 ExcHAgentUI ..> ExcHAgentCore : handle_event()
-ExcHAgentUI ..> IncidentContext : from_event()
+ExcHAgentUI ..> IncidentContext : from_event() / from_input()
 ExcHAgentUI ..> ChatBot : build_bot()
 ExcHAgentUI ..> ExcHChatBotSession : creates
 ExcHAgentUI ..> ExcHChatbotFlows : run_initial_analysis()

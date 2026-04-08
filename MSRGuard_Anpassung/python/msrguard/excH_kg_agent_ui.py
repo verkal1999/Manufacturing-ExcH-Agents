@@ -1,10 +1,10 @@
 """
-Streamlit UI für den MSRGuard ExcH Agent (Chat + JSON Side Panels).
+Streamlit UI fuer den MSRGuard ExcH-KG Agent (Chat + JSON Side Panels).
 
 Start (mit optionalen Script-Args):
-  streamlit run python/msrguard/excH_agent_ui.py -- --event_json_path <event.json> --out_json <result.json>
+  streamlit run python/msrguard/excH_kg_agent_ui.py -- --event_json_path <event.json> --out_json <result.json>
 
-Alternativ: Event JSON im UI laden (Upload oder Pfad) und dann auf „Weiter“ klicken.
+Alternativ: Event JSON im UI laden (Upload oder Pfad) und dann auf "Weiter" klicken.
 """
 
 from __future__ import annotations
@@ -62,12 +62,12 @@ class UiConfig:
 def ensure_python_root_on_sys_path() -> None:
     """
     Erwartete Struktur:
-      .../python/msrguard/excH_agent_ui.py
+      .../python/msrguard/excH_kg_agent_ui.py
     -> sys.path soll .../python enthalten
     """
     try:
         here = Path(__file__).resolve()
-        python_root = here.parent.parent
+        python_root = here.parent.parent  # .../python/
         if str(python_root) not in sys.path:
             sys.path.insert(0, str(python_root))
     except Exception:
@@ -168,7 +168,7 @@ def parse_args() -> argparse.Namespace:
     Deshalb nur bekannte Argumente parsen und alles andere ignorieren.
 
     Übergabe in Streamlit:
-      streamlit run python/msrguard/excH_agent_ui.py -- --event_json_path <...> --out_json <...>
+      streamlit run python/msrguard/excH_kg_agent_ui.py -- --event_json_path <...> --out_json <...>
     """
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--event_json_path", required=False, default="", help="Pfad zur Event JSON (Input)")
@@ -397,11 +397,11 @@ def streamlit_main() -> None:
     def import_handle_event():
         ensure_python_root_on_sys_path()
         try:
-            from msrguard.excH_agent_core import handle_event  # type: ignore
+            from msrguard.excH_kg_agent_core import handle_event  # type: ignore
 
             return handle_event
         except Exception:
-            from excH_agent_core import handle_event  # type: ignore
+            from excH_kg_agent_core import handle_event  # type: ignore
 
             return handle_event
 
@@ -885,7 +885,7 @@ def main() -> None:
             print(
                 "Direktstart ohne Streamlit-Context erkannt, aber --event_json_path fehlt.\n"
                 "Bitte starten mit:\n"
-                "  streamlit run python/msrguard/excH_agent_ui.py -- --event_json_path <event.json> --out_json <result.json>\n"
+                "  streamlit run python/msrguard/excH_kg_agent_ui.py -- --event_json_path <event.json> --out_json <result.json>\n"
             )
             return
 
@@ -919,14 +919,14 @@ def main() -> None:
         if not bool(getattr(args, "open_browser", True)):
             cmd.append("--no_open_browser")
 
-        print("[excH_agent_ui] Bare-mode detected, starting Streamlit runner...")
+        print("[excH_kg_agent_ui] Bare-mode detected, starting Streamlit runner...")
         proc = subprocess.Popen(cmd)
         if bool(getattr(args, "open_browser", True)):
             try:
                 webbrowser.open_new_tab(ui_url)
-                print(f"[excH_agent_ui] UI geöffnet: {ui_url}")
+                print(f"[excH_kg_agent_ui] UI geöffnet: {ui_url}")
             except Exception as e:
-                print(f"[excH_agent_ui] Konnte Browser nicht automatisch öffnen ({ui_url}): {e}")
+                print(f"[excH_kg_agent_ui] Konnte Browser nicht automatisch öffnen ({ui_url}): {e}")
         wrote_out_json = False
         try:
             if out_json_file is None:
@@ -958,7 +958,7 @@ def main() -> None:
         if out_json_file is not None and not wrote_out_json:
             child_rc = proc.returncode if proc.returncode is not None else 1
             print(
-                f"[excH_agent_ui] Streamlit exited without writing out_json: {out_json_file} (rc={child_rc})",
+                f"[excH_kg_agent_ui] Streamlit exited without writing out_json: {out_json_file} (rc={child_rc})",
                 file=sys.stderr,
             )
             sys.exit(child_rc if child_rc != 0 else 2)

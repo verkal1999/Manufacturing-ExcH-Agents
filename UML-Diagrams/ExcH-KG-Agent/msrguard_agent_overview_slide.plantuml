@@ -1,4 +1,4 @@
-@startuml
+@startuml msrguard_agent_overview
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam shadowing false
@@ -9,11 +9,13 @@ skinparam nodesep 70
 skinparam DefaultFontSize 14
 left to right direction
 
-package "excH_agent_ui.py" {
+package "excH_kg_agent_ui.py" {
   class ExcHAgentUI <<module>> {
     +streamlit_main(): None
     +start_analysis(event): None
     +run_pipeline(cfg, event): dict
+    +load_ui_config(): UiConfig
+    +parse_args(): Namespace
   }
 
   class PipelineConfig <<dataclass>>
@@ -27,7 +29,7 @@ package "excH_agent_ui.py" {
   ExcHAgentUI ..> UiConfig : loads
 }
 
-package "excH_agent_core.py" {
+package "excH_kg_agent_core.py" {
   class ExcHAgentCore <<module>> {
     +handle_event(event): dict
   }
@@ -47,11 +49,18 @@ package "excH_chatbot.py" {
     +processName: str
     +triggerEvent: str
     +lastSkill: str
+    +plcSnapshot: Any
     +lastGEMMAStateBeforeFailure: str
     +kg_ttl_path: str
+    +project_root: str
+    +agent_result: Any
+    +triggerD2: bool
   }
 
   class ExcHChatBotSession {
+    +bot: ChatBot
+    +ctx: IncidentContext
+    +bootstrap_evd2_plan: dict
     +ensure_bootstrap_plan(): dict
     +ask(user_msg, debug, include_bootstrap): dict
   }
@@ -59,7 +68,8 @@ package "excH_chatbot.py" {
   class ExcHChatbotFlows <<module>> {
     +build_session_from_input(obj): ExcHChatBotSession
     +build_evd2_diagnoseplan(session): dict
-    +run_initial_analysis(session): dict
+    +run_initial_analysis(session, debug): dict
+    +build_initial_prompt(ctx, diagnoseplan): str
   }
 
   ExcHChatBotSession *-- IncidentContext
@@ -83,11 +93,10 @@ package "chatbot_core.py" {
 
 package "Support Modules" {
   class D2TraceAnalysis <<module>>
-  class KGInterface <<legacy>>
 }
 
 ExcHAgentUI ..> ExcHAgentCore : handle_event()
-ExcHAgentUI ..> IncidentContext : from_event()
+ExcHAgentUI ..> IncidentContext : from_event() / from_input()
 ExcHAgentUI ..> ChatBot : build_bot()
 ExcHAgentUI ..> ExcHChatBotSession : creates
 ExcHAgentUI ..> ExcHChatbotFlows : run_initial_analysis()
@@ -96,7 +105,6 @@ IncidentContext ..> AgentResult : optional input
 ExcHChatBotSession --> ChatBot : delegates
 ExcHChatbotFlows ..> ChatBot : build_bot()
 ExcHChatbotFlows ..> D2TraceAnalysis : bootstrap analysis
-KGInterface ..> ExcHAgentCore : legacy alternative path
 
 ExcHAgentUI -[hidden]-> ExcHAgentCore
 ExcHAgentCore -[hidden]-> IncidentContext
@@ -106,11 +114,6 @@ ChatBot -[hidden]-> D2TraceAnalysis
 note right of ExcHChatBotSession
 Caches a deterministic evD2 bootstrap plan
 before the normal chat loop continues.
-end note
-
-note bottom of KGInterface
-Legacy RDF/FMEA helper.
-Not part of the normal chatbot bootstrap path.
 end note
 
 @enduml

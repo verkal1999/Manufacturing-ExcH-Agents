@@ -42,7 +42,7 @@ def handle_event(event: Dict[str, Any]) -> Dict[str, Any]:
         diagnosis=f"Event type not implemented: {ev_type}",
         next_steps=[
             "This event type is not supported by the agent yet.",
-            "Extend excH_agent_core.handle_event(...) with a handler for this type.",
+            "Extend excH_kg_agent_core.handle_event(...) with a handler for this type.",
         ],
         proposed_actions=[],
         debug={"event": event},

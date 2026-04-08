@@ -1,0 +1,89 @@
+@startuml
+title ExcH-KG-Agent - Kontext- und Sitzungs-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Kontext- und Sitzungs-Komponente" {
+  class RuntimeEvent <<input>> {
+    +payload: dict
+  }
+
+  class ContextAssembler {
+    +from_event(event: RuntimeEvent): IncidentContext
+  }
+
+  class IncidentContext <<dataclass>> {
+    +correlationId: str
+    +processName: str
+    +summary: str
+    +triggerEvent: str
+    +lastSkill: str
+    +lastGEMMAStateBeforeFailure: str
+    +kg_ttl_path: str
+    +triggerD2: bool
+    +from_input(obj): IncidentContext
+  }
+
+  class RuntimeSnapshot <<value object>> {
+    +vars: List<ObservedSignal>
+    +rows: List<BrowseNode>
+  }
+
+  class ObservedSignal <<value object>> {
+    +id: str
+    +type: str
+    +value: Any
+  }
+
+  class BrowseNode <<value object>> {
+    +id: str
+    +node_class: str
+    +type: str
+  }
+
+  class GraphContextRef <<value object>> {
+    +kg_ttl_path: str
+    +focus_entities: List<str>
+  }
+
+  class SessionMemory {
+    +bootstrap_plan: dict
+    +turns: List<SessionTurn>
+  }
+
+  class SessionTurn <<value object>> {
+    +user_msg: str
+    +assistant_msg: str
+    +tool_trace: dict
+  }
+
+  class ExcHChatBotSession {
+    +ensure_bootstrap_plan(): dict
+    +ask(user_msg: str, debug: bool, include_bootstrap: bool): dict
+  }
+
+  ContextAssembler ..> RuntimeEvent : liest
+  ContextAssembler --> IncidentContext : erzeugt
+  IncidentContext o-- RuntimeSnapshot
+  RuntimeSnapshot *-- ObservedSignal
+  RuntimeSnapshot *-- BrowseNode
+  IncidentContext o-- GraphContextRef
+  ExcHChatBotSession *-- IncidentContext
+  ExcHChatBotSession *-- SessionMemory
+  SessionMemory o-- SessionTurn
+}
+
+note right of ExcHChatBotSession
+Kap. 3.4.3:
+Die Komponente fuehrt einen
+Fehlerfall in einen fortfuehrbaren
+Diagnosekontext ueber und haelt
+diesen ueber mehrere Rueckfragen
+hinweg in einer Sitzung zusammen.
+end note
+
+@enduml

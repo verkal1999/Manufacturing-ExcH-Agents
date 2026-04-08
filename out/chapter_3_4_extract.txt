@@ -1,0 +1,1697 @@
+--- PAGE 126 ---
+Konzept 
+123 
+ 
+nicht als Schritt zu maximaler Autonomie zu verstehen, sondern als Schritt zu einer technisch 
+tieferen, aber weiterhin kontrollierten Assistenz im betrieblichen Exception-Handling (siehe Ab-
+bildung 39). 
+3.4 Architektur der Agenten 
+In diesem Kapitel wird die Architektur der Agenten aufgebaut. Als Input in dieses Kapitel wer-
+den die funktionalen Anforderungen an Agenten betrachtet. Dazu werden zudem industrielle 
+Rahmenbedingungen für Agenten sowie Agenten-Designmuster untersucht, die durch die 
+Komponenten von Agenten umgesetzt werden.  
+3.4.1 Agenten Designmuster 
+In diesem Kapitel werden unterschiedliche Designmuster für die Agenten präsentiert und de-
+ren Fähigkeit, die E_REQs, R_REQs und Q_REQ zu erfüllen, diskutiert. Dies betrifft insbeson-
+dere Anforderungen an Kosten- und Latenzsteuerung, abgestufte Modellnutzung, Datenreife 
+und Integrationsfähigkeit, menschliche Aufsicht, Transparenz, Protokollierung, Governance, 
+ein angemessenes Autonomieniveau sowie architektonische Einfachheit. Die Muster wirken 
+damit nicht nur auf einzelne Fachfunktionen des Agenten, sondern auch auf dessen Be-
+herrschbarkeit und Anschlussfähigkeit im industriellen Einsatz. 
+Prompt Chaining 
+Prompt Chaining beschreibt ein Muster, bei dem eine komplexe Aufgabe nicht in einem einzi-
+gen großen Modellaufruf gelöst wird, sondern in eine Folge kleinerer, logisch aufeinander auf-
+bauender Teilaufgaben zerlegt wird. Das Ergebnis eines Schritts bildet dabei den Eingabekon-
+text des nächsten Schritts. Der Nutzen liegt vor allem darin, dass die Verarbeitung modularer, 
+besser kontrollierbar und robuster gegen Fehlinterpretationen wird. Außerdem erlaubt dieses 
+Muster, Zwischenergebnisse strukturiert zu validieren oder in standardisierten Formaten wie 
+JSON weiterzugeben [86, S. 3–15]. 
+Für einen ExcH-Agenten ist dieses Muster besonders geeignet, um aus heterogenen FMEA 
+und Engineering Artefakten zunächst strukturierte Informationen zu extrahieren, diese an-
+schließend semantisch einzuordnen und danach daraus Diagnosehinweise, Konfigurations-
+vorschläge oder Änderungsbedarfe abzuleiten. Damit trägt Prompt Chaining vor allem zu , 
+E_REQ3, E_REQ5, E_REQ6, E_REQ7 und auf der Laufzeitseite zu R_REQ10 bei, weil die 
+Hypothesenbildung für unbekannte Fehler in nachvollziehbare Teilschritte zerlegt werden 
+kann. Zusätzlich zu den bereits genannten E_REQs und R_REQs unterstützt Prompt Chaining 
+insbesondere Q_REQ2, Q_REQ3, Q_REQ11, Q_REQ12 und Q_REQ16. Der Grund liegt da-
+rin, dass eine Zerlegung komplexer Aufgaben in kleine, logisch getrennte 
+
+--- PAGE 127 ---
+Konzept 
+124 
+ 
+Verarbeitungsschritte nicht nur die inhaltliche Qualität verbessert, sondern auch Kosten und 
+Latenz gezielter steuerbar macht. Einzelne Teilaufgaben können mit unterschiedlich leistungs-
+fähigen Modellen bearbeitet werden, was eine abgestufte Modellnutzung ermöglicht. Gleich-
+zeitig entstehen nachvollziehbare Zwischenschritte, die sich protokollieren, prüfen und bei Be-
+darf durch Menschen bewerten lassen. Damit fördert Prompt Chaining sowohl Transparenz 
+als auch eine modular aufgebaute, architektonisch einfache Agentenstruktur. 
+Routing 
+Routing bezeichnet die dynamische Auswahl des jeweils passenden Verarbeitungswegs. Ein 
+Agent oder ein vorgeschalteter Router entscheidet anhand des Eingabekontexts, ob eine An-
+frage etwa an einen Spezialpfad, ein bestimmtes Werkzeug, einen Teilagenten oder eine Rück-
+frage weitergeleitet wird. Das kann als Übergang von einem starren linearen Ablauf zu einem 
+adaptiven Ablauf verstanden werden, in dem je nach Intention, Zustand oder Zwischenergeb-
+nis unterschiedliche Pfade aktiviert werden [86, S. 16]. 
+Für einen ExcH-Agenten ist Routing zentral, weil der Agent zwischen verschiedenen Situatio-
+nen unterscheiden muss, etwa zwischen Engineering-Anfrage und Laufzeitfall, zwischen be-
+kanntem und unbekanntem Fehler, zwischen Wissensabfrage, Konsistenzprüfung, SPS-Än-
+derungsanalyse und menschlicher Eskalation. Dadurch unterstützt das Muster besonders 0, 
+1, R_REQ1, R_REQ2, R_REQ9, R_REQ10 und R_REQ13. Gerade im Zusammenspiel mit 
+MSRGuard ist Routing wichtig, damit bekannte Fehler deterministisch im bestehenden Frame-
+work verbleiben und nur unklare oder unvollständig definierte Fälle in den agentischen Pfad 
+übergehen. Über die bereits zugeordneten E_REQs und R_REQs hinaus unterstützt Routing 
+vor allem Q_REQ2, Q_REQ3, Q_REQ5, Q_REQ15 und Q_REQ16. Routing ist für den ExcH-
+Agenten deshalb relevant, weil nicht jede Anfrage denselben Verarbeitungsaufwand rechtfer-
+tigt. Durch die kontextabhängige Auswahl von Pfaden, Werkzeugen oder Teilagenten kann der 
+Agent einfache, risikoarme und organisatorisch beherrschbare Fälle schlank verarbeiten, wäh-
+rend komplexere oder unklare Situationen gezielt an aufwendigere Pfade oder an menschliche 
+Instanzen übergeben werden. Damit trägt Routing sowohl zu einem angemessenen Autono-
+mieniveau als auch zu einer ressourcenschonenden und architektonisch einfachen Struktur 
+bei. 
+Reflection 
+Reflection beschreibt ein Muster der Selbstüberprüfung. Ein Agent bewertet dabei seine eige-
+nen Zwischenergebnisse oder eine zweite Prüfinstanz bewertet den ersten Entwurf anhand 
+vorab definierter Kriterien. Typisch ist ein Zyklus aus Erzeugung, Kritik und Überarbeitung. 
+Gulli betont, dass dieses Muster vor allem dann relevant wird, wenn Qualität, Genauigkeit und 
+Nachvollziehbarkeit wichtiger sind als reine Geschwindigkeit [86, S. 45]. 
+
+--- PAGE 128 ---
+Konzept 
+125 
+ 
+Für einen ExcH-Agenten eignet sich Reflection besonders für die Prüfung von FMEA-Inhalten, 
+für die Unterscheidung zwischen Fehler-Ursache, Fehler-Art und Fehler-Folge sowie für die 
+Plausibilitäts-Prüfung von vorgeschlagenen Monitoring-Maßnahmen oder System-Reaktio-
+nen. Damit wirkt das Muster vor allem auf E_REQ3, E_REQ5, E_REQ6, E_REQ7 und auf der 
+Laufzeit-Seite auf R_REQ3 und R_REQ10. In deinem Kontext könnte Reflection beispiels-
+weise prüfen, ob eine vorgeschlagene Reaktion tatsächlich zur klassifizierten Fehler-Art passt 
+und ob die JSON-Beschreibung der Schnittstelle vollständig und konsistent ist. Reflection un-
+terstützt zusätzlich vor allem Q_REQ9, Q_REQ10, Q_REQ11, Q_REQ12 und Q_REQ14. Das 
+Muster stärkt damit insbesondere die querschnittlichen Anforderungen an Kontrollierbarkeit, 
+menschliche Übersteuerbarkeit, nachvollziehbare Ergebnisentstehung und revisionsfähige 
+Dokumentation. Gerade im Kontext von FMEA-Inhalten, Monitoring-Maßnahmen und System-
+reaktionen ist Reflection wichtig, weil fachlich kritische Ergebnisse nicht unmittelbar übernom-
+men, sondern vor der Weiterverwendung erneut geprüft werden. Dadurch wird das Vertrauen 
+in den Agenten gestärkt und zugleich eine Grundlage für spätere Leistungsbewertung und 
+Qualitätsmessung geschaffen. 
+Tool  se 
+Tool-Use bedeutet, dass der Agent externe Werkzeuge gezielt und strukturiert aufruft, anstatt 
+sich ausschließlich auf das interne Modellwissen zu verlassen. Diese Werkzeuge können Da-
+tenbanken, KGs, Verifikationswerkzeuge, Schnittstellen zu Steuerungen, Suchsysteme oder 
+Codeausführungsumgebungen sein. Ein LLM entscheidet dabei, wann ein Werkzeug benötigt 
+wird, und übergibt dafür strukturierte Aufrufparameter [86, S. 59]. 
+Für einen ExcH-Agenten ist dieses Muster grundlegend, weil fast alle kritischen Funktionen 
+nur über externe Werkzeuge belastbar erfüllbar sind. Dazu gehören das Auslesen von Engi-
+neering-Artefakten, das Abfragen des FMEA-KGs, das Prüfen von NodeIds, Methoden, Ein- 
+und Ausgabe-Parametern, das Auslösen lokaler Reaktions-Routinen, das Abrufen von Steue-
+rungs-Zuständen und das Dokumentieren von Bearbeitungs-Ständen. Damit stützt Tool-Use 
+besonders E_REQ1, E_REQ6, E_REQ7, E_REQ8, E_REQ11 sowie R_REQ1 bis R_REQ7 
+und R_REQ11 bis R_REQ12. Ohne Werkzeugaufrufe bliebe der Agent auf textuelle Vermu-
+tungen beschränkt und könnte weder Engineering-Synchronisation noch Runtime-Unterstüt-
+zung belastbar leisten. Tool-Use trägt zusätzlich insbesondere zu Q_REQ7, Q_REQ8, 
+Q_REQ16 und Q_REQ17 bei. Der ExcH-Agent greift in vielen Aufgaben nicht direkt auf „Wis-
+sen im Modell“ zurück, sondern auf explizite Werkzeuge, Schnittstellen und technische Verar-
+beitungsschritte. Dadurch wird eine werkzeugneutrale Wissensrepräsentation nicht ersetzt, 
+sondern vielmehr praktisch nutzbar gemacht. Gleichzeitig setzt Tool-Use klar definierte 
+Konnektoren und aufrufbare Werkzeuge voraus, was unmittelbar an die Anforderungen zur 
+Integrationsfähigkeit und Synchronisationslogik anschließt. Da Werkzeuge als austauschbare 
+
+--- PAGE 129 ---
+Konzept 
+126 
+ 
+Bausteine eingebunden werden können, fördert dieses Muster außerdem eine modulare, er-
+weiterbare und an bestehende FMEA-, KG- und SPS-Umgebungen anschlussfähige Architek-
+tur. 
+Planning 
+Planning bezeichnet die Fähigkeit eines Agenten, aus einem übergeordneten Ziel eine geord-
+nete Folge von Teilschritten mit Zwischenzielen und Erfolgskriterien abzuleiten. Das Muster ist 
+besonders dann hilfreich, wenn die Lösungsreihenfolge nicht vollständig vorgegeben ist, son-
+dern erst aus Ziel, Kontext und Rand-Bedingungen erschlossen werden muss. Die Planung 
+muss für viele Anwendungsfälle nicht starr sein, sondern bei neuen Informationen angepasst 
+werden können [86, S. 80–92]. 
+Für einen ExcH-Agenten ist Planung vor allem für mehrstufige Diagnose- und Recovery-Ab-
+läufe wichtig. Im Engineering kann das Muster helfen, aus Änderungs-Ereignissen einen Be-
+arbeitungs-Plan abzuleiten, etwa Prüfung der Änderung, Zuordnung zum FMEA-Objekt, Ablei-
+tung der Konfigurationsanpassung und Dokumentation des Umsetzungsstands. Zur Laufzeit 
+kann daraus ein geordneter Diagnose- und Reaktionsplan für unbekannte Fehler entstehen. 
+Damit unterstützt Planning vor allem E_REQ8 sowie R_REQ3, R_REQ4, R_REQ5, R_REQ6, 
+R_REQ7 und R_REQ10. Planning unterstützt über die bereits genannte Wirkung auf E_REQs 
+und R_REQs hinaus besonders Q_REQ9, Q_REQ11, Q_REQ12 und Q_REQ15. Für den 
+ExcH-Agenten ist das deshalb relevant, weil mehrstufige Diagnose- und Recovery-Abläufe 
+nicht nur inhaltlich plausibel, sondern auch in ihrer Reihenfolge nachvollziehbar aufgebaut sein 
+müssen. Planung macht sichtbar, welche Zwischenschritte vorgesehen sind, welche Ziele in 
+welcher Reihenfolge verfolgt werden und an welchen Stellen ein Abbruch, eine Eskalation oder 
+eine menschliche Bestätigung erforderlich ist. Damit trägt Planning zu einem begrenzten und 
+kontrollierbaren Autonomieniveau bei und unterstützt zugleich die Nachvollziehbarkeit und 
+Protokollierung agentischer Abläufe. 
+Exception Handling and Recovery 
+Exception-Handling-and-Recovery beschreibt ein Muster für den kontrollierten Umgang mit 
+Fehlern, Störungen und unerwarteten Abweichungen in agentischen Systemen. Dazu gehören 
+nicht nur die Erkennung solcher Situationen, sondern auch Logging, Retry-Mechanismen, Fall-
+back-Strategien, degradierte Betriebsarten, Eskalation und strukturierte Wiederherstellungs-
+Abläufe. Ziel ist dabei nicht, jede Abweichung vollständig zu vermeiden, sondern unter realen 
+Bedingungen robust und nachvollziehbar mit ihr umzugehen. Dieses Muster ist damit beson-
+ders eng mit der Frage verbunden, wie ein Agent auch in unvollständig spezifizierten oder 
+veränderten Situationen handlungsfähig bleibt, ohne unkontrollierte Entscheidungen zu treffen 
+[86, S. 176–183]. 
+
+--- PAGE 130 ---
+Konzept 
+127 
+ 
+Für einen ExcH-Agenten bildet dieses Muster die unmittelbarste Brücke zu den R_REQ. Es 
+betrifft die Aufnahme von Fehler-Ereignissen, die Bereitstellung und Weitergabe des Fehler-
+kontexts, die Auswahl zulässiger Reaktionsformen, die kontrollierte Behandlung unbekannter 
+Fehler und die Rückmeldung des Behandlungszustands an andere Instanzen. Damit adres-
+siert das Muster insbesondere R_REQ1 bis R_REQ10. Zugleich ist es auch für die Enginee-
+ring-Sicht relevant, weil behandelte Fehlerfälle, Recovery-Muster und Fehlversuche wieder als 
+strukturierte Betriebserkenntnisse in die PFMEA-MSR und in den Wissensbestand zurückge-
+führt werden können. Davon profitiert insbesondere E_REQ9. Exception-Handling-and-
+Recovery stützt zusätzlich insbesondere Q_REQ9, Q_REQ10, Q_REQ11, Q_REQ12, 
+Q_REQ14 und Q_REQ15. Das Muster ist für den ExcH-Agenten deshalb zentral, weil es den 
+kontrollierten Umgang mit Unsicherheit, Fehlverhalten, Eskalation und Wiederherstellung for-
+malisiert. Damit wird verhindert, dass der Agent in kritischen Situationen als unkontrollierte 
+autonome Instanz agiert. Stattdessen entstehen klar begrenzte Handlungsräume, dokumen-
+tierte Eskalationspfade und nachvollziehbare Zustandsübergänge. Zugleich lässt sich das Ver-
+halten des Agenten anhand protokollierter Recovery-Verläufe später bewerten, was unmittel-
+bar die Anforderungen an Monitoring und Governance unterstützt. 
+Human in the Loop 
+Human-in-the-Loop bezeichnet ein Muster, bei dem ein Agent nicht vollständig autonom ent-
+scheidet, sondern an kritischen Stellen bewusst menschliche Rückkopplung einholt. Der 
+Mensch wird dabei nicht für jeden einzelnen Schritt benötigt, sondern gezielt an solchen Punk-
+ten eingebunden, an denen Unsicherheit, Haftungsfragen, Domänenwissen oder Sicherheits-
+anforderungen eine zusätzliche Bewertung erforderlich machen. Dadurch wird agentisches 
+Verhalten nicht aufgehoben, sondern kontrolliert ergänzt [86, S. 184–192]. 
+Für einen ExcH-Agenten ist Human-in-the-Loop besonders wichtig, weil sowohl die Pflege von 
+FMEA-Wissen als auch die Behandlung unbekannter Fehler nicht vollständig automatisiert 
+werden sollten. Im Engineering betrifft dies etwa die Bestätigung von Hinweisen auf Lücken, 
+semantischen Zuordnungen und Rückführungen in die PFMEA-MSR bei automatisiert nicht 
+eindeutig eingrenzbaren Fehlerursachen. In der Laufzeit betrifft es vor allem unklare Fehler-
+Fälle, Eskalationen und die Beurteilung vorgeschlagener Maßnahmen. Damit unterstützt das 
+Muster insbesondere E_REQ3, E_REQ9, R_REQ8, R_REQ9, R_REQ10 und R_REQ13. 
+Gleichzeitig hilft es, bestehende deterministische Abläufe nicht zu verdrängen, sondern nur 
+dort zu ergänzen, wo zusätzliche menschliche Bewertung erforderlich ist. Human-in-the-Loop 
+unterstützt besonders deutlich Q_REQ4, Q_REQ5, Q_REQ9, Q_REQ10, Q_REQ11, 
+Q_REQ12, Q_REQ13 und Q_REQ15. Dieses Muster ist im industriellen Kontext wesentlich, 
+weil der ExcH-Agent nicht als vollautonome Entscheidungsinstanz, sondern als kontrollierbare 
+Assistenz eingeführt werden soll. Die Einbindung menschlicher Aufsicht erlaubt einen 
+
+--- PAGE 131 ---
+Konzept 
+128 
+ 
+schrittweisen und risikoarmen Einstieg in den Agenteneinsatz, stärkt Vertrauen und macht zu-
+gleich die organisatorische Verantwortungszuordnung klarer. Darüber hinaus schafft Human-
+in-the-Loop eine natürliche Schnittstelle für Bestätigung, Korrektur, Verwerfung und Eskalation 
+agentischer Vorschläge und ist damit direkt mit Transparenz, Protokollierung und Governance 
+verknüpft. 
+Knowledge Retrieval 
+Knowledge-Retrieval beschreibt die Anreicherung eines LLMs mit externem Wissen vor der 
+Antworterzeugung, wie es auch bei RAG zum Einsatz kommt. Dabei werden passende Wis-
+sensbausteine zunächst aus einem externen Speicher abgerufen und anschließend in den 
+Verarbeitungskontext integriert. Auf diese Weise lässt sich parametrisches Modellwissen des 
+LLMs mit explizit gespeicherten, austauschbaren und aktualisierbaren Wissensquellen verbin-
+den. Der externe Wissensspeicher kann dabei dokumentenbasiert, vektorbasiert oder KG-ba-
+siert aufgebaut sein [86, S. 193–209]. 
+Für einen ExcH-Agenten ist Knowledge-Retrieval für beide Sichten zentral. Im Engineering 
+kann darüber Wissen aus FMEA-Formblättern, Spezifikationen, Änderungsdaten, Protokollen 
+und Steuerungsartefakten in eine maschinell weiterverarbeitbare Wissensbasis überführt wer-
+den. Im Runtime-Fall können daraus Informationen über Fehlermodi, Ursachen, Auswirkun-
+gen, Monitoring-Maßnahmen und Systemreaktionen abgerufen werden, um einen Fehler bes-
+ser einzuordnen. Besonders relevant ist, dass ein solcher Wissensabruf auch auf einem KG 
+aufsetzen kann. Für SPS-Programme bedeutet das, dass Programme, POUs, Methoden, Va-
+riablen, Datenflüsse, Dokumentation und Schnittstellen-Metadaten semantisch verknüpft wer-
+den können. Ein solcher Ansatz ist anschlussfähig an Code-KGs, die Programmstrukturen und 
+Programmsemantik modellieren, sowie an semantische Skill-Modelle, die aus SPS-Code und 
+PLCopenXML-Dateien abgeleitet werden. Damit unterstützt dieses Muster insbesondere 
+E_REQ1, E_REQ2, E_REQ4, E_REQ5, E_REQ9, E_REQ12, R_REQ2, R_REQ10, R_REQ11 
+und R_REQ12. Knowledge-Retrieval unterstützt zusätzlich insbesondere Q_REQ6, Q_REQ7, 
+Q_REQ8, Q_REQ11 und Q_REQ17. Für den ExcH-Agenten ist dieses Muster deshalb beson-
+ders wichtig, weil belastbare Agentenleistungen nur dann entstehen können, wenn der Agent 
+auf aktuelle, zugängliche und strukturell anschlussfähige Wissensquellen zugreift. Retrieval 
+auf Basis von Dokumenten, Vektorräumen oder Wissensgraphen verknüpft Datenreife mit 
+technischer Nutzbarkeit. Gleichzeitig erhöht es die Nachvollziehbarkeit der Ergebnisse, weil 
+Aussagen des Agenten auf explizit abrufbare Wissensbestände zurückgeführt werden können. 
+Da ein KG-basierter Abruf zugleich Anschluss an Code-KGs, PFMEA-MSR-Wissen und SPS-
+Artefakte schafft, unterstützt das Muster besonders stark die Interoperabilität der Gesamtar-
+chitektur. 
+
+--- PAGE 132 ---
+Konzept 
+129 
+ 
+Guardrails and Safety Patterns 
+Guardrails bzw. Safety-Patterns bezeichnen harte Leitplanken, die das Verhalten eines Agen-
+ten technisch und organisatorisch begrenzen. Dazu gehören Eingabe-Prüfungen, Ausgabe-
+Filter, Einschränkungen für Werkzeug-Nutzung, explizite Verhaltens-Grenzen und zusätzliche 
+Sicherheits-Prüfungen vor kritischen Aktionen. Solche Leitplanken dienen nicht dazu, agenti-
+sches Verhalten grundsätzlich zu verhindern, sondern dazu, zulässige Handlungs-Räume ein-
+deutig festzulegen und damit einen robusten und verlässlichen Betrieb zu ermöglichen [86, S. 
+266–285]. 
+Für einen ExcH-Agenten ist dieses Muster unverzichtbar, weil die Domäne sicherheitsrele-
+vante Reaktionen, Steuerungszugriffe und FMEA-bezogene Risikoaussagen umfasst. Guard-
+rails unterstützen daher insbesondere E_REQ3, E_REQ5, E_REQ7 sowie R_REQ3, 
+R_REQ4, R_REQ8, R_REQ9, R_REQ10 und R_REQ13. Praktisch bedeutet das bspw., dass 
+keine Monitoring-Maßnahme oder Systemreaktion freigegeben werden darf, wenn ihre Zuord-
+nung im Wissensbestand unklar ist oder dass Methoden, NodeIds und Parameter-Formate vor 
+einer Nutzung geprüft werden müssen oder dass in unklaren Situationen eine menschliche 
+Bestätigung oder ein sicherer Rückfallpfad erforderlich bleibt. Guardrails-and-Safety-Patterns 
+tragen zusätzlich besonders zu Q_REQ9, Q_REQ10, Q_REQ11, Q_REQ12, Q_REQ13, 
+Q_REQ14 und Q_REQ15 bei. Im Unterschied zu rein funktionalen Mustern begrenzen sie den 
+zulässigen Handlungsraum des Agenten technisch und organisatorisch. Damit fördern sie 
+nicht nur sichere und nachvollziehbare Ergebnisse, sondern auch eine belastbare Governance 
+des Systems. Für den ExcH-Agenten ist das besonders relevant, weil FMEA-bezogene Aus-
+sagen, Diagnosehypothesen und Vorschläge zu Monitoring-Maßnahmen oder Systemreaktio-
+nen nicht ohne Plausibilitäts- und Sicherheitsprüfungen in nachgelagerte Prozesse einfließen 
+dürfen. Guardrails schaffen damit die Voraussetzung dafür, dass der Agent als überprüfbare 
+Assistenz mit klaren Eingriffsgrenzen wahrgenommen werden kann. 
+In der Zusammenschau bilden Prompt-Chaining, Tool-Use und Knowledge-Retrieval die wis-
+sens- und verarbeitungsseitige Grundlage eines ExcH-Agenten. Routing und Planning struk-
+turieren den Ablauf und entscheiden, welche Verarbeitung in welcher Situation erforderlich ist. 
+Reflection verbessert die fachliche Qualität und Konsistenz der Ergebnisse. Exception-Hand-
+ling-and-Recovery bildet das zentrale Muster für den Laufzeit-Einsatz, während Human-in-the-
+Loop sowie Guardrails-and-Safety-Patterns die technische und organisatorische Absicherung 
+des Gesamtsystems gewährleisten. In dieser Kombination entsteht eine Agenten-Architektur, 
+die sowohl die Engineering-Seite mit PFMEA-MSR, KG und Änderungs-Nachverfolgung als 
+auch die Runtime-Seite mit MSRGuard, unbekannten Fehlern und abgesicherten Handlungs-
+Vorschlägen unterstützt. 
+
+--- PAGE 133 ---
+Konzept 
+130 
+ 
+3.4.2 Komponenten ExcH RAG Agent 
+Der ExcH-RAG-Agent wird in dieser Arbeit als bewusst einfach gehaltener ExcH-Agent konzi-
+piert. Seine Aufgabe besteht nicht darin, selbst eine neue Wissensbasis aufzubauen, sondern 
+vorhandene, bereits vorbereitete Wissens- und Dokumentbestände mit einem konkreten Lauf-
+zeitkontext zu verbinden und daraus eine vorsichtige Diagnoseunterstützung abzuleiten. Da-
+mit übernimmt er im Gesamtkonzept die Rolle einer kontrollierbaren Vergleichsarchitektur zum 
+umfangreicheren ExcH-KG-Agenten. Diese Einordnung passt zum in Kapitel 3 entwickelten 
+Vorgehen, da dort zwei unterschiedlich komplexe Agentenvarianten gegenübergestellt wer-
+den, um zusätzliche Komplexität gegen Nutzen in Flexibilität, Analysetiefe und Anschlussfä-
+higkeit abzuwägen. Zugleich entspricht dieser reduzierte Aufbau den querschnittlichen Anfor-
+derungen nach begrenzter Komplexität, schrittweiser Einführbarkeit, kontrollierbarer Assistenz 
+und modularer Erweiterbarkeit. Besonders deutlich adressiert der ExcH-RAG-Agent damit 
+Q_REQ1, Q_REQ4, Q_REQ5, Q_REQ9, Q_REQ15, Q_REQ16 und Q_REQ17. Auf der funk-
+tionalen Seite liegt sein Schwerpunkt vor allem auf der Runtime-Unterstützung, insbesondere 
+auf R_REQ9, R_REQ10, R_REQ11 und R_REQ13. Für die Engineering-Seite leistet er dage-
+gen nur einen begrenzten Beitrag, vor allem im Sinne von E_REQ10 bis E_REQ12, da er 
+bestehende Werkzeuge ergänzt, aber noch keinen eigenen FMEA-Wissensbestand pflegt. 
+Die nachfolgenden Komponenten sind deshalb entlang eines einfachen, nachvollziehbaren 
+Verarbeitungsflusses angeordnet. Zunächst wird festgelegt, mit welchem Foundation-Modell 
+der Agent arbeitet. Danach wird der Fehler- und Laufzeitkontext aufbereitet. Anschließend wer-
+den statische Steuerungsartefakte als Wissensgrundlage strukturiert, relevante Ausschnitte 
+daraus abgerufen und in eine vorsichtig abgesicherte Antworterzeugung überführt. Den Ab-
+schluss bildet eine Interaktionskomponente, über die Diagnosehinweise, Rückfragen und Er-
+gebnisse für eine nutzende Instanz bereitgestellt werden. Damit folgt der ExcH-RAG-Agent 
+genau jener Logik, die für einen einfachen RAG-basierten Agenten charakteristisch ist: exter-
+ner Wissensabruf vor der Antworterzeugung, geringe Orchestrierungstiefe und klar begrenzte 
+Autonomie. 
+Der ExcH-RAG-Agenten besitzt schlanke Komponentenarchitektur. Die Foundation-Model-
+Komponente stellt eine vergleichbare und austauschbare Modellbasis bereit. Die Kontext-
+Komponente verdichtet den Fehlerkontext. Die Artefakt- und Dokumenten-Komponente macht 
+statische Steuerungsinformationen Retrieval-fähig. Die Retrieval-Komponente wählt daraus 
+passende Kontextausschnitte aus. Die Generierungs- und Leitplanken-Komponente erzeugt 
+eine vorsichtige Diagnoseunterstützung innerhalb klarer Grenzen. Die Interaktions- und Sit-
+zungs-Komponente bindet diese Ergebnisse an eine nutzende Instanz zurück (siehe Abbil-
+dung 40). Damit entsteht ein Agent, der vor allem die laufzeitnahe Unterstützung unbekannter 
+Fehlerfälle adressiert, ohne bereits die höhere Komplexität eines wissensgraphbasierten 
+
+--- PAGE 134 ---
+Konzept 
+131 
+ 
+Agenten zu benötigen. Gerade dadurch eignet sich der ExcH-RAG-Agent als erste, kontrol-
+lierbare und methodisch saubere Vergleichsarchitektur im weiteren Verlauf der Arbeit. Um je-
+doch die Erfüllung der Anforderungen genauer zu untersuchen, werden die Komponenten des 
+ExcH-Agenten genauer betrachtet. 
+
+--- PAGE 135 ---
+Konzept 
+132 
+ 
+ 
+Abbildung 40: Komponenten des ExcH-RAG-Agenten 
+Foundation Modell Komponente 
+Eine erste Kernkomponente des ExcH-RAG-Agenten ist die Foundation-Modell-Komponente. 
+Für das Konzept ist dabei wichtig, dass der Agent nicht auf ein einziges Modell festgelegt ist, 
+ExcH RAG Agent
+Statische Steuerungsartefakte
+PLC penXML   Dokumentkontext
+Nutzende
+Instanz
+Artefakt und
+Dokumenten Komponente
+Retrieval 
+Komponente
+Generierungs und
+Leitplanken Komponente
+Foundation Model 
+Komponente
+Interaktions und
+Sitzungs Komponente
+Kontext 
+Komponente
+Statische
+Wissensbasis
+Retrievalfähige
+Dokumentsegmente
+Relevante
+Kontextausschnitte
+Sprachmodellfür
+Analyseund 
+Antwort
+Diagnose, Hinweise,
+Unsicherheit,Nächster
+Prüfschritt
+Vertiefungsfrage
+oderFolgeanfrage
+InitialeAnfrage
+und Sitzungsaufbau
+Strukturierter
+Analysekontext
+Fehlerkontext,Snapshot,
+Prozessbezug
+Laufzeitumgebung
+Anfrage, 
+Rückfrage, 
+Ergebnisnutzung
+
+--- PAGE 136 ---
+Konzept 
+133 
+ 
+sondern mit unterschiedlichen Foundation-Modellen aufgebaut und gegeneinander bewertet 
+werden kann (siehe Abbildung 40). Gerade für diese Arbeit ist das zentral, weil die Architektur 
+laut Q_REQ3 ausdrücklich eine aufgabenabhängige Nutzung unterschiedlich komplexer Mo-
+delle unterstützen muss. Ein einfacher RAG-Agent eignet sich dafür besonders gut, da seine 
+Verarbeitungskette überschaubar bleibt und Modellunterschiede dadurch vergleichbar beo-
+bachtet werden können. In der prototypischen Umsetzung ist zwar ein kleineres Modell als 
+Standard vorgesehen, die Modellwahl wird jedoch als Parameter an den Agenten übergeben. 
+Damit ist die Architektur bereits so vorbereitet, dass einfache Teilaufgaben mit kostengünsti-
+geren Modellen und anspruchsvollere Analyseschritte mit stärkeren Modellen bearbeitet wer-
+den können. Diese Komponente adressiert damit insbesondere Q_REQ2, Q_REQ3 und 
+Q_REQ16. 
+Konzeptionell übernimmt die Foundation-Modell-Komponente damit zwei Aufgaben gleichzei-
+tig. Erstens stellt sie die eigentliche sprachliche Analyse- und Generierungsfähigkeit bereit. 
+Zweitens bildet sie den technischen Ansatzpunkt für einen späteren Modellvergleich im Rah-
+men der Evaluation. Der ExcH-RAG-Agent ist damit nicht als modellgebundene Einzellösung 
+zu verstehen, sondern als schlanke Agentenarchitektur, in der unterschiedliche Foundation-
+Modelle unter denselben fachlichen Randbedingungen verglichen werden können. Das ist 
+nicht nur aus wirtschaftlicher Sicht relevant, sondern auch im Sinne von Kontrollierbarkeit und 
+Einführbarkeit, weil die Modellwahl damit als Architekturparameter und nicht als fest verdrah-
+tete Festlegung behandelt wird. 
+Kontext Komponente 
+Die zweite Komponente ist die Kontext-Komponente. Ihre Aufgabe besteht darin, aus einem 
+konkreten Fehlerereignis einen strukturierten Arbeitskontext für die Analyse zu bilden (siehe 
+Abbildung 40). Der ExcH-RAG-Agent verarbeitet dabei nicht nur eine freie Fehlerbeschrei-
+bung, sondern verdichtet den verfügbaren Laufzeitkontext zu einer Form, die für das spätere 
+Retrieval und die Antworterzeugung nutzbar wird. Wesentliche Bestandteile dieses Kontexts 
+sind die auslösende Fehlersituation, der fachliche Ablauf, in dem der Fehler auftrat, sowie be-
+obachtete Variablenwerte aus dem Laufzeit-Snapshot. In der prototypischen Umsetzung wird 
+dabei ausdrücklich zwischen tatsächlichen Laufzeitwerten und rein strukturellen Hinweisen 
+unterschieden. Dadurch wird vermieden, dass Strukturinformationen fälschlich als beobach-
+tete Zustände interpretiert werden. Diese Komponente adressiert vor allem R_REQ10 und 
+R_REQ11 sowie Q_REQ6 und Q_REQ11, weil sie sicherstellt, dass Diagnoseaussagen auf 
+einem nachvollziehbaren und zweckgeeignet aufbereiteten Fehlerkontext beruhen. 
+Der Agent antwortet somit nicht direkt aus einem ungeordneten Ereignis. Vielmehr wird zuerst 
+ein interpretierter Diagnosekontext erzeugt, der dann die Grundlage für die folgenden 
+
+--- PAGE 137 ---
+Konzept 
+134 
+ 
+Komponenten bildet. Damit entsteht bereits an dieser Stelle eine einfache Form von Prompt-
+Chaining: Das Rohereignis wird nicht unverändert an das Modell weitergereicht, sondern in 
+einen fachlich fokussierten Zwischenzustand überführt. Diese Vorstrukturierung ist für einen 
+ExcH-Agenten besonders wichtig, weil unbekannte Fehler nicht nur als Textproblem, sondern 
+immer als Kombination aus Laufzeitbeobachtung, Prozessbezug und Steuerungskontext ver-
+standen werden müssen. 
+Artefakt  und Dokumenten Komponente 
+Die dritte Komponente ist die Artefakt- und Dokumenten-Komponente. Sie stellt die statische 
+Wissensbasis des ExcH-RAG-Agenten bereit (siehe Abbildung 40). Im Unterschied zum ExcH-
+KG-Agenten wird hier kein eigener Wissensgraph aufgebaut. Stattdessen greift der Agent auf 
+bereits vorhandene technische Artefakte zurück und bereitet sie so auf, dass sie für einen 
+späteren Wissensabruf nutzbar werden. Im Mittelpunkt steht dabei die PLCopenXML als struk-
+turierter Programmkontext. Der Agent nutzt diese nicht als unstrukturierten Gesamttext, son-
+dern zerlegt sie in kleinere, inhaltlich sinnvoll abgegrenzte Einheiten. Besonders berücksichtigt 
+werden dabei Einheiten wie Projektinformationen, Ressourcen, Tasks, POUs, Programme, 
+Funktionsbausteine, globale Variablenlisten, Datentypen, Transitionen und Aktionen. Die Ar-
+chitektur folgt damit einer klaren Dokumentenlogik: statische Steuerungsartefakte werden in 
+eine Retrieval-fähige Form überführt, ohne bereits in eine semantisch reichhaltige Wissens-
+struktur transformiert zu werden. Diese Komponente unterstützt insbesondere R_REQ11 so-
+wie auf Engineering-Seite E_REQ10 bis E_REQ12. Zusätzlich adressiert sie Q_REQ6, 
+Q_REQ7, Q_REQ8 und Q_REQ16, weil sie auf ausreichender Datenqualität aufbaut, eine 
+werkzeugneutrale Zwischenschicht begünstigt und die Komplexität bewusst niedrig hält.  
+Diese Komponente ist entscheidend, weil sie den methodischen Unterschied zwischen RAG-
+Agent und KG-Agent konkret macht. Der ExcH-RAG-Agent benötigt keine eigene Wissensmo-
+dellierung, um bereits einen fachlich nutzbaren Diagnosebeitrag zu liefern. Er setzt stattdessen 
+auf vorbereitete technische Dokumente, die so aufbereitet werden, dass daraus später rele-
+vante Ausschnitte abgerufen werden können. Genau diese Begrenzung macht ihn als Ver-
+gleichsarchitektur wertvoll: Er zeigt, wie weit eine ExcH-Unterstützung bereits mit einer einfa-
+chen Dokumentenbasis tragen kann, bevor ein eigener Wissensgraph nötig wird. 
+Retrieval Komponente 
+Die vierte Komponente ist die Retrieval-Komponente. Sie übernimmt die Aufgabe, aus der 
+vorbereiteten Dokumentenbasis jene Ausschnitte zu identifizieren, die für den konkreten Feh-
+lerkontext voraussichtlich am relevantesten sind (siehe Abbildung 40). In der prototypischen 
+Umsetzung geschieht dies über ein bewusst einfach gehaltenes, transparentes Ranking-Ver-
+fahren. Damit folgt der ExcH-RAG-Agent zwar dem Grundprinzip von Retrieval-Augmented 
+
+--- PAGE 138 ---
+Konzept 
+135 
+ 
+Generation, verzichtet aber zunächst auf zusätzliche semantische Infrastrukturen wie einen 
+eigenen Vektorspeicher. Für das Konzept ist diese Entscheidung stimmig, weil sie den Agenten 
+kontrollierbar hält und gleichzeitig eine klare Zuordnung zwischen Frage, abgerufenen Kon-
+textstellen und Antwort ermöglicht. Die Retrieval-Komponente adressiert damit vor allem 
+Q_REQ2, Q_REQ9, Q_REQ11 und Q_REQ16 sowie R_REQ10 und R_REQ11. 
+Aus konzeptioneller Sicht ist das wichtig, weil Retrieval im ExcH-RAG-Agenten nicht nur der 
+Kontextbeschaffung dient, sondern auch der Nachvollziehbarkeit. Der Agent kann nur auf sol-
+che Wissensausschnitte antworten, die zuvor aus dem statischen Steuerungskontext ausge-
+wählt wurden. Dadurch bleibt er in seinem Handlungsraum bewusst eingeschränkt. Diese Be-
+grenzung passt zu Q_REQ9 und Q_REQ11, da der Agent als kontrollierbare Assistenz und 
+nicht als unkontrollierte autonome Instanz auftreten soll. Gleichzeitig bleibt offen, diese Kom-
+ponente später zu erweitern, etwa durch semantisch reichere Abrufmechanismen. Gerade 
+diese Erweiterbarkeit bei zunächst einfacher Grundarchitektur entspricht dem in den quer-
+schnittlichen Anforderungen geforderten modularen Vorgehen. 
+Generierungs  und Leitplanken Komponente 
+Die fünfte Komponente ist die Generierungs- und Leitplanken-Komponente. Sie übernimmt die 
+eigentliche Antworterzeugung, begrenzt diese aber zugleich durch klare Leitplanken. In der 
+prototypischen Umsetzung wird das Modell ausdrücklich angewiesen, nur auf Basis des ge-
+gebenen Kontexts zu antworten, Beobachtung, Struktur und Schlussfolgerung sauber zu tren-
+nen, Unsicherheit offen zu benennen und keine Ursachen oder Datenflüsse zu erfinden, die 
+im Kontext nicht belegt sind (siehe Abbildung 40). Für das Konzept des ExcH-RAG-Agenten 
+ist diese Komponente besonders wichtig, weil ein einfacher RAG-Agent ohne zusätzliche se-
+mantische Absicherungen sonst schnell in spekulative Diagnosen kippen könnte. Die Leitplan-
+ken sind deshalb kein Zusatz, sondern ein konstitutiver Bestandteil der Agentenarchitektur. Sie 
+adressieren insbesondere Q_REQ9, Q_REQ10, Q_REQ11 und Q_REQ12 sowie R_REQ10 
+und R_REQ13. Darüber hinaus knüpfen sie an die in Kapitel 3.3.2 bereits hergeleiteten Muster 
+Guardrails-and-Safety-Patterns und Human-in-the-Loop an.  
+Diese Komponente stellt den Übergang vom bloßen Wissensabruf zur fachlichen Assistenz 
+dar. Der ExcH-RAG-Agent soll keine automatische Reaktionslogik auslösen, sondern nach-
+vollziehbare Diagnosehinweise erzeugen. Seine Stärke liegt damit weniger in operativer Ein-
+griffstiefe als in der plausiblen Verbindung von statischem Steuerungskontext und beobachte-
+tem Fehlerkontext. Gerade weil der Agent im Runtime-Kontext unbekannte Fehler unterstüt-
+zen soll, ist eine vorsichtige und explizit begrenzte Generierung sinnvoller als eine scheinbar 
+souveräne, aber schlecht abgesicherte Antwort. 
+
+--- PAGE 139 ---
+Konzept 
+136 
+ 
+Interaktions  und Session Komponente 
+Die sechste Komponente ist die Interaktions- und Session-Komponente. Ihre Aufgabe besteht 
+darin, den ExcH-RAG-Agenten für eine nutzende Instanz zugänglich zu machen und die Ana-
+lyse in einer nachvollziehbaren Sitzung zu organisieren. Dabei wird zunächst aus dem Ereignis 
+und dem aufbereiteten Kontext eine Standardanfrage erzeugt. Anschließend wird eine initiale 
+Analyse durchgeführt und das Ergebnis in einer Sitzungslogik abgelegt, sodass weitere Rück-
+fragen oder Vertiefungen anschließen können. In der prototypischen Umsetzung ist zusätzlich 
+vorgesehen, dass vor der Agenteninitialisierung optional eine vorgelagerte Artefaktaufberei-
+tung angestoßen werden kann (siehe Abbildung 40). Konzeptionell wichtig ist hier jedoch we-
+niger die konkrete Oberfläche als die Funktion der Komponente: Sie stellt sicher, dass der 
+Agent nicht isoliert arbeitet, sondern über eine klar definierte Interaktionsschnittstelle mit einer 
+nutzenden Instanz verbunden bleibt. Damit adressiert sie insbesondere R_REQ13 sowie 
+Q_REQ4, Q_REQ5, Q_REQ10 und Q_REQ12. Darüber hinaus unterstützt sie auf Enginee-
+ring-Seite erneut E_REQ10 und E_REQ11, weil der Agent als ergänzende Integrationsinstanz 
+und nicht als Ersatz bestehender Werkzeuge auftritt. 
+Gerade für einen ExcH-Agenten ist diese Komponente zentral, weil die Diagnoseunterstützung 
+nicht als vollautomatischer Endpunkt gedacht ist. Vielmehr müssen Rückfragen, Hinweise, 
+Vorschläge und gegebenenfalls auch menschliche Entscheidungen in einem kontrollierten 
+Austausch möglich bleiben. Die Interaktions- und Sitzungs-Komponente ist damit die Stelle, 
+an der die fachliche Nutzbarkeit des ExcH-RAG-Agenten praktisch greifbar wird. Sie bildet den 
+organisatorischen Anschluss an frühe Einführungsstufen und passt damit gut zu einem schritt-
+weisen, risikoarmen Einsatz in der Unternehmenspraxis. 
+3.4.3 Komponenten ExcH KG Agent 
+Der ExcH-KG-Agent wird in dieser Arbeit als wissensbasierter ExcH-Agent konzipiert, der 
+seine Wissensbasis nicht nur abruft, sondern zunächst selbst aus Engineering-Artefakten der 
+Steuerungswelt aufbaut und anschließend für strukturierte Diagnose- und Unterstützungsleis-
+tungen nutzt. Im Unterschied zum ExcH-RAG-Agenten beginnt seine Verarbeitung daher nicht 
+erst beim Wissensabruf, sondern bereits bei der kontrollierten Erschließung, Semantisierung 
+und Organisation des zugrunde liegenden Wissens. Genau dadurch wird der ExcH-KG-Agent 
+zur wissensintensiveren und tieferen der beiden Agentenvarianten. Zugleich werden für den 
+Aufbau alle vorgestellten Designmustern verwendet. Dieser arbeitet nicht nur mit Knowledge-
+Retrieval, sondern auch Prompt-Chaining, Routing, Planning, Tool-Use, Exception-Handling-
+and-Recovery, Human-in-the-Loop sowie Guardrails-and-Safety-Patterns. Das zentrale Kon-
+zept dieses Agenten ist somit, eine Landschaft an Design-Patterns zusammenwirken zu las-
+sen. Damit adressiert der ExcH-KG-Agent besonders stark die Anforderungen an Datenreife, 
+
+--- PAGE 140 ---
+Konzept 
+137 
+ 
+Integrationsfähigkeit, Nachvollziehbarkeit, menschliche Aufsicht, Protokollierung, Gover-
+nance, ein angemessenes Autonomieniveau und architektonische Erweiterbarkeit. Besonders 
+relevant sind damit Q_REQ6 bis Q_REQ17 sowie auf der Engineering-Seite E_REQ1 bis 
+E_REQ12 und auf der Runtime-Seite vor allem R_REQ8 bis R_REQ13. 
+Der ExcH-KG-Agent weist damit gegenüber dem ExcH-RAG-Agenten eine deutlich tiefere und 
+wissensintensivere Architektur auf. Ausgangspunkt sind statische Steuerungsartefakte wie 
+PLCopenXML, I/O-Mappings und Projektinformationen, die in der Artefakt- und Ingestion -
+Komponente aufgenommen und normalisiert werden. Die Ontologie-Komponente überführt 
+diese strukturierte Ausgangsbasis in eine semantisch verknüpfte Wissensrepräsentation und 
+legt sie in einem persistenten KG ab. Die Kontext- und Sitzungs-Komponente verbindet den 
+jeweiligen Fehlerkontext aus der Laufzeitumgebung mit diesem Wissensspeicher, hält den Sit-
+zungszustand sowie den relevanten Graph-Kontext vor und schafft damit die Ausgangsbasis 
+für die eigentliche Analyse. Diese erfolgt in der Modell-, Planner- und Werkzeugkomponente. 
+Dort wählt der Planner abhängig vom Fehlerfall geeignete Analysepfade aus, orchestriert 
+Werkzeuge wie KG-Abfrage, Struktur- und Codeanalyse, Variablen- und Signalanalyse sowie 
+Pfadrekonstruktion und übergibt deren Ergebnisse an das Foundation-Modell zur sprachlichen 
+Aufbereitung. Die Interaktions- und Ausgabe-Komponente stellt die resultierenden Antworten, 
+Rückfragen und Zwischenergebnisse schließlich für eine nutzende Instanz bereit und führt 
+Folgefragen wieder in den Sitzungszusammenhang zurück (siehe Abbildung 41). Damit wird 
+der ExcH-KG-Agent als wissensbasierte Vollarchitektur sichtbar, die die Erschließung techni-
+scher Artefakte, ihre semantische Ablage, die kontextbezogene Analyse unbekannter Fehler-
+fälle und die kontrollierte Bereitstellung von Diagnosehinweisen in einer gemeinsamen Archi-
+tektur verbindet. Er adressiert damit sowohl die Engineering-Seite mit PFMEA-MSR, Wissens-
+graph und Steuerungsartefakten als auch die Runtime-Seite mit Laufzeitkontext, MSRGuard 
+und abgesicherten Handlungsvorschlägen. 
+
+--- PAGE 141 ---
+Konzept 
+138 
+ 
+ 
+Abbildung 41: Komponentenüberblick ExcH-KG-Agent 
+ExcH KG Agent
+Statische Steuerungsartefakte
+PLC penXM L, I  Mappings und 
+Projektinformationen
+Nutzende
+Instanz
+Artefakt und
+Ingestion Komponente
+ ntologie Komponente
+Modell ,Planner und Werkzeugkomponente
+Interaktions und
+Ausgabe 
+Komponente
+Kontext und 
+Sitzungs 
+Komponente
+Artefakte aufnehmen und 
+normalisieren
+Strukturierte 
+Ausgangsbasis
+Semantische Überführung und Ablage
+Fehlerkontext, 
+Snapshot, 
+Prozessbezug
+Abfragen durch 
+Werkzeuge
+Auswahl und 
+Orchestrierung 
+von Werkzeugen
+Folge-
+fragen, 
+Sitzungs-
+fort-
+setzung
+Laufzeitumgebung
+Anfrage, Rückfrage, 
+Ergebnisnutzung
+Persistenter 
+KG
+Struktur und 
+Codeanalyse
+KG 
+Abfrage
+Variablen 
+und Signal 
+analyse
+Pfadrekon
+ struktion
+Planner Foundation 
+Modell
+Werkzeuge
+Modellauswahl
+fürAufgabe
+Gesamt-
+ergebnis
+Daten
+Wissensbezug, Graph-Kontext
+Antwort
+Teil-
+ergebnisse 
+der 
+Werkzeuge
+
+--- PAGE 142 ---
+Konzept 
+139 
+ 
+Artefakt  und Ingestion Komponente 
+Die erste Komponente des ExcH-KG-Agenten ist die Artefakt- und Ingestion-Komponente. Ihre 
+Aufgabe besteht darin, Engineering-Artefakte aus der Steuerungswelt aufzunehmen, tech-
+nisch zu normalisieren und in eine maschinell weiterverarbeitbare Wissensbasis zu überfüh-
+ren. In der prototypischen Umsetzung umfasst dies insbesondere die Aufnahme projektbezo-
+gener Informationen, die Gewinnung einer PLCopenXML-basierten Repräsentation, die Er-
+zeugung von I/O-Zuordnungen und die Vorbereitung weiterer Strukturinformationen aus dem 
+Steuerungskontext. Für die Architektur ist diese Komponente konstitutiv, weil der ExcH-KG-
+Agent nicht von bereits bereinigtem Wissen ausgeht, sondern den Übergang von rohen Arte-
+fakten zu einer nutzbaren Wissensgrundlage selbst mitträgt (siehe Abbildung 41). Verwendete 
+Designmuster sind hier vor allem Prompt-Chaining, weil die Artefaktaufbereitung in mehrere 
+logisch getrennte Transformationsschritte zerlegt wird, sowie Guardrails-and-Safety-Patterns, 
+weil nur ausreichend geeignete und technisch belastbare Artefakte in die spätere Wissensba-
+sis übernommen werden dürfen. Zusätzlich ist die Komponente anschlussfähig an Routing, 
+weil unterschiedliche Artefaktquellen und Vorverarbeitungspfade je nach Eingangssituation 
+unterschiedlich behandelt werden können. Damit unterstützt sie insbesondere E_REQ1, 
+E_REQ10, E_REQ11 und E_REQ12 sowie Q_REQ6, Q_REQ7, Q_REQ8 und Q_REQ17. Zu-
+gleich schafft sie die Grundlage für R_REQ11 und R_REQ12, da der tatsächliche Steuerungs-
+stand auch außerhalb des unmittelbaren CPU-Run-Betriebs in die Wissensbasis überführt 
+werden kann. 
+Gerade im Vergleich zum ExcH-RAG-Agenten wird an dieser Stelle der architektonische Un-
+terschied besonders deutlich. Der ExcH-RAG-Agent beginnt mit einem bereits verfügbaren 
+Dokumentenkontext. Der ExcH-KG-Agent beginnt früher und tiefer, nämlich bei der kontrollier-
+ten Erschließung des technischen Quellenmaterials. Die Artefakt- und Ingestion-Komponente 
+ist damit nicht nur eine vorbereitende Hilfsschicht, sondern bereits ein Teil des eigentlichen 
+Agentenkonzepts. 
+ ntologie   Komponente 
+Die zweite Komponente ist die Ontologie-Komponente. Sie bildet das semantische Zentrum 
+des ExcH-KG-Agenten. Ihre Aufgabe besteht darin, die aufgenommenen Engineering-Arte-
+fakte in eine werkzeugneutrale, semantisch verknüpfte Wissensrepräsentation zu überführen. 
+Diese Wissensschicht bildet nicht nur allgemeine Strukturen eines SPS-Projekts ab, sondern 
+ist gezielt für spätere agentische Analyse- und Diagnoseoperationen angelegt. Modelliert wer-
+den dabei unter anderem Projekte, Programmorganisationseinheiten, Funktionsbausteinty-
+pen, Instanzen, Ports, Variablen, globale Variablenlisten, Hardwarekanäle, Signalquellen so-
+wie konkrete Aufruf- und Zuweisungsstrukturen. Gerade dadurch wird aus der PLCopenXML 
+
+--- PAGE 143 ---
+Konzept 
+140 
+ 
+nicht nur ein Dokument, sondern ein traversierbarer Wissensgraph, in dem Struktur- und Sig-
+nalzusammenhänge explizit repräsentiert sind (siehe Abbildung 41). Verwendete Designmus-
+ter sind hier vor allem Knowledge-Retrieval, weil diese Komponente die Grundlage für späte-
+ren wissensbasierten Zugriff schafft, sowie erneut Prompt-Chaining, weil die Semantisierung 
+nicht in einem einzigen Schritt erfolgt, sondern von der Strukturaufnahme über die Zuordnung 
+bis zur relationalen Modellierung verläuft. Ergänzend wirken Guardrails-and-Safety-Patterns, 
+weil die Ontologie den zulässigen semantischen Handlungsraum des Agenten strukturell be-
+grenzt. Diese Komponente adressiert besonders E_REQ2, E_REQ4, E_REQ5 und E_REQ12 
+sowie Q_REQ7, Q_REQ8, Q_REQ11 und Q_REQ17. Für die Runtime schafft sie zugleich die 
+Voraussetzung für R_REQ11 und R_REQ12, da Programme, Variablen, Zustände, Übergänge 
+und Wirkzusammenhänge des Steuerungsstands in einer aktuellen Repräsentation verfügbar 
+gemacht werden.  
+Da die Ontologie dem Agenten die Basis dafür stellt, wie dieser ein Programm zu verstehen 
+hat, wird diese im Folgenden genauer analysiert. Ein ontologisches Informationsmodell kann 
+allgemein aus multiplen Wissensdomänen stammen und ist somit austausch- und erweiterbar.  
+Konkret bedeutet dies, dass der Agent in der Lage sein muss, Fragen wie 
+• Welches Eingangssignal löst dieses Fehlersignal aus?  
+• Welche Hardware-Ausgänge werden von diesem Skill angesteuert?  
+• Welche Bausteine werden von diesem Programm aufgerufen und welche Variablen 
+verbinden sie?  
+auf Basis des Wissensgraphen strukturiert zu beantworten, ohne dabei jedes Mal den vollstän-
+digen Quellcode durchlaufen zu müssen. Das setzt voraus, dass die Signalflüsse, Aufrufstruk-
+turen und Hardware-Bezüge der Steuerungslogik vollständig und lückenlos im Graphen reprä-
+sentiert sind. 
+Abgrenzung zu verwandten Ontologien 
+Ein wesentlicher Aspekt bei der Konzeption des Informationsmodells ist die Frage, ob und in 
+welchem Umfang bestehende Ontologien als Grundlage oder direkte Vorlage genutzt werden 
+können. Die Analyse der einschlägigen Literatur zeigt, dass mehrere relevante Ontologien für 
+IEC-61131-3 und verwandte Standards existieren, jedoch keine davon den spezifischen An-
+forderungen des hier verfolgten Agenten-Use-Cases vollständig entspricht: 
+•  ntoPLC ist eine OWL-basierte Ontologie, deren primäres Ziel die plattformunabhängige 
+Repräsentation von SPS-Projekten für automatischen Codeaustausch und Software-Wie-
+derverwendung ist. OntoPLC modelliert die wesentlichen IEC-61131-3-Konzepte wie 
+POUs, Variablen und Ressourcen in OWL und ermöglicht SPARQL-basierte Abfragen zur 
+
+--- PAGE 144 ---
+Konzept 
+141 
+ 
+Identifikation wiederverwendbarer Codeeinheiten. Damit beantwortet OntoPLC strukturelle 
+Fragen auf Typebene [87, S. 1702–1711]. Für den ExcH-KG-Agenten ist OntoPLC jedoch 
+nicht ausreichend. Es fehlt jede Modellierung des konkreten Signalflusses auf Parameter-
+zuweisungsebene. OntoPLC beschreibt, welche Bausteine existieren und welche Variab-
+len sie besitzen, aber nicht, welches konkrete Signal zur Laufzeit an welchem Port anliegt, 
+über welche Zwischenstufen es läuft und ob es letztlich einen Hardware-Ausgang beein-
+flusst. Ebenso fehlen Hardware-Mappings auf Kanalebene, Qualitätsflaggen für unge-
+nutzte Variablen und Ports sowie Strukturen für Skill-Hypothesen. 
+• Es gibt mehrere IEC 1499  ntologien, die als geschichtete OWL-DL-Ontologien für den 
+Standard IEC 61499 (siehe Kap. 2.2.3) realisiert sind. Die Ontologien nutzen zudem 
+SWRL-Regeln für semantische Korrektheitsprüfungen und enthalten auch eine Abbil-
+dungsschicht zur Migration von IEC-61131-3-Projekten auf IEC 61499 [88], [89]. Diese On-
+tologien sind jedoch auf Code-Darstellung, -Migration und -Generierung ausgelegt, nicht 
+auf die semantische Analyse vorhandener Steuerungslogik durch einen Agenten. Dieser 
+Vergleich ist gleichzeitig ein Hinweis auf die Erweiterbarkeit des hier gewählten Ansatzes: 
+Das grundlegende Prinzip, einen Wissensgraphen aus Engineering-Artefakten einer SPS-
+Plattform aufzubauen, der Signalflüsse explizit modelliert, lässt sich prinzipiell auf andere 
+Programmierparadigmen übertragen. Für IEC-61499-basierte Projekte würde dies bedeu-
+ten, dass statt dem zyklischen Ausführungsmodell ein ereignisgesteuertes Aufrufmodell 
+mit Event-Connections modelliert würde, während die Grundstruktur weitgehend übertrag-
+bar bliebe. Dasselbe gilt für andere industrielle Automatisierungsplattformen, die ebenfalls 
+auf PLCopen-XML oder vergleichbaren Exportformaten basieren. Das Informationsmodell 
+ist damit nicht als monolithische Eigenentwicklung zu verstehen, sondern als adaptierbare 
+Informationsarchitektur, die für den hier relevanten IEC-61131-3-Kontext konkretisiert wird. 
+• PLC2Skill ist das thematisch am nächsten liegende verwandte Werk. Es beschreibt eine 
+Methode zur automatischen Generierung von Skill-Beschreibungen in Form einer Ontolo-
+gie aus IEC-61131-3-Code. Der Ansatz besteht aus einer TwinCAT-Bibliothek, die ein nor-
+miertes Skill-Framework mit definierten Zustandsübergängen vorgibt, sowie einem Java-
+basierten Mapper, der PLCopen-XML-Exporte in eine Skill-Ontologie transformiert. Der 
+entscheidende Unterschied besteht jedoch in der Voraussetzung. PLC2Skill setzt zwin-
+gend voraus, dass die Steuerungsentwickler den Skill nach einer spezifischen Bibliotheks-
+struktur gemäß einem bestimmten Skill-Modell implementieren. Bestehende, gewachsene 
+SPS-Projekte mit eigener Steuerungsarchitektur sind damit nicht abgedeckt. Zudem mo-
+delliert PLC2Skill ausschließlich die Skill-Schnittstelle (Zustandsübergänge, Parameter), 
+nicht die interne Signalflussstruktur des Codes [90, S. 1–6]. Fragen nach der Herkunft kon-
+kreter Signale, nach Hardware-Ausgabe-Wirkpfaden oder nach der Verkettung von Bau-
+steinaufrufen lassen sich mit PLC2Skill nicht beantworten. 
+
+--- PAGE 145 ---
+Konzept 
+142 
+ 
+Der gemeinsame Nenner aller drei verwandten Ansätze ist, dass sie den Signalfluss auf Para-
+meterzuweisungsebene nicht oder nur rudimentär abbilden. Für den ExcH-KG-Agenten, des-
+sen Kernaufgabe es ist, den Weg eines Signals durch die Steuerungslogik bis zum Hardware-
+Ausgang nachzuverfolgen und Fehlerursachen auf dieser Grundlage zu rekonstruieren, ist ge-
+nau diese Ebene unverzichtbar. Somit wird für den Agenten eine eigene Ontologie aufgebaut, 
+die sich an den verwandten Ansätzen orientiert.  
+Um im Folgenden die Ausgestaltung des Informationsmodells zu verdeutlichen, wird der Auf-
+bau der Ontologie anhand eines Beispiels eines SPS-Programms erläutert. Das im Folgenden 
+beschriebene Informationsmodell ist plattformunabhängig konzipiert und lässt sich grundsätz-
+lich auf jeden IEC-61131-3-konformen PLCopen-XML-Export anwenden, unabhängig von Her-
+steller oder Entwicklungsumgebung. Zur Veranschaulichung wird ein TwinCAT-3-Beispielpro-
+jekt herangezogen, das eine typische GEMMA-basierte Steuerungsarchitektur einer modula-
+ren Produktionsanlage implementiert. Das Projekt besteht aus einem zyklisch ausgeführten 
+Hauptprogramm (MAIN) sowie sieben FBs, die verschiedene Betriebszustände und Pro-
+zessabläufe kapseln:  
+• FB_Betriebsarten realisiert die zentrale Zustandsmaschine mit neun GEMMA-Zu-
+standsausgängen (A1, A2, A5, A6, F1, D1, D2, D3, F4) (siehe Kap. 2.2.2) 
+• FB_Automatikbetrieb_F1 implementiert eine zeitgesteuerte Automatik-Sequenz mit 
+OPC-UA-Statusrückmeldungen 
+• FB_Diagnose_D2 kapselt eine Diagnoseroutine  
+• FB_Notaus_D1 und FB_InitFahrt_A6_A2 behandeln Sicherheits- bzw. Initialisierungs-
+verhalten  
+• FB_ProduktionMitStoerung_D3 sowie FB_Methode1Job decken Störungs- und Auf-
+tragspfade ab 
+Das Hauptprogramm instanziiert alle diese Bausteine als lokale Variablen (fbBA, fbAuto, 
+fbDiag, fbNot, fbInit, fbProStoer, fbJob) und verdrahtet ihre Ports mit globalen Variablen 
+aus zwei globalen Variablenlisten (GVLs): GVL für interne Steuersignale wie GVL.Start, 
+GVL.Fehler und GVL.NotStopp sowie OPCUA für die OPC-UA-Schnittstelle mit Variablen 
+wie OPCUA.lastExecutedSkill und OPCUA.DiagnoseFinished. Dieses Projekt ist bewusst 
+so gewählt, dass es die wesentlichen Strukturmerkmale realer industrieller SPS-Pro-
+gramme abdeckt. Es enthält hierarchische Bausteinaufrufe, hardwaregebundene Variab-
+len, globale Signalverteilung, normierte Standardbausteine als Infrastruktur und projekt-
+spezifische FBs als eigentliche Fachlogik. Die nachfolgend beschriebenen Konzepte des 
+Informationsmodells gelten in dieser Form für jedes IEC-61131-3-Projekt, das als PLCo-
+pen-XML exportiert werden kann. 
+
+--- PAGE 146 ---
+Konzept 
+143 
+ 
+Für das Beispiel werden die drei Präfixe ag: für den allgemeinen Agenten-Namensraum, dp: 
+für Data Properties und op: für Object Properties. Die Ontologie gliedert sich in fünf konzeptu-
+elle Schichten, die aufeinander aufbauen, die im Folgenden genauer erläutert werden. 
+Die Projektebene mit class_PLCProject bildet den obersten Container aller Elemente. Die 
+Programmebene mit der POU-Klassenhierarchie modelliert alle Bausteine des Projekts – Pro-
+gramme, Function-Block-Typen und ihre Spezialisierungen. Die Schnittstellenebene mit 
+class_Port und class_FBInstance beschreibt die formalen Schnittstellen und konkreten 
+Instanziierungen. Die Signalquellen-Schicht mit der abstrakten Oberklasse class_Signal-
+Source und ihren Unterklassen modelliert alle möglichen Ursprünge von Signalen. Die Sig-
+nalfluss-Schicht mit class_POUCall und class_ParameterAssignment bildet die voll-
+ständige Verdrahtungslogik ab. Ergänzt wird das Modell durch class_GlobalVariable-
+List und class_IOChannel als Infrastrukturklassen sowie durch eine domänensemanti-
+sche Erweiterungsschicht mit Skill-Klassen als Zielkonzepte für die agentenbasierte Inferenz 
+und Verknüpfung zum FMEA-Wissensgraphen (siehe Abbildung 42 und Abbildung 43). 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- PAGE 147 ---
+Konzept 
+144 
+ 
+ 
+Abbildung 42: Basisaufbau Wissensgraph SPS-Informationsmodell für Agent 
+Symbol Erklärung
+DataProperty
+Inherited DataProperty
+Class
+SubClass
+ bjectProperty
+SubProperty
+Domain
+Range
+ bjectProperty1 
+ bjectProperty 2
+hasPLCProjectName
+PLCProject
+hasPOUName
+hasPOUCode
+hasPOUDeclarationHeader
+hasPOULanguage
+hasConsistencyReport
+P  
+ 
+Skill
+ 
+Monitoring
+Action
+ 
+System
+Reaction
+ 
+FBType
+hasPortAttribute
+hasPortDirection
+hasPortName
+hasPortType
+hasDefaultPortValue
+IsUnusedPort
+Port
+ 
+Program
+SignalSource
+                 
+Expression
+PortInstance
+hasValue
+SourceLiteral hasVariableName
+hasDefaultVariableValue
+hasHardwareAddress
+hasOPCUADataAccess
+hasOPCUAWriteAccess
+ 
+Variable
+Consists
+ fP  
+I Channel
+Implements
+Skill
+Implements
+MonAct
+Implements
+SysR
+hasFBInstance-
+Name
+FBInstance
+hasGlobalVariableListName
+GlobalVariableList
+uses
+SignalSource
+hasPort isFBInstance f
+Instantiates
+Port
+implementsPort
+ usesPort
+represents
+FBInstance
+isExpression
+CreatedBy
+isBoundTo
+Channel
+listsGlobal 
+Variable
+FMEA 
+KG
+
+--- PAGE 148 ---
+Konzept 
+145 
+ 
+Projektebene: class_PLCProject 
+Die Klasse class_PLCProject repräsentiert das gesamte SPS-Projekt als oberste Contai-
+ner-Entität im Wissensgraphen. Sie fasst alle Programmorganisationseinheiten zusammen, 
+die aus einem PLCopen-XML-Export abgeleitet werden, und dient als eindeutiger Einstiegs-
+punkt für alle nachgelagerten SPARQL-Abfragen. Durch das explizite Modellieren des Projekts 
+als Knoten können mehrere Projektversionen oder Anlagenvarianten im selben Graphen 
+koexistieren, ohne dass Individuen unterschiedlicher Projekte verwechselt werden. Die einzige 
+Data Property dieser Klasse ist dp:hasPLCProjectName (xsd:string), die den menschenles-
+baren Projektnamen trägt. Die Object Property op:consistsOfPOU (Range: class_POU) 
+verknüpft das Projekt direkt mit all seinen enthaltenen Bausteinen und ermöglicht es dem 
+Agenten, den gesamten Bestand in einer einzigen SPARQL-Traversal zu erreichen (siehe Ab-
+bildung 42). 
+Beispiel: Im verwendeten Referenzprojekt existiert die Instanz ag:PLCPro-
+ject__Proj1 mit dp:hasPLCProjectName "Proj1". Über op:consistsOfPOU 
+ist sie mit acht POUs verbunden, darunter ag:Program_MAIN und 
+ag:FBType_FB_Betriebsarten. 
+Programmebene: die POU-Klassenhierarchie 
+Die Klasse class_POU bildet die gemeinsame Abstraktion für alle ausführbaren oder wieder-
+verwendbaren Bausteine des Projekts. Als Oberklasse für class_Program und 
+class_FBType trägt sie die gemeinsamen Attribute aller Bausteine: den vollständigen Quell-
+text in dp:hasPOUCode (xsd:string), die Programmiersprache in dp:hasPOULanguage, den 
+Deklarationsblock in dp:hasPOUDeclarationHeader, den Bezeichner in dp:hasPOUName 
+sowie den vom Analyse-Modul automatisch generierten Konsistenzbericht in dp:hasCon-
+sistencyReport. Durch Reasoning werden alle Instanzen von Unterklassen automatisch 
+auch als class_POU-Instanzen erkannt, was einheitliche Abfragen über alle Bausteintypen 
+ohne Fallunterscheidung ermöglicht (siehe Abbildung 42). 
+class_Program ist eine Unterklasse von class_POU und repräsentiert ein zyklisch ausge-
+führtes SPS-Programm. Programme instanziieren FBs als lokale Variablen, verschalten deren 
+Ports mit globalen Variablen und orchestrieren den gesamten Ablauf. class_FBType ist 
+ebenfalls eine Unterklasse von class_POU und beschreibt einen Function-Block-Typ als wie-
+derverwendbaren Baustein mit fester Schnittstelle. Sie spezialisiert sich in class_Stan-
+dardFBType für normierte IEC-61131-3-Bibliotheksbausteine (TON, TOF, TP, R_TRIG, 
+F_TRIG, SR, RS, CTU, CTD, CTUD) sowie in class_CustomFBType für projektspezifische 
+Bausteine. Standard -FB-Typen werden beim Start des Wissensgraphen aus einer 
+
+--- PAGE 149 ---
+Konzept 
+146 
+ 
+eingebetteten Definitionsliste automatisch mit ihren Ports erzeugt und stehen als Ziel für Auf-
+rufbeziehungen zur Verfügung. Custom-Bausteine werden durch einen Reasoning-Schritt 
+klassifiziert: Alle class_FBType-Instanzen, die nicht class_StandardFBType sind, erhal-
+ten automatisch rdf:type ag:class_CustomFBType. Zusätzlich tragen Custom-Bau-
+steine die booleschen Flags dp:isGEMMAStateMachine und dp:isGEMMAOutputLayer, 
+mit denen das Analyse-Modul heuristisch die Rolle eines Bausteins in der GEMMA-Steue-
+rungsarchitektur klassifiziert (siehe Abbildung 42). 
+Beispiel: Die Instanz ag:FBType_FB_Automatikbetrieb_F1 ist ein 
+class_CustomFBType mit dp:hasPOULanguage "ST". Ihr automatisch generierter 
+Konsistenzbericht lautet: "Baustein: FB_Automatikbetrieb_F1 | Inputs: AutoRestartEn-
+able (BOOL), Automatikbetrieb_Starten (BOOL), FaultPulse (TIME) | Outputs: Automa-
+tikbetrieb_Fertig (BOOL), Stoerung_erkannt (BOOL) | Ruft auf: R_TRIG, TON, TP | 
+UNGENUTZTE Variablen (7): PeriodicFaultEnable, RestartPulseLength, ...". Der Nor-
+mierungsbaustein ag:StandardFBType_TON besitzt die vier Ports IN (BOOL, In-
+put), PT (TIME, Input), Q (BOOL, Output) und ET (TIME, Output) und 
+dient als Ziel von op:isInstanceOfFBType für alle TON-Instanzen im Projekt. 
+Schnittstellenebene: class_Port und class_FBInstance 
+Die Klasse class_Port repräsentiert einen formalen Schnittstellenparameter eines Function-
+Block-Typs auf der Typebene. Jede Port-Instanz trägt dp:hasPortName (den Bezeichner), 
+dp:hasPortDirection ("Input" oder "Output"), dp:hasPortType (den IEC-Daten-
+typ), dp:hasDefaultPortValue (Initialwert aus dem Deklarationsheader) sowie 
+dp:isUnusedPort (boolean, Flag für nie referenzierte Ports). Ports existieren ausschliess-
+lich auf der Typebene  ihre konkrete Ausprägung innerhalb einer bestimmten Instanz wird 
+durch class_PortInstance in der Signalquellen-Schicht repräsentiert. 
+Die Klasse class_FBInstance beschreibt eine konkrete Instanz eines Function-Block-Typs 
+innerhalb einer POU. Im SPS-Code entspricht dies einer lokalen Variablendeklaration, deren 
+Typ kein IEC-Basistyp ist, sondern auf einen FBType verweist (z. B. tSchritt1 : TON). Das 
+Analyse-Modul erkennt solche Variablen und erzeugt automatisch eine FBInstance, die über 
+op:isInstanceOfFBType (Range: class_FBType) mit dem Typ verknüpft ist. Der Instanz-
+name wird in dp:hasFBInstanceName (xsd:string) gespeichert – er ist die Schlüsselinfor-
+mation, die der Regex-Parser des Analyse-Moduls benötigt, um Aufrufmuster im ST-Code dem 
+richtigen Instanzknoten zuzuordnen und daraus Aufruf- und Zuweisungsknoten zu generieren. 
+Die deklarierenden Variable zeigt via op:representsFBInstance (Range: 
+class_FBInstance) auf diese Instanz. 
+
+--- PAGE 150 ---
+Konzept 
+147 
+ 
+Beispiel: Die Deklaration tSchritt1 : TON im Baustein FB_Automatikbetrieb_F1 er-
+zeugt die Instanz ag:FBInst_FB_Automatikbetrieb_F1_tSchritt1 mit dp:has-
+FBInstanceName "tSchritt1"  und op:isInstanceOfFBType ag:Standard-
+FBType_TON. Die Variable ag:Var_FB_Automatikbetrieb_F1_tSchritt1 zeigt via 
+op:representsFBInstance auf diese FBInstance. Der Quellcode-Aufruf tSchritt1(IN 
+:= Schritt1, PT := T#55S)  wird vom Analyse -Modul vollständig in einen 
+class_POUCall-Knoten mit zwei class_ParameterAssignment-Instanzen aufgelöst. 
+Signalquellen-Hierarchie: class_SignalSource und ihre Unterklassen 
+Die Klasse class_SignalSource ist eine abstrakte Oberklasse, die alle möglichen Ur-
+sprünge eines Signals im Steuerungsnetzwerk zusammenfasst. Unabhängig davon, ob ein 
+Wert aus einer deklarierten Variable, dem Ausgang einer FB-Instanz, einem konstanten Literal 
+oder einem zusammengesetzten Ausdruck stammt, kann er als class_SignalSource mo-
+delliert werden. Diese Abstraktion ist entscheidend für polymorphe SPARQL-Abfragen: Die 
+Property op:assignsFrom einer Parameterzuweisung zeigt stets auf eine class_Signal-
+Source, und eine einzige Abfrage findet alle Signalquellen, ungeachtet ihrer konkreten Art. 
+Die Property op:usesSignalSource (Domain: class_POU, Range: class_Signal-
+Source) dient als abstrakte Navigationskante von einer POU zu all ihren genutzten Signal-
+quellen. 
+class_Variable ist die wichtigste Unterklasse von class_SignalSource und repräsen-
+tiert Variablen jeder Art: lokale Variablen, globale Variablen aus GVL-Listen, Eingangs- und 
+Ausgangsvariablen sowie Hardware-gebundene Variablen. Die Data Properties umfassen 
+dp:hasVariableName, dp:hasVariableType, dp:hasVariableScope (Enum: "lo-
+cal", "global", "input", "output"), dp:hasDefaultVariableValue, dp:hasHard-
+wareAddress (physikalische E/A-Adresse wie %QX0.2), dp:hasOPCUADataAccess, 
+dp:hasOPCUAWriteAccess sowie das Qualitätsflag dp:isUnusedVar. 
+class_PortInstance ist eine Unterklasse von class_SignalSource und bildet die kon-
+krete Ausprägung eines Ports innerhalb einer spezifischen FB-Instanz ab – also den tatsäch-
+lich ausgelesenen Ausgangswert an einem Instanzpin zur Laufzeit. Sie trägt dp:hasExpres-
+sionText (xsd:string) mit dem Ausdruck "Instanzname.Portname", ist über op:isPor-
+tOfInstance (Range: class_FBInstance) mit der FBInstance und über op:instanti-
+atesPort (Range: class_Port) mit dem abstrakten Port verknüpft. Durch op:instanti-
+atesPort kann der Agent ausgehend von einer konkreten PortInstance den abstrakten Port 
+mit Richtung und Datentyp ermitteln. Das ist unverzichtbar für Typkompatibilitätsprüfungen im 
+Signalpfad. 
+
+--- PAGE 151 ---
+Konzept 
+148 
+ 
+class SourceLiteral ist eine weitere Unterklasse von class_SignalSource und repräsen-
+tiert konstante Literalwerte, die direkt als Eingangsparameter verwendet werden (TRUE, 
+FALSE, T#5S, T#55S usw.). Ohne diese Klasse würden Ports mit konstanter Beschaltung im 
+Graphen als unbeschaltet erscheinen, was die Vollständigkeit des Signalflussmodells beein-
+trächtigen würde. 
+class Expression ist die vierte Unterklasse von class_SignalSource und behandelt zu-
+sammengesetzte boolesche oder arithmetische Ausdrücke aus mehreren Variablen, Operato-
+ren oder Literalen. Sie trägt dp:hasExpressionText und verweist über op:isExpressi-
+onCreatedBy (Range: class_SignalSource) auf die Teilquellen. Dies erlaubt dem Agen-
+ten, die Abhängigkeiten eines Ausdrucks auf Variablenebene zu analysieren, ohne den Text 
+selbst parsen zu müssen. 
+Beispiel: Im Aufruf tSchritt1(IN := Schritt1, PT := T#55S)  in FB_Auto-
+matikbetrieb_F1 sind die Variable ag:Var_FB_Automatikbe-
+trieb_F1_Schritt1 (class_Variable) und der Zeitwert ag:Literal_T_55S 
+(class_SourceLiteral) beide Instanzen von class_SignalSource. Im MAIN-
+Programm erscheint der Ausdruck fbBA.F1, der F1-Ausgang der Betriebsarten-In-
+stanz, als class_PortInstance-Instanz ag:PortIn-
+stance_FBInst_MAIN_fbBA_F1 mit dp:hasExpressionText "fbBA.F1". Die 
+SPARQL-Abfrage ?assignment op:assignsFrom ?source findet alle drei Typen 
+einheitlich. 
+Infrastrukturklassen: class_GlobalVariableList und class_IOChannel 
+Die Klasse class_GlobalVariableList beschreibt eine globale Variablenliste (GVL) als 
+Container projektweit zugänglicher Variablen. Sie trägt dp:hasGlobalVariableListName 
+und ist über op:listsGlobalVariable (Range: class_Variable) mit ihren Variablen 
+verbunden. Im Referenzprojekt existieren zwei GVLs: GVLList_GVL mit internen Steuersig-
+nalen (GVL.Start, GVL.Stopp, GVL.Fehler, GVL.NotStopp) und GVLList_OPCUA mit 
+der OPC-UA-Schnittstelle (OPCUA.lastExecutedSkill, OPCUA.TriggerD1, OPCUA.Di-
+agnoseFinished u. a.). Ein Agent, der alle OPC-UA-Trigger identifizieren möchte, traversiert 
+direkt GVLList_OPCUA → op:listsGlobalVariable → class_Variable  und erhält 
+alle relevanten Variablen in einer SPARQL-Abfrage. 
+Die Klasse class_IOChannel repräsentiert einen physikalischen Hardwarekanal der SPS 
+und bildet die Brücke zwischen der Logikebene des Wissensgraphen und der realen Anlage. 
+Eine Variable wird über op:isBoundToChannel (Range: class_IOChannel) mit ihrem 
+Hardwarekanal verbunden. Die IOChannel-Knoten entstehen aus dem Hardware-Mapping 
+
+--- PAGE 152 ---
+Konzept 
+149 
+ 
+des TwinCAT-Projekts. Im Zusammenspiel mit dp:hasHardwareAddress auf der Variable 
+ergibt sich eine vollständige Beschreibung der E/A-Belegung. Diese Schicht ist für den Agen-
+ten besonders relevant, wenn er nachvollziehen soll, welche Signale letztlich Hardware-Aus-
+gänge ansteuern – der für die Fehlerdiagnose entscheidende letzte Schritt im Signalpfad. 
+Beispiel: Eine Variable GVL.Motor1_Enable mit dp:hasHardwareAddress 
+"%QX0.2" ist via op:isBoundToChannel mit ag:IOChannel_Device1_Mo-
+dule3_Channel2 verbunden. Der vollständige Traversierungspfad für einen Agenten 
+lautet: Skill → POU → Variable → IOChannel . Nur mit diesem lückenlosen 
+Modell kann der Agent beantworten, welche Aktoren ein bestimmter Skill physikalisch 
+ansteuert. Gleichzeitig kann der Agent damit dynamisch ermitteln, welche Änderung 
+am SPS-Code welche Hardware-Änderungen hervorrufen würde. 
+FMEA-Schnittstellen 
+Die Klassen class_Skill, class_MonitoringReaction und class_SystemReaction 
+bilden die wesentlichen Schnittstellen zur PFMEA-MSR. Sie stellen Zielkonzepte für die wis-
+sensbasierte Inferenz des Agenten dar und werden im automatischen Befüllungsschritt nicht 
+instanziiert. Diese Klassen werden im Engineering beim Erzeugen der FMEA befüllt und wer-
+den dann im Engineering mithilfe der Änderungen, die auf der SPS getätigt werden, aktuali-
+siert. 
+Die Klasse class_SkillImplementationHypothesis dient als strukturierter Container 
+für eine Hypothese, welcher Skill durch welche SPS-Methoden implementiert werden könnte. 
+Daraus können Vorschläge generiert werden, die das Engineering bei der FMEA-Erstellung 
+unterstützen. Diese Klasse trägt dp:hasConfidence (Konfidenzwert), dp:hasRationale 
+(textueller Begründungstext), dp:hasEvidenceSnippet (relevanter Codeausschnitt), 
+dp:inferredAt (Zeitstempel) und dp:inferredByModel (verwendetes GenAI-Modell). 
+Über op:hasHypothesisAboutPOU verweist die Hypothese auf die analysierte POU, über 
+op:hasHypothesisAboutSkill auf den hypothetischen Skill. Diese Struktur ist auch mit 
+dem FMEA-KG verknüpfbar. Wird eine Implementierungshypothese für einen Skill bestätigt, 
+kann der Agent den entsprechenden Skill direkt mit FMEA-Wissen (Fehlerursachen, Monito-
+ring-Aktionen und Systemreaktionen) in Beziehung setzen und so eine durchgängige Brücke 
+von der Steuerungslogik zur Fehlermodellierung schlagen. 
+Beispiel: Der Agent analysiert FBType_FB_Automatikbetrieb_F1 und erkennt an-
+hand von GEMMA -Flags, OPC -UA-Schreibzugriffen auf OPCUA.lastExecut-
+edSkill und dem Muster aus R_TRIG, TON und TP, dass dieser Baustein einen zeit-
+gesteuerten Automatikbetrieb implementiert. Er generiert eine 
+
+--- PAGE 153 ---
+Konzept 
+150 
+ 
+class_SkillImplementationHypothesis mit dp:hasConfidence "0.87"  
+und dp:hasRationale "Baustein implementiert Start -Sequenz mit 
+zwei zeitgesteuerten Schritten und OPC -UA-Statusausgaben". Nach 
+menschlicher Bestätigung wird op:implementsSkill auf den validierten Skill ge-
+setzt. 
+Object Properties: das Rückgrat des Wissensgraphen 
+Die Object Properties sind das eigentliche Rückgrat des Wissensgraphen. Sie sind der Grund, 
+warum der Agent den Wissensgraphen dem einfachen Dokumentenabruf vorzieht. Während 
+ein RAG-System Texte semantisch ähnlich abruft, kann der Agent im Wissensgraphen gezielt 
+Pfade traversieren, Ursache-Wirkungs-Ketten nachverfolgen und strukturelle Eigenschaften 
+direkt abfragen. Tabelle 7 gibt eine Übersicht aller Object Properties mit Domain, Range und 
+semantischer Bedeutung. Dabei werden Domain und Range als abstrakte Instanzen der Klas-
+sen, die ein class_ als Präfix hätten, dargestellt. Dennoch gibt es ein paar kritische Property-
+Pfade, die eine genauere Erläuterung benötigen und somit orange in der Tabelle markiert wer-
+den.  
+Tabelle 7: Alle Object Properties des Informationsmodells 
+ bject Property Semantische Bedeutung 
+op:consistsOfPOU (PLCProject, POU) Projekt enthält diese POU strukturell 
+op:hasPort(FBType, Port) FBType definiert diesen Schnittstellenparameter 
+op:containsPOUCall (POU, POUCall) POU enthält diesen konkreten Bausteinaufruf 
+op:callsPOU(POUCall, POU) Aufruf zielt auf diesen Bausteintyp 
+op:hasCallerVariable(POUCall, Variable) FB-Instanzvariable trägt diesen Aufruf im Code 
+op:hasAssignment(POUCall, ParameterAs-
+signment) 
+Diesem Aufruf sind diese Parameterzuweisungen 
+zugeordnet 
+op:assignsFrom(ParameterAssignment, Sig-
+nalSource) 
+Diese Signalquelle liefert den Wert der Zuweisung 
+op:assignsToPort(ParameterAssignment, Port) Signal wird an diesen formalen Port-Parameter 
+übergeben 
+op:assignsToVariable(ParameterAssignment, 
+Variable) 
+Signal wird in diese Variable geschrieben (ST-Zu-
+weisung) 
+op:hasInternalVariable(POU, Variable) POU deklariert und besitzt diese Variable 
+
+--- PAGE 154 ---
+Konzept 
+151 
+ 
+ bject Property Semantische Bedeutung 
+op:usesVariable(POU, Variable) POU referenziert diese Variable im Quellcode 
+op:usesLiteral(POU, SourceLiteral) POU nutzt diesen Literalwert als Signalquelle 
+op:implementsPort(Variable, Port) Variable ist interne Realisierung dieses Ports (1:1) 
+op:isBoundToPort(Variable, Port) Externe Variable wird beim Aufruf an diesen Port 
+gelegt 
+op:usesPort(Variable, Port) Variable referenziert diesen Port (allgemeine Nut-
+zung) 
+op:isBoundToChannel(Variable, IOChannel) Variable ist diesem physikalischen HW-Kanal zu-
+gewiesen 
+op:representsFBInstance(Variable, 
+FBInstance) 
+Variable deklariert diese konkrete FB-Instanz 
+op:isInstanceOfFBType(FBInstance, FBType) Instanz ist vom angegebenen Typ 
+op:isPortOfInstance(PortInstance, 
+FBInstance) 
+PortInstance gehört zu dieser FB-Instanz 
+op:instantiatesPort(PortInstance, Port) PortInstance konkretisiert diesen abstrakten Port 
+op:listsGlobalVariable(GlobalVariableLis, Vari-
+able) 
+GVL enthält diese globale Variable 
+op:isSubProgramOf(Program, Program) Programm ist hierarchisch untergeordnet 
+op:implementsSkill(POU, Skill) POU implementiert diesen semantischen Skill 
+op:implementsMonAct(POU, MonitoringAc-
+tion) 
+POU implementiert diese Monitoring-Reaktion 
+op:implementsSysReact(POU, SystemReac-
+tion) 
+POU implementiert diese Systemreaktion 
+op:isExpressionCreatedBy(Expressio, Signal-
+Source) 
+Ausdruck wird durch diese Teilquellen gebildet 
+op:hasHypothesisAboutPOU(SkillImplHypo-
+thesis, POU) 
+Hypothese bezieht sich auf diese POU 
+op:hasHypothesisAboutSkill(SkillImplHypothe-
+sis, Skill) 
+Hypothese ordnet POU diesem Skill zu 
+
+--- PAGE 155 ---
+Konzept 
+152 
+ 
+Die kritischen Property-Paare sind wie folgt zu verstehen: 
+• op:hasInternalVariable vs. op:usesVariable: op:hasInternalVariable drückt 
+Besitz aus. Die Variable ist also in dieser POU deklariert. op:usesVariable drückt 
+Referenzierung aus. Die POU liest oder schreibt diese Variable im Code. Eine POU 
+kann globale Variablen referenzieren (op:usesVariable ohne op:hasInternal-
+Variable), und Variablen können deklariert aber nie genutzt werden (op:hasIn-
+ternalVariable ohne op:usesVariable, erkennbar am Flag dp:isUnu-
+sedVar). Im Referenzprojekt referenziert FB_Automatikbetrieb_F1 die globale 
+Variable GVL.Start über op:usesVariable, ohne sie zu deklarieren. Umgekehrt 
+haben 7 deklarierte Variablen (z. B. PeriodicFaultEnable) op:hasInternalVa-
+riable aber kein op:usesVariable und tragen dp:isUnusedVar true. 
+• op:implementsPort vs. op:isBoundToPort: op:implementsPort beschreibt eine 
+1:1-Bindung auf der Typebene – diese Variable ist der Speicherplatz hinter dem 
+Schnittstellenpin. op:isBoundToPort beschreibt eine Verdrahtung auf der Aufru-
+ferebene – diese externe Variable wird beim Aufruf als Aktualparameter an den Port 
+gelegt. Im Referenzprojekt implementiert Var_FB_Automatikbetrieb_F1_Auto-
+matikbetrieb_Starten den gleichnamigen Port intern via op:implementsPort, 
+während im MAIN-Programm die PortInstance edgeF1.Q via op:isBoundToPort 
+als externer Aktualparameter belegt wird. 
+• op:assignsToPort vs. op:assignsToVariable: op:assignsToPort wird genutzt, 
+wenn ein Argument in einem FB-Aufruf beschaltet wird (inst(Port := ...) ), 
+op:assignsToVariable wenn eine eigenständige ST-Zuweisung eine Variable 
+schreibt (GVL.X := inst.Q;).  
+Signalflussschicht: class_POUCall  
+Die Signalflussschicht bildet das konzeptuelle Herzstück des Informationsmodells für den 
+ExcH-KG-Agenten. Sie ist der entscheidende Unterschied gegenüber allen verwandten Onto-
+logien und der Hauptgrund, warum ein Wissensgraph gegenüber einem reinen Dokumenten-
+abruf bevorzugt wird. Nur durch die vollständige, lückenlose Modellierung von Bausteinaufru-
+fen und Parameterzuweisungen kann der Agent Fragen nach Signalpfaden, Fehlerursachen 
+und Hardware-Auswirkungen strukturiert beantworten, ohne den Quelltext jedes Mal neu par-
+sen zu müssen. 
+Die Klasse class_POUCall beschreibt einen konkreten Aufruf eines Bausteins inner-
+halb des Quellcodes einer rufenden POU. Sie macht sichtbar, dass ein bestimmter 
+Baustein nicht nur als Typ existiert, sondern an einer konkreten Stelle im Code 
+
+--- PAGE 156 ---
+Konzept 
+153 
+ 
+tatsächlich ausgeführt wird (siehe Abbildung 43). Im ST-Code entspricht dies einem 
+Aufruf der Form Instanzname(Param1 := Quelle1, Param2 := Quelle2);. 
+Eine class_POUCall-Instanz ist über op:callsPOU (Range: class_POU) mit dem auf-
+gerufenen Bausteintyp verknüpft, über op:hasCallerVariable (Range: class_Va-
+riable) mit der FB-Instanzvariablen, die den Aufruf trägt, und über op:hasAssign-
+ment (Range: class_ParameterAssignment) mit den konkreten Parameterzuweisun-
+gen. Die rufende POU erhält op:containsPOUCall (Range: class_POUCall). Das 
+Analyse-Modul generiert diese Knoten durch Regex-Parsing des ST-Quelltexts, wobei 
+dp:hasFBInstanceName der FBInstance als Schlüssel zur korrekten Zuordnung des 
+Aufruf-Musters im Code dient. 
+Beispiel: Im Quelltext von FB_Automatikbetrieb_F1 steht die Anweisung 
+tSchritt1(IN := Schritt1, PT := T#55S); . Das Analyse-Modul erzeugt 
+daraus den POUCall -Knoten ag:POUCall_FB_Automatikbe-
+trieb_F1_tSchritt1_1, der via op:callsPOU auf ag:StandardFBType_TON 
+zeigt, via op:hasCallerVariable auf ag:Var_FB_Automatikbe-
+trieb_F1_tSchritt1 und via op:hasAssignment auf zwei class_Parame-
+terAssignment-Knoten: eine für den IN -Parameter (Quelle: Variable 
+Schritt1) und eine für den PT-Parameter (Quelle: Literal T#55S). 
+Signalflussschicht: class_ParameterAssignment 
+Die Klasse class_ParameterAssignment ist die zentrale Struktur zur vollständigen Abbil-
+dung des Datenflusses. Sie verbindet eine Signalquelle mit einem Ziel und repräsentiert damit 
+die semantische Entsprechung einer einzelnen Verdrahtungsverbindung im SPS-Code. Jede 
+Instanz dieser Klasse trägt zwei Relationen: op:assignsFrom (Range: class_Signal-
+Source) zeigt auf die Quelle, die eine Variable, eine PortInstance, ein Literal oder einen Aus-
+druck sein kann. Das Ziel wird entweder über op:assignsToPort (Range: class_Port) 
+bei FB-Aufrufen oder über op:assignsToVariable (Range: class_Variable) bei ST-
+Zuweisungsanweisungen angegeben (siehe Abbildung 43). 
+ParameterAssignment-Instanzen entstehen aus zwei Quellen: erstens aus Argumenten in FB-
+Aufrufen (inst(Port := Quelle)), die das Analyse-Modul durch Regex-Parsing des Quell-
+texts extrahiert, und zweitens aus expliziten ST-Zuweisungen der Form Variable := In-
+stanzname.Portname;. Über op:hasAssignment sind die ParameterAssignment-Instan-
+zen an den übergeordneten class_POUCall-Knoten angehängt. 
+
+--- PAGE 157 ---
+Konzept 
+154 
+ 
+Beispiel 1 – FB-Aufruf: Die Instanz ag:Assign_FB_Diagnose_D2_rtAck_CLK_1 
+repräsentiert die Verdrahtung rtAck(CLK := OPCUA.DiagnoseFinished) im Bau-
+stein FB_Diagnose_D2. Sie trägt op:assignsFrom ag:OPCUA__dot__Diagno-
+seFinished (eine globale Variable aus der OPCUA-GVL) und op:assignsToPort 
+ag:Port_R_TRIG_CLK. Damit ist im Wissensgraphen nachvollziehbar, dass das Di-
+agnoseFinished-Signal der OPC-UA-Schnittstelle den CLK-Eingang des Flanken-
+detektors rtAck ansteuert und damit eine steigende Flanke in der Diagnose-POU aus-
+löst. 
+Beispiel 2 – Verschachtelter Signalpfad: Im MAIN-Programm beschaltet die Zuweisung 
+fbAuto(Automatikbetrieb_Starten := edgeF1.Q) den Startport des Automa-
+tikbetrieb-Bausteins mit dem Q-Ausgang des Flankendetektors edgeF1. Die Parame-
+terAssignment-Instanz ag:Assign_MAIN_fbAuto_Automatikbetrieb_Star-
+ten_1 trägt op:assignsFrom ag:PortInstance_FBInst_MAIN_edgeF1_Q und 
+op:assignsToPort ag:Port_FB_Automatikbetrieb_F1_Automatikbe-
+trieb_Starten. Der vollständige Signalpfad ist damit traversierbar: Port_FB_Be-
+triebsarten_F1 → PortInstance fbBA.F1 → CLK-Port von edgeF1 → Q-
+Ausgang edgeF1.Q → Port Automatikbetrieb_Starten → FB_Automatik-
+betrieb_F1. Ein Agent kann diesen Pfad vollständig über SPARQL rekonstruieren, 
+ohne eine einzige Zeile Quellcode zu lesen. 
+ 
+ 
+ 
+ 
+
+--- PAGE 158 ---
+Konzept 
+155 
+ 
+ 
+Abbildung 43: POUCall und ParameterAssignment für verschachtelte Funktionsaufrufe 
+Symbol Erklärung
+DataProperty
+Inherited DataProperty
+Class
+SubClass
+ bjectProperty
+SubProperty
+Domain
+Range
+ bjectProperty1 
+ bjectProperty 2
+hasPLCProjectName
+PLCProject
+hasPOUName
+hasPOUCode
+hasPOUDeclarationHeader
+hasPOULanguage
+hasConsistencyReport
+P  
+ 
+FBType
+hasPortAttribute
+hasPortDirection
+hasPortName
+hasPortType
+hasDefaultPortValue
+IsUnusedPort
+Port
+ 
+Program
+SignalSource
+                 
+Expression
+PortInstance
+hasValue
+SourceLiteral hasVariableName
+hasDefaultVariableValue
+hasHardwareAddress
+hasOPCUADataAccess
+hasOPCUAWriteAccess
+ 
+Variable
+consists
+ fP  
+hasFBInstance-
+Name
+FBInstance
+hasPort isFBInstance f
+Instantiates
+Port
+represents
+FBInstance
+isExpression
+CreatedBy
+P  Call
+callsP  
+contains
+P  Call
+Parameter
+Assignment Assigns
+To
+Port
+hasAssignment
+Assigns
+To
+Variable
+Assigns
+From
+has
+Caller
+Variable
+implementsPort
+ usesPort
+
+--- PAGE 159 ---
+Konzept 
+156 
+ 
+Vollständige Signalpfad-Traversierung als Kernfähigkeit des Agenten 
+Die Kombination aus allen beschriebenen Schichten und Properties ermöglicht dem Agenten 
+eine vollständige, lückenlose Signalpfad-Traversierung durch die gesamte Steuerungslogik. 
+Der generische Traversierungspfad lautet: 
+PLCProject → op:consistsOfPOU → POU → op:containsPOUCall → POUCall → 
+op:hasAssignment → ParameterAssignment → op:assignsFrom → SignalSource 
+Über op:assignsToPort lässt sich das aufgerufene Subsystem identifizieren, über op:in-
+stantiatesPort der abstrakte Port mit Datentyp, über op:isBoundToChannel der Hard-
+warekanal und damit der physikalische Effekt. Diese durchgängige Traversierbarkeit ist der 
+entscheidende Mehrwert gegenüber allen in Abschnitt 2 diskutierten verwandten Ontologien: 
+Keiner der anderen Ansätze ermöglicht es einem Agenten, den Weg eines Signals von der 
+GVL-Eingangsvariablen über Bausteinaufrufe bis zum Hardware-Ausgang in einem einzigen, 
+strukturierten Graphpfad nachzuverfolgen. 
+Damit adressiert die Ontologie- und Wissensgraph-Komponente genau jene Anforderungen, 
+die für den ExcH-KG-Agenten zentral sind: Nachvollziehbarkeit von Signalwegen, strukturierte 
+Grundlage für Pfadrekonstruktionen, maschinell abfragbare Steuerungslogik und eine erwei-
+terbare Wissensschicht für domänensemantische Schlussfolgerungen über Skills, Monitoring-
+Reaktionen und Systemreaktionen. 
+Kontext  und Sitzungs Komponente 
+Die dritte Komponente ist die Kontext- und Sitzungs-Komponente. Ihre Aufgabe besteht darin, 
+einen konkreten Fehlerfall in einen strukturierten Diagnosekontext zu überführen und diesen 
+gemeinsam mit dem Agenten in einer zustandsbehafteten Sitzung zu verwalten. Der Fehler-
+kontext umfasst dabei insbesondere Korrelation, Prozessbezug, Auslöseereignis, Skill-Bezug, 
+Snapshot-Informationen, vorherige Betriebszustände sowie den Pfad zum KG. Zusätzlich hält 
+die Kontext- und Sitzungs-Komponente einen Bezug zum KG, etwa in Form eines Pfads zur 
+Wissensbasis oder eines relevanten Graph-Kontexts. Die eigentliche inhaltliche Erschließung 
+des KG erfolgt jedoch erst in der Modell-, Planner- und Werkzeug-Komponente über die dort 
+aufgerufenen Werkzeuge (siehe Abbildung 41). Verwendete Designmuster sind hier vor allem 
+Routing, weil die Sitzung zwischen unterschiedlichen Diagnoseverläufen unterscheiden muss, 
+etwa zwischen einer allgemeinen Folgeanalyse und einer vertieften werkzeuggestützten Un-
+tersuchung, sowie Prompt-Chaining, weil aus dem Rohereignis zunächst ein strukturierter Di-
+agnosekontext erzeugt wird, bevor weitere Analyseschritte folgen. Ergänzend spielt Exception-
+Handling-and-Recovery eine Rolle, weil unvollständige oder unsichere Fehlerkontexte nicht zu 
+einem unkontrollierten Abbruch, sondern zu einem geordneten Weiterverarbeiten, Eskalieren 
+
+--- PAGE 160 ---
+Konzept 
+157 
+ 
+oder Nachfragen führen müssen. Diese Komponente unterstützt besonders R_REQ9, 
+R_REQ10 und R_REQ13 sowie Q_REQ4, Q_REQ5, Q_REQ9, Q_REQ11 und Q_REQ12. 
+Gerade für unbekannte Fehlerfälle ist diese Komponente zentral, weil die spätere Analyse 
+nicht aus einem unverbundenen Einzelfragment entsteht, sondern aus einem fortführbaren 
+Diagnosekontext. Damit bleibt der Agent nicht auf eine einzelne Antwort reduziert, sondern 
+kann Rückfragen, Zwischenergebnisse und spätere Präzisierungen in einem gemeinsamen 
+Sitzungsrahmen verarbeiten. Das erhöht sowohl die Nachvollziehbarkeit als auch die An-
+schlussfähigkeit an menschliche Aufsicht und mehrstufige Diagnosen. 
+Modell , Planner  und Werkzeug Komponente 
+Die vierte Komponente ist die Modell-, Planner- und Werkzeug-Komponente. Sie stellt den 
+eigentlichen agentischen Kern des ExcH-KG-Agenten dar. Während die vorgelagerten Kom-
+ponenten die statischen Steuerungsartefakte aufnehmen, semantisieren und in den persisten-
+ten KG überführen sowie die Kontext- und Sitzungs-Komponente den aktuellen Fehlerfall in 
+einen strukturierten Diagnosekontext einbettet, übernimmt diese Komponente die eigentliche 
+Analyseverarbeitung. Dazu wertet der Planner den vorliegenden Fehlerkontext aus, legt einen 
+geeigneten Analysepfad fest, ruft die benötigten Werkzeuge auf und übergibt deren Ergeb-
+nisse an das Foundation-Modell, das daraus die sprachliche Antwort für die Interaktions- und 
+Ausgabe-Komponente erzeugt. Im Unterschied zum ExcH-RAG-Agenten erfolgt die Verarbei-
+tung hier damit nicht in einer linearen Kette aus Abruf und Antworterzeugung, sondern über 
+eine werkzeuggestützte Mehrschrittverarbeitung innerhalb einer gemeinsamen Analysekom-
+ponente (siehe Abbildung 41). 
+Gerade an dieser Stelle wird der zentrale architektonische Unterschied zwischen ExcH-RAG-
+Agent und ExcH-KG-Agent sichtbar. Während der ExcH-RAG-Agent im Kern einen kontrollier-
+ten Abrufpfad mit nachgelagerter Antworterzeugung realisiert, ist die Modell-, Planner- und 
+Werkzeug-Komponente des ExcH-KG-Agenten von vornherein auf eine modulare Mehr-Werk-
+zeug-Verarbeitung ausgelegt. Dadurch bleibt die Architektur nicht auf einen einzelnen Ret-
+rieval-Mechanismus beschränkt, sondern kann unterschiedliche Analyseformen, Wissenszu-
+griffe und Diagnosewege innerhalb derselben Komponente organisieren. Das eröffnet nicht 
+nur die Nutzung spezialisierter interner Werkzeuge, sondern konzeptionell auch die Ankopp-
+lung weiterer externer Programme oder Teilagenten, sofern diese einen klaren fachlichen 
+Mehrwert für bestimmte Analyse- oder Engineering-Aufgaben liefern. Ein Beispiel dafür ist 
+Agents4PLC, das als spezialisierter Teilagent für SPS-nahe Codeerzeugung, Validierung und 
+Debugging verstanden werden kann. Die Architektur des ExcH-KG-Agenten zeigt damit, dass 
+über die eigentliche Diagnose hinaus auch die Ankopplung zusätzlicher generativer oder prü-
+fender Werkzeuge möglich wird, etwa in Verbindung mit formaler Verifikation, Fault Injection 
+
+--- PAGE 161 ---
+Konzept 
+158 
+ 
+oder skill-orientierter Generierung (siehe Kap. 2.6). Dies ist auch der zentrale Mehrwert des 
+ExcH-KG-Agenten gegenüber dem einfachen ExcH-RAG-Agenten. 
+Verwendete Designmuster sind hier besonders deutlich Tool-Use, Planning, Routing und 
+Knowledge-Retrieval. Tool-Use ist zentral, weil die Analyse nicht nur über einen einzelnen Mo-
+dellaufruf erfolgt, sondern über mehrere spezialisierte Werkzeuge mit unterschiedlichen Auf-
+gaben. Planning ist relevant, weil der Planner die Werkzeugaufrufe nicht starr vorgibt, sondern 
+abhängig vom Fehlerkontext in eine geordnete Folge bringt. Routing ist wichtig, weil zwischen 
+unterschiedlichen Analysewegen unterschieden werden muss, etwa zwischen KG-Abfrage, 
+Struktur- und Codeanalyse, Variablen- und Signalanalyse sowie Pfadrekonstruktion. Know-
+ledge-Retrieval bildet die Grundlage dafür, dass die Analyse nicht allein auf dem im Modell 
+gespeicherten Wissen beruht, sondern den KG als externe Wissensbasis einbezieht. Ergän-
+zend treten Prompt-Chaining und Reflection in abgeschwächter Forms auf. Prompt-Chaining 
+zeigt sich darin, dass Ergebnisse einzelner Werkzeuge jeweils den Kontext der nachfolgenden 
+Verarbeitung prägen. Reflection ist nicht als eigener Prüfpfad ausgebaut, wirkt jedoch dort, wo 
+Werkzeugergebnisse zusammengeführt, gegeneinander abgewogen oder in ihrer Plausibilität 
+verglichen werden. Diese Komponente unterstützt besonders E_REQ3, E_REQ4, E_REQ6, 
+E_REQ7, E_REQ10, E_REQ11 und E_REQ12 sowie R_REQ9, R_REQ10, R_REQ11 und 
+R_REQ13. Auf der Querschnittsebene adressiert sie besonders  Q_REQ2, Q_REQ3, 
+Q_REQ15, Q_REQ16 und Q_REQ17, weil Modellnutzung, Werkzeugaufrufe und Analyse-
+komplexität bewusst steuerbar gehalten werden können. 
+Planner 
+Innerhalb dieser Komponente übernimmt der Planner die steuernde Rolle. Er erhält aus der 
+Kontext- und Sitzungs-Komponente den aktuellen Diagnosekontext, interpretiert dessen fach-
+liche Relevanz und entscheidet, welche Werkzeuge in welcher Reihenfolge sinnvoll sind. Der 
+Planner ist damit keine bloße Weiterleitungsstelle, sondern die Instanz, die die Mehrschrittver-
+arbeitung organisiert. Der Planner erzeugt zunächst einen Werkzeugplan und stößt dessen 
+Ausführung an. Die Teilergebnisse der einzelnen Werkzeuge werden in einer gemeinsamen 
+Ergebnisstruktur gesammelt. Auf dieser Grundlage kann bei unzureichenden Ergebnissen ein 
+erneuter Planungsdurchlauf mit erweitertem Suchraum erfolgen. Die finalen Werkzeugergeb-
+nisse werden anschließend an das Foundation-Modell übergeben, das daraus die sprachliche 
+Antwort für die Interaktions- und Ausgabe-Komponente erzeugt (siehe Abbildung 41). 
+Foundation-Modell 
+Das Foundation-Modell übernimmt innerhalb dieser Komponente die kontextbezogene 
+sprachliche Verarbeitung. Es erzeugt die finale Diagnoseantwort jedoch nicht isoliert, sondern 
+auf Basis der durch den Planner angestoßenen Werkzeugaufrufe und der dabei gewonnenen 
+
+--- PAGE 162 ---
+Konzept 
+159 
+ 
+Ergebnisse. In der dargestellten Architektur erhält das Foundation-Modell somit nicht nur den 
+ursprünglichen Fehlerkontext, sondern zusätzlich strukturierte Analyseergebnisse aus dem 
+KG und das Gesamtergebnis aus den spezialisierten Werkzeugen. Die sprachlich formulierte 
+Antwort wird anschließend an die Interaktions- und Ausgabe-Komponente übergeben, wo sie 
+der nutzenden Instanz bereitgestellt wird. Rückfragen oder Folgefragen werden von dort wie-
+derum an die Kontext- und Sitzungs-Komponente zurückgeführt und können einen neuen Ana-
+lysezyklus auslösen (siehe Abbildung 41). Dadurch wird auch in diesem Agenten das Founda-
+tion-Modell austauschbar implementiert.  
+Werkzeuge 
+Anstatt eines zentralen Werkzeugs, das alle Aufgaben übernimmt, werden innerhalb dieser 
+Komponente für unterschiedliche Aufgabentypen unterschiedliche Werkzeuge eingesetzt. 
+Ein erstes Werkzeug innerhalb dieser Komponente ist die KG-Abfrage. Ihre Aufgabe besteht 
+darin, gezielt semantische Informationen aus dem persistenten KG abzurufen und dadurch 
+jene Beziehungen, Strukturen und Hintergrundinformationen bereitzustellen, die für die aktu-
+elle Diagnose benötigt werden. Sie setzt damit das Muster Knowledge-Retrieval direkt um und 
+adressiert vor allem E_REQ4, E_REQ10, E_REQ11, E_REQ12 sowie R_REQ10 und 
+R_REQ11, weil vorhandenes Wissen aus dem KG gezielt für die Laufzeitdiagnose nutzbar 
+gemacht und zugleich an bestehende Engineering- und SPS-Umgebungen angeschlossen 
+werden kann (siehe Abbildung 41). 
+Ein zweites Werkzeug ist die Struktur- und Codeanalyse. Sie dient dazu, Programme, POUs, 
+Aufrufbeziehungen und relevante Codekontexte so aufzubereiten, dass die Diagnose nicht nur 
+auf abstrakten KG-Beziehungen, sondern auch auf der tatsächlichen Struktur der Steuerungs-
+software basiert. Dieses Werkzeug stützt sich vor allem auf Tool-Use und Knowledge-Retrieval 
+und unterstützt besonders E_REQ3, E_REQ6, E_REQ7 und E_REQ11 sowie R_REQ10 und 
+R_REQ11, weil dadurch Änderungen, strukturelle Zusammenhänge und konkrete Implemen-
+tierungsbezüge der Steuerung für die Diagnose einbezogen werden können (siehe Abbildung 
+41). 
+Ein drittes Werkzeug ist die Variablen- und Signalanalyse. Sie fokussiert auf Variablen, Sig-
+nale, Symbolnamen und deren Rolle im konkreten Fehlerkontext. Gerade im Exception-Hand-
+ling sind viele Fehlerfälle zunächst über Signaländerungen, Variablenkonstellationen oder Sta-
+tusmerkmale sichtbar. Die Variablen- und Signalanalyse bildet deshalb die Brücke zwischen 
+beobachtetem Laufzeitverhalten und semantisch erklärbarer Steuerungslogik. Methodisch 
+stützt sie sich vor allem auf Tool-Use, Routing und Knowledge-Retrieval. Sie unterstützt be-
+sonders R_REQ9, R_REQ10 und R_REQ11, weil sie die Ursachenanalyse unbekannter Feh-
+ler stärker an den tatsächlich beobachteten Laufzeitdaten ausrichtet (siehe Abbildung 41). 
+
+--- PAGE 163 ---
+Konzept 
+160 
+ 
+Ein viertes Werkzeug ist die Pfadrekonstruktion. Ihre Aufgabe besteht darin, Wirk- und Abhän-
+gigkeitspfade so zu rekonstruieren, dass nachvollziehbar wird, warum ein bestimmtes Diag-
+nose- oder Übergangssignal aktiv wurde, welche Call-Chains beteiligt waren, welche Bedin-
+gungen wirksam waren und welche Variablen oder Ports in den Pfad eingegangen sind. In der 
+aktuellen Zielarchitektur wird diese Funktion nicht mehr als eigene Hauptkomponente model-
+liert, sondern als spezialisiertes Werkzeug innerhalb derselben Werkzeuglandschaft. Das 
+passt besser zur Gesamtarchitektur, weil dadurch keine zusätzliche Hauptkomponente einge-
+führt wird, obwohl der fachliche Kern weiterhin erhalten bleibt. Methodisch greifen hier beson-
+ders Tool-Use, Planning, Routing und Prompt-Chaining. Ergänzend wirken Exception-Hand-
+ling-and-Recovery und Guardrails-and-Safety-Patterns, weil dieser Werkzeugaufruf gerade für 
+kritische, unklare oder fehlerbezogene Diagnosefälle in einem stärker kontrollierten Modus er-
+folgen kann. Die Pfadrekonstruktion unterstützt damit besonders  R_REQ8, R_REQ9, 
+R_REQ10, R_REQ11 und R_REQ13 sowie Q_REQ9 bis Q_REQ15 (siehe Abbildung 41). 
+In der Gesamtarchitektur ist diese Komponente der zentrale Unterschied zum ExcH-RAG-
+Agenten. Während der ExcH-RAG-Agent im Kern einen kontrollierten Abrufpfad realisiert, or-
+ganisiert der ExcH-KG-Agent seine Diagnose über eine werkzeuggestützte Mehrschrittverar-
+beitung. Genau dadurch rückt er methodisch näher an ein eigentliches Agentensystem heran. 
+Die zusätzliche Komplexität entsteht hier also nicht zufällig, sondern aus der bewussten Ent-
+scheidung, verschiedene Analyseformen, Wissenszugriffe und Diagnosewege innerhalb einer 
+kontrollierbaren Architektur kombinieren zu können. 
+Interaktions  und Ausgabe Komponente 
+Die fünfte Komponente ist die Interaktions- und Ausgabe-Komponente. Ihre Aufgabe besteht 
+darin, die Ergebnisse der KG- und werkzeuggestützten Analyse für eine nutzende Instanz be-
+reitzustellen. Der Agent gibt dabei nicht nur eine einzelne Endantwort aus, sondern kann Di-
+agnosehinweise, Rückfragen, Werkzeugergebnisse, strukturierte Zwischenschritte und Ergeb-
+nisobjekte in einer kontrollierten Form bereitstellen. In der in der Abbildung dargestellten Ar-
+chitektur erhält diese Komponente die vom Foundation-Modell erzeugte Antwort und macht 
+sie für die nutzende Instanz zugänglich. Zugleich bildet sie die Stelle, an der Rückfragen und 
+Folgefragen wieder in die Kontext- und Sitzungs-Komponente zurückgeführt werden, sodass 
+die Analyse in einer fortführbaren Sitzung weiterlaufen kann. Für die Architektur ist das we-
+sentlich, weil der ExcH-KG-Agent ausdrücklich nicht als unkontrollierte autonome Instanz auf-
+treten soll, sondern als nachvollziehbare Assistenz- und Entscheidungsunterstützung. Verwen-
+dete Designmuster sind hier deshalb besonders deutlich Human-in-the-Loop, weil kritische 
+Vorschläge und unklare Fälle an eine menschliche Instanz rückgebunden werden müssen, 
+sowie Guardrails-and-Safety-Patterns, weil die Ausgabeseite genau jene Stelle ist, an der 
+Nachvollziehbarkeit, Eingriffsgrenzen und Eskalationsregeln praktisch wirksam werden. 
+
+--- PAGE 164 ---
+Implementierung 
+161 
+ 
+Ergänzend ist auch Exception-Handling-and-Recovery relevant, weil die Oberfläche nicht nur 
+Antworten zeigt, sondern auch mit Unsicherheit, Teilfehlschlägen und Folgefragen geordnet 
+umgehen muss. Diese Komponente unterstützt besonders R_REQ13 sowie Q_REQ9 bis 
+Q_REQ14. Auf der Engineering-Seite trägt sie erneut zu E_REQ10 und E_REQ11 bei, da der 
+Agent an bestehende Werkzeuge und Arbeitsformen anschlussfähig bleibt, statt einen isolier-
+ten Sonderkanal zu bilden. 
+Gerade im Zusammenspiel mit der Modell-, Planner- und Werkzeug-Komponente wird sicht-
+bar, warum diese Ausgabeschicht mehr ist als eine bloße Oberfläche. Sie ist die Stelle, an der 
+sich Nachvollziehbarkeit, menschliche Aufsicht und revisionsfähige Analyse in der Praxis ma-
+nifestieren. Für den ExcH-KG-Agenten ist diese Komponente daher zentral, weil seine höhere 
+Analyseleistung nur dann fachlich nutzbar wird, wenn Ergebnisse, Zwischenschritte und Unsi-
+cherheiten auch für eine nutzende Instanz verständlich und kontrollierbar bleiben. 
+4 Implementierung 
+In diesem Kapitel werden die Prototypen für die jeweiligen Agenten aufgebaut. Dazu werden 
+zunächst die Anforderungen aus dem Konzept an die Implementierung der Agenten hergelei-
+tet. Dabei wird zwischen allgemeinen Implementierungsanforderungen (I_COM_REQs) und 
+spezifischen Implementierungsanforderungen an den Exch-RAG-Agenten (I_RAG_REQs), an 
+den ExcH-KG-Agenten (I_KG_REQs) unterschieden. 
+Die in Kapitel 3 beschriebenen Engineering-, Runtime- und querschnittlichen Anforderungen 
+legen den konzeptionellen Soll-Raum des Systems fest. Für die prototypische Umsetzung ist 
+jedoch ein stärker technischer Abstraktionsgrad erforderlich, der direkt auf Komponenten, 
+Klassen, Methoden und Schnittstellen verweist. Aus diesem Grund werden im Folgenden ab-
+geleitete Implementierungsanforderungen formuliert. Sie konkretisieren, welche Fähigkeiten 
+der Prototyp tatsächlich bereitstellen muss, welche Unterschiede zwischen ExcH-RAG-Agent 
+und ExcH-KG-Agent bestehen und welche Teile des Integrationsmodells unmittelbar technisch 
+adressiert werden. Dabei werden gemeinsame Anforderungen von agentenspezifischen An-
+forderungen getrennt, damit die spätere Implementierung und der Vergleich der beiden Agen-
+tenvarianten konsistent an dieselbe Anforderungsbasis rückgebunden werden können (siehe 
+Kap. 3). 
+4.1 Gemeinsame Implementierungsanforderungen 
+Uuu 
+
+--- PAGE 165 ---
+Implementierung 
+162 
+ 
+I_COM_REQ1: Der Prototyp muss ein einheitliches Incident- und Kontextmodell bereitstellen. 
+Diese Anforderung entsteht daraus, dass beide Agentenvarianten denselben unbekannten 
+Fehlerfall auf einer gemeinsamen strukturierten Basis verarbeiten sollen. Dafür müssen aus-
+lösendes Ereignis, Laufzeitkontext, Skill- oder Prozessbezug, relevante Zustandsinformatio-
+nen und Verweise auf Wissensquellen in einer gemeinsamen Repräsentation zusammenge-
+führt werden. In der Implementierung bildet diese Anforderung die Grundlage dafür, dass 
+ExcH-RAG-Agent und ExcH-KG-Agent auf denselben Fehlerkontext zugreifen und später ver-
+gleichbar ausgewertet werden können (abgeleitet aus R_REQ1, R_REQ10, R_REQ11, 
+R_REQ13 sowie Q_REQ11 und Q_REQ12  im Konzept umgesetzt durch die Kontext-Kompo-
+nente des ExcH-RAG-Agenten und die Kontext- und Sitzungs-Komponente des ExcH-KG-
+Agenten  siehe Kap. 3). 
+I_COM_REQ2: Der Prototyp muss den Agenten als Ergänzung der ExcH-Laufzeitumgebung 
+und nicht als Ersatz der bestehenden deterministischen Fehlerbehandlung einbinden. Diese 
+Anforderung entsteht daraus, dass bekannte Fehlerfälle weiterhin durch die vorhandene Lauf-
+zeitlogik und durch MSRGuard bearbeitet werden sollen, während der Agent vor allem dort 
+eingreift, wo diese Logik nicht mehr ausreicht. In der Implementierung führt dies zu einer mo-
+dularen Kopplung zwischen Laufzeitumgebung und Agent, bei der die agentische Unterstüt-
+zung als zusätzliche Verarbeitungsschicht realisiert wird (abgeleitet aus R_REQ8, R_REQ14 
+sowie Q_REQ15, Q_REQ16 und Q_REQ17  im Konzept umgesetzt durch die Trennung von 
+ExcH-Laufzeitumgebung und Agent sowie durch die operative Einbettung als Erweiterung  
+siehe Kap. 3). 
+I_COM_REQ3: Der Prototyp muss Human-in-the-Loop, technische Leitplanken und Eskalati-
+onsmöglichkeiten unterstützen. Diese Anforderung entsteht daraus, dass agentische Diag-
+nose- und Handlungsvorschläge im industriellen Kontext nicht autonom und unkontrolliert wirk-
+sam werden dürfen. In der Implementierung bedeutet dies, dass eine nutzende Instanz Ergeb-
+nisse prüfen, bestätigen, verändern, verwerfen oder durch Rückfragen weiter konkretisieren 
+können muss. Dadurch wird sichergestellt, dass die Agentennutzung auch in tieferen Integra-
+tionsstufen beherrschbar bleibt (abgeleitet aus Q_REQ9, Q_REQ10, Q_REQ11, Q_REQ12, 
+Q_REQ13 sowie R_REQ13  im Konzept umgesetzt durch die Interaktions- und Sitzungs-Kom-
+ponente des ExcH-RAG-Agenten sowie die Interaktions- und Ausgabe-Komponente des 
+ExcH-KG-Agenten  siehe Kap. 3). 
+I_COM_REQ4: Der Prototyp muss revisionsfähige Protokollierung für relevante Zwischen-
+schritte, Entscheidungen und Eskalationen bereitstellen. Diese Anforderung entsteht daraus, 
+dass agentische Verarbeitung in mehreren Teilschritten erfolgt und damit auch nachträglich 
+nachvollziehbar bleiben muss. In der Implementierung umfasst dies insbesondere die Proto-
+kollierung von Modellaufrufen, Werkzeugnutzung, Interaktionen, Entscheidungspfaden und 
+
+--- PAGE 166 ---
+Implementierung 
+163 
+ 
+kritischen Ergebnisübergaben. Dadurch wird die Grundlage für Transparenz, Bewertung und 
+spätere Analyse des Agentenverhaltens geschaffen (abgeleitet aus Q_REQ11, Q_REQ12 und 
+Q_REQ13  im Konzept querschnittlich umgesetzt durch die Anforderungen an Nachvollzieh-
+barkeit, Protokollierung und kontrollierte Agentennutzung  siehe Kap. 3). 
+I_COM_REQ5: Der Prototyp muss so instrumentiert sein, dass Zeiten, Erfolgsstatus, genutzte 
+Wissensquellen und Bearbeitungspfade pro Testfall systematisch erfasst werden können. 
+Diese Anforderung entsteht aus dem Vergleichsanspruch zwischen ExcH-RAG-Agent und 
+ExcH-KG-Agent und aus der Notwendigkeit, die spätere Evaluation auf eine technische Da-
+tengrundlage zu stützen. In der Implementierung bedeutet dies, dass relevante Leistungs- und 
+Verhaltensdaten bereits während der Ausführung mitgeführt oder protokolliert werden müssen. 
+Dadurch wird der Prototyp nicht nur ausführbar, sondern auch systematisch bewertbar (indirekt 
+abgeleitet aus Q_REQ2, Q_REQ11 und Q_REQ12 sowie aus dem Evaluationsziel der Arbeit  
+im Konzept nicht als eigene Komponente, sondern als Folge der vergleichenden Gesamtan-
+lage der beiden Agentenvarianten angelegt  siehe Kap. 3). 
+I_COM_REQ6: Der Prototyp muss eine modulare Anbindung von Wissensquellen und 
+Konnektoren unterstützen. Diese Anforderung entsteht daraus, dass der Agent bestehende 
+FMEA-, Wissensgraph-, SPS- und Engineering-Werkzeuge ergänzen und nicht durch eine 
+vollständig neue Werkzeugwelt ersetzen soll. In der Implementierung führt dies zu klar abge-
+grenzten Konnektoren und möglichst werkzeugneutralen internen Repräsentationen, sodass 
+Dokumente, PLCopenXML, Projektinformationen, Laufzeitdaten und weitere Kontextquellen 
+schrittweise angebunden oder ausgetauscht werden können. Damit wird insbesondere die or-
+ganisatorisch-technische Einbettung in die Engineering- und Werkzeuglandschaft vorbereitet 
+(abgeleitet aus E_REQ10, E_REQ11, E_REQ12, R_REQ11, R_REQ12 sowie Q_REQ6, 
+Q_REQ7, Q_REQ8 und Q_REQ17  im Konzept umgesetzt durch die Dokumenten- und Arte-
+faktbasis des ExcH-RAG-Agenten sowie durch die Artefakt- und Ingestion-Komponente und 
+die Ontologie- und Wissensgraph-Komponente des ExcH-KG-Agenten  siehe Kap. 3). 
+4.2 Implementierungsanforderungen des ExcH RAG Agen 
+ten 
+I_RAG_REQ1: Der ExcH-RAG-Agent muss eine austauschbare Modellbasis besitzen. Diese 
+Anforderung entsteht daraus, dass der RAG-Agent bewusst als einfache und kontrollierbare 
+Vergleichsarchitektur ausgelegt ist und daher mit vertretbarem Aufwand auf unterschiedliche 
+Foundation-Modelle angepasst werden können soll. In der Implementierung wird dies durch 
+eine klar abgegrenzte Modellkomponente konkretisiert, die die Antworterzeugung trägt, ohne 
+die gesamte übrige Architektur an ein einzelnes Modell zu binden. Dadurch bleibt die 
+

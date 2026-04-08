@@ -1,0 +1,10 @@
+Komponente: Ontologie- und Wissensgraph-Komponente
+
+Zweck:
+Diese Komponente bildet das semantische Zentrum des ExcH-KG-Agenten. Sie ueberfuehrt die aufgenommenen Artefakte in eine semantisch verknuepfte Wissensrepraesentation und legt diese in einem persistenten Wissensgraphen ab.
+
+Diagrammidee:
+Das Diagramm kombiniert die im Text beschriebenen Ontologieklassen mit den technischen Services fuer Laden, Analysieren und Persistieren des Graphen. Dadurch wird die fachliche Wissensschicht gemeinsam mit ihrer technischen Operationalisierung sichtbar.
+
+Bezug zu Kapitel 3.4.3:
+Der Schwerpunkt liegt auf Projekten, POUs, Instanzen, Ports, Variablen, Signalquellen sowie POU-Aufrufen und Parameterzuweisungen. Genau diese Klassen machen den im Kapitel hervorgehobenen Signalfluss auf Graph-Ebene abfragbar.

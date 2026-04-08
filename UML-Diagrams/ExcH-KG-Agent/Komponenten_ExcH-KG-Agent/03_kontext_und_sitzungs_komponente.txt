@@ -1,0 +1,10 @@
+Komponente: Kontext- und Sitzungs-Komponente
+
+Zweck:
+Die Kontext- und Sitzungs-Komponente ueberfuehrt einen konkreten Fehlerfall in einen strukturierten Diagnosekontext und verwaltet diesen in einer zustandsbehafteten Sitzung weiter.
+
+Diagrammidee:
+Das Diagramm trennt Rohereignis, Incident-Kontext, Snapshot, Graph-Referenz und Sitzungsspeicher. Dadurch wird deutlich, dass diese Komponente den KG noch nicht inhaltlich auswertet, sondern den Analysekontext fuer spaetere Werkzeugaufrufe vorbereitet und zusammenhaelt.
+
+Bezug zum Prototyp:
+Die Klassen `IncidentContext` und `ExcHChatBotSession` stammen direkt aus `excH_chatbot.py`. Snapshot-, Graph- und Session-Memory-Klassen machen die im Kapitel beschriebene fachliche Rolle expliziter.

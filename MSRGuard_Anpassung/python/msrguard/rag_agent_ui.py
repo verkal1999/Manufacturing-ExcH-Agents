@@ -69,7 +69,7 @@ def ensure_python_root_on_sys_path() -> None:
     """
     try:
         here = Path(__file__).resolve()
-        python_root = here.parent.parent
+        python_root = here.parent.parent  # .../python/
         if str(python_root) not in sys.path:
             sys.path.insert(0, str(python_root))
     except Exception:
@@ -382,11 +382,11 @@ def streamlit_main() -> None:
     def import_handle_event():
         ensure_python_root_on_sys_path()
         try:
-            from msrguard.excH_agent_core import handle_event  # type: ignore
+            from msrguard.excH_kg_agent_core import handle_event  # type: ignore
 
             return handle_event
         except Exception:
-            from excH_agent_core import handle_event  # type: ignore
+            from excH_kg_agent_core import handle_event  # type: ignore
 
             return handle_event
 

@@ -1,0 +1,133 @@
+@startuml
+'title ExcH-RAG-Agent — Komponentenübersicht
+
+top to bottom direction
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 140
+skinparam padding 12
+
+skinparam backgroundColor #FAFAFA
+
+skinparam component {
+  BackgroundColor #EAF3FB
+  BorderColor #2E86C1
+  BorderThickness 1.5
+  FontColor #1A252F
+  FontSize 11
+  FontStyle bold
+}
+
+skinparam package {
+  BackgroundColor #F4F6F7
+  BorderColor #2E4057
+  BorderThickness 2
+  FontColor #2E4057
+  FontSize 13
+  FontStyle bold
+}
+
+skinparam actor {
+  BackgroundColor #D5E8D4
+  BorderColor #2D6A4F
+  FontColor #1A252F
+  FontSize 11
+}
+
+skinparam database {
+  BackgroundColor #FFF3CD
+  BorderColor #B7791F
+  FontColor #1A252F
+  FontSize 11
+}
+
+skinparam note {
+  BackgroundColor #FDFCE4
+  BorderColor #C9A227
+  FontColor #4A4000
+  FontSize 10
+}
+
+skinparam arrow {
+  Color #2E4057
+  FontColor #2E4057
+  FontSize 10
+  Thickness 1.5
+}
+
+' ── Externe Akteure ──────────────────────────────────────────
+actor "Nutzende\nInstanz" as User
+component "Laufzeitumgebung\nFehlerereignis und Snapshot" as Runtime
+database "Statische\nSteuerungsartefakte\nPLCOpenXML / Dokumentkontext" as Docs
+
+' ── Agentensystem ────────────────────────────────────────────
+package "ExcH-RAG-Agent" {
+
+  component "Interaktions- und\nSitzungs-Komponente" as UI
+  component "Kontext-\nKomponente" as Context
+  component "Artefakt- und\nDokumenten-Komponente" as Artifact
+  component "Retrieval-\nKomponente" as Retrieval
+  component "Generierungs- und\nLeitplanken-Komponente" as Generation
+  component "Foundation-Modell-\nKomponente" as FM
+
+  ' Layout-Hints
+  UI        -[hidden]down->  Context
+  Context   -[hidden]down->  Retrieval
+  Retrieval -[hidden]down->  Generation
+  Artifact  -[hidden]right-> Retrieval
+  Generation -[hidden]right-> FM
+}
+
+' ── Externe Verbindungen ──────────────────────────────────────
+User    -->  UI       : Anfrage /\nRückfrage /\nErgebnisnutzung
+Runtime -->  Context  : Fehlerkontext,\nSnapshot,\nProzessbezug
+Docs    -->  Artifact : Statische\nWissensbasis
+
+' ── Interne Datenflüsse ───────────────────────────────────────
+UI         -->  Context    : Initiale Anfrage\nund Sitzungsaufbau
+Context    -->  Retrieval  : Strukturierter\nAnalysekontext
+Artifact   -->  Retrieval  : Retrievalfähige\nDokumentsegmente
+Retrieval  -->  Generation : Relevante\nKontextausschnitte
+FM         -->  Generation : Sprachmodell\nfür Analyse und Antwort
+Generation -->  UI         : Diagnose, Hinweise,\nUnsicherheit,\nNächster Prüfschritt
+UI         -->  Generation : Vertiefungsfrage\noder Folgeanfrage
+
+' ── Notizen ───────────────────────────────────────────────────
+note right of FM
+  **Austauschbare Modellbasis**
+  Ermöglicht den Vergleich
+  mehrerer Foundation-Modelle
+end note
+
+note right of Context
+  **Kontextverdichtung**
+  Verdichtet das Laufzeitereignis
+  zu einem strukturierten
+  Diagnosekontext
+end note
+
+note right of Artifact
+  **Artefaktaufbereitung**
+  Bereitet Steuerungsartefakte
+  für den Wissensabruf auf
+end note
+
+note right of Retrieval
+  **Kontextauswahl**
+  Wählt die relevantesten
+  Ausschnitte für den
+  aktuellen Fehlerkontext
+end note
+
+note right of Generation
+  **Antwortbegrenzung**
+  Begrenzt auf verfügbaren
+  Kontext und macht
+  Unsicherheit explizit
+end note
+
+@enduml

@@ -1,0 +1,59 @@
+@startuml
+title ExcH-RAG-Agent - Retrieval-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Retrieval-Komponente" {
+  class RetrievalQuery <<value object>> {
+    +question: str
+    +top_k: int
+  }
+
+  class RagChunk <<dataclass>> {
+    +chunk_id: str
+    +kind: str
+    +name: str
+    +text: str
+  }
+
+  class TokenScorer {
+    +score(query: RetrievalQuery, chunk: RagChunk): float
+  }
+
+  class RetrievalHit <<value object>> {
+    +rank: int
+    +score: float
+    +overlap: List<str>
+  }
+
+  class RetrievalResultSet <<value object>> {
+    +hits: List<RetrievalHit>
+  }
+
+  class SimpleRagIndex {
+    +search(question: str, k: int): List<RetrievalHit>
+  }
+
+  SimpleRagIndex o-- RagChunk
+  SimpleRagIndex --> TokenScorer : nutzt
+  SimpleRagIndex ..> RetrievalQuery : verarbeitet
+  RetrievalResultSet *-- RetrievalHit
+  RetrievalHit --> RagChunk : referenziert
+}
+
+note right of SimpleRagIndex
+Kap. 3.4.2 beschreibt bewusst
+ein einfaches, transparentes
+Ranking-Verfahren ohne
+zusaetzliche semantische
+Infrastruktur wie Vektorspeicher.
+
+Prototypischer Kern:
+SimpleRagIndex
+end note
+
+@enduml

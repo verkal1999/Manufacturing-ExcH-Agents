@@ -1,0 +1,10 @@
+Komponente: Kontext-Komponente
+
+Zweck:
+Die Kontext-Komponente ueberfuehrt ein konkretes Laufzeitereignis in einen strukturierten Diagnosekontext. Dabei werden beobachtete Laufzeitwerte und rein strukturelle Browse-Hinweise bewusst getrennt.
+
+Diagrammidee:
+Das Diagramm zeigt den Weg vom Rohereignis ueber einen Interpreter hin zu einem `RagIncidentContext`. Der Kontext verweist auf einen aufbereiteten Snapshot mit beobachteten Variablenwerten und Strukturhinweisen.
+
+Bezug zum Prototyp:
+Die zentrale Klasse ist `RagIncidentContext`. Das Diagramm ergaenzt sie um die konzeptionell mitgedachten Klassen fuer Snapshot und Kontextaufbereitung, die im Text von Kapitel 3.4.2 fachlich beschrieben werden.

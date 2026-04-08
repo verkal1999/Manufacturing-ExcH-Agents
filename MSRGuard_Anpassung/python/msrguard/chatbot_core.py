@@ -2785,6 +2785,245 @@ class EvD2PathTracingTool(BaseAgentTool):
         }
 
 
+class DeterministicPathSearchTool(EvD2PathTracingTool):
+    name = "deterministic_path_search"
+    description = (
+        "Generische deterministische Pfadrekonstruktion fuer Ursacheketten. "
+        "Unterstuetzt evD2-Bootstrap sowie allgemeine Setter-/Bedingungspfade "
+        "fuer andere Variablen oder Hardware-nahe Ursachen."
+    )
+    usage_guide = (
+        "Nutzen, wenn ohne LLM eine konkrete Ursachekette rekonstruiert werden soll. "
+        "preset='evd2_bootstrap' fuer den evD2-Startpfad, "
+        "preset='assignment_trace' fuer eine Variable in einer bekannten POU, "
+        "preset='condition_trace' fuer einen bereits bekannten Bedingungsausdruck."
+    )
+
+    @staticmethod
+    def _normalize_preset(preset: str) -> str:
+        text = str(preset or "evd2_bootstrap").strip().lower()
+        aliases = {
+            "evd2": "evd2_bootstrap",
+            "evd2_path_trace": "evd2_bootstrap",
+            "bootstrap": "evd2_bootstrap",
+            "assignment": "assignment_trace",
+            "var_assignment": "assignment_trace",
+            "variable_assignment": "assignment_trace",
+            "condition": "condition_trace",
+        }
+        return aliases.get(text, text or "evd2_bootstrap")
+
+    @staticmethod
+    def _normalize_assumed_false_states(assumed_false_states: Any) -> List[str]:
+        if isinstance(assumed_false_states, (list, tuple, set)):
+            return [str(x).strip() for x in assumed_false_states if str(x).strip()]
+        return [x.strip() for x in str(assumed_false_states or "").split(",") if x.strip()]
+
+    @staticmethod
+    def _boolish_literal(value: Any) -> Optional[bool]:
+        if isinstance(value, bool):
+            return value
+        text = str(value or "").strip().upper()
+        if text == "TRUE":
+            return True
+        if text == "FALSE":
+            return False
+        return None
+
+    @classmethod
+    def _assignment_matches_required_value(cls, assignment: Dict[str, Any], required_value: Any) -> bool:
+        req = cls._boolish_literal(required_value)
+        rhs = cls._boolish_literal(assignment.get("rhs", ""))
+        if req is None:
+            return True
+        return rhs is req
+
+    @staticmethod
+    def _fetch_pou_context(pou_name: str) -> Dict[str, Any]:
+        esc = DeterministicPathSearchTool._sparql_escape(pou_name)
+        q = f"""
+        SELECT ?pou ?code ?lang WHERE {{
+          ?pou rdf:type ag:class_POU ;
+               dp:hasPOUName "{esc}" ;
+               dp:hasPOUCode ?code .
+          OPTIONAL {{ ?pou dp:hasPOULanguage ?lang . }}
+        }}
+        """
+        rows = sparql_select_raw(q, max_rows=5)
+        if not rows:
+            return {"error": f"POU '{pou_name}' nicht im KG gefunden."}
+        row = rows[0] if isinstance(rows[0], dict) else {}
+        return {
+            "pou_name": pou_name,
+            "pou_uri": str(row.get("pou", "") or ""),
+            "code": str(row.get("code", "") or ""),
+            "language": str(row.get("lang", "") or ""),
+        }
+
+    def _run_condition_trace(
+        self,
+        *,
+        pou_name: str,
+        condition_expr: str,
+        max_depth: int,
+        assumed_false_states: Any,
+        verbose_trace: bool,
+    ) -> Dict[str, Any]:
+        if "g" not in globals():
+            return {"error": "Global graph 'g' nicht gesetzt. build_bot(...) zuerst aufrufen."}
+        graph = globals()["g"]
+        if not isinstance(graph, Graph):
+            return {"error": "Global 'g' ist kein rdflib.Graph."}
+
+        raw = trace_condition_paths_from_pou(
+            graph,
+            pou_name=str(pou_name or "").strip(),
+            condition_expr=str(condition_expr or "").strip(),
+            max_depth=int(max_depth),
+            assumed_false_states=self._normalize_assumed_false_states(assumed_false_states),
+            verbose_trace=bool(verbose_trace),
+        )
+        compact = self._compact_trigger_condition_trace(raw)
+        return {
+            "preset": "condition_trace",
+            "context": {
+                "pou_name": str(pou_name or "").strip(),
+                "condition_expr": str(condition_expr or "").strip(),
+                "max_depth": int(max_depth),
+            },
+            "condition_trace": compact,
+            "raw": {"condition_trace": raw},
+        }
+
+    def _run_assignment_trace(
+        self,
+        *,
+        pou_name: str,
+        target_var: str,
+        required_value: Any,
+        max_depth: int,
+        assumed_false_states: Any,
+        verbose_trace: bool,
+    ) -> Dict[str, Any]:
+        ctx = self._fetch_pou_context(str(pou_name or "").strip())
+        if ctx.get("error"):
+            return ctx
+
+        code = str(ctx.get("code", "") or "")
+        if not code:
+            return {"error": f"Kein Code fuer POU '{pou_name}' im KG gefunden."}
+
+        assignments = extract_assignments_st(code, str(target_var or "").strip(), trace=None)
+        if not assignments:
+            return {"error": f"Keine Assignments fuer '{target_var}' in POU '{pou_name}' gefunden."}
+
+        matching = [
+            a
+            for a in assignments
+            if isinstance(a, dict) and self._assignment_matches_required_value(a, required_value)
+        ]
+        chosen = matching[-1] if matching else assignments[-1]
+        condition_expr = self._conditions_to_expr(chosen.get("conditions", []))
+        if not condition_expr:
+            return {
+                "preset": "assignment_trace",
+                "context": {
+                    "pou_name": str(pou_name or "").strip(),
+                    "target_var": str(target_var or "").strip(),
+                    "required_value": str(required_value or "").strip() or "TRUE",
+                    "max_depth": int(max_depth),
+                },
+                "assignment": chosen,
+                "condition_expr": "",
+                "condition_trace": {
+                    "error": f"Assignment fuer '{target_var}' hat keine tracebare Bedingung."
+                },
+                "raw": {"condition_trace": {}},
+            }
+
+        raw = self._run_condition_trace(
+            pou_name=str(pou_name or "").strip(),
+            condition_expr=condition_expr,
+            max_depth=int(max_depth),
+            assumed_false_states=assumed_false_states,
+            verbose_trace=bool(verbose_trace),
+        )
+        return {
+            "preset": "assignment_trace",
+            "context": {
+                "pou_name": str(pou_name or "").strip(),
+                "target_var": str(target_var or "").strip(),
+                "required_value": str(required_value or "").strip() or "TRUE",
+                "language": str(ctx.get("language", "") or ""),
+                "max_depth": int(max_depth),
+            },
+            "assignment": chosen,
+            "condition_expr": condition_expr,
+            "condition_trace": raw.get("condition_trace", {}),
+            "raw": {
+                "condition_trace": raw.get("raw", {}).get("condition_trace", {})
+                if isinstance(raw.get("raw"), dict)
+                else {},
+            },
+        }
+
+    def run(
+        self,
+        *,
+        preset: str = "evd2_bootstrap",
+        last_skill: str = "",
+        last_gemma_state: str = "",
+        process_name: str = "",
+        trigger_var: str = "OPCUA.TriggerD2",
+        state_name: str = "D2",
+        skill_case: str = "",
+        max_depth: int = 18,
+        assumed_false_states: str = "D1,D2,D3",
+        pou_name: str = "",
+        target_var: str = "",
+        required_value: Any = "TRUE",
+        condition_expr: str = "",
+        verbose_trace: bool = False,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        preset_norm = self._normalize_preset(preset)
+        if preset_norm == "condition_trace":
+            return self._run_condition_trace(
+                pou_name=pou_name,
+                condition_expr=condition_expr,
+                max_depth=max_depth,
+                assumed_false_states=assumed_false_states,
+                verbose_trace=verbose_trace,
+            )
+        if preset_norm == "assignment_trace":
+            return self._run_assignment_trace(
+                pou_name=pou_name,
+                target_var=target_var,
+                required_value=required_value,
+                max_depth=max_depth,
+                assumed_false_states=assumed_false_states,
+                verbose_trace=verbose_trace,
+            )
+        if preset_norm != "evd2_bootstrap":
+            return {
+                "error": (
+                    "Unbekanntes preset fuer deterministic_path_search: "
+                    f"{preset}. Erlaubt sind evd2_bootstrap, assignment_trace, condition_trace."
+                )
+            }
+        return super().run(
+            last_skill=last_skill,
+            last_gemma_state=last_gemma_state,
+            process_name=process_name,
+            trigger_var=trigger_var,
+            state_name=state_name,
+            skill_case=skill_case,
+            max_depth=max_depth,
+            assumed_false_states=assumed_false_states,
+            **kwargs,
+        )
+
+
 # ----------------------------
 # ChatBot Planner
 # ----------------------------
@@ -2940,7 +3179,13 @@ class ChatBot:
             filtered_steps = [
                 s
                 for s in steps
-                if str(s.get("tool", "")) not in {"evd2_diagnoseplan", "evd2_unified_trace", "evd2_requirement_paths", "evd2_path_trace"}
+                if str(s.get("tool", "")) not in {
+                    "evd2_diagnoseplan",
+                    "evd2_unified_trace",
+                    "evd2_requirement_paths",
+                    "evd2_path_trace",
+                    "deterministic_path_search",
+                }
             ]
 
         focus_symbols = self._extract_focus_symbols(question)
@@ -2990,7 +3235,13 @@ class ChatBot:
         if not isinstance(steps, list) or not steps:
             return plan
 
-        evd2_tools = {"evd2_diagnoseplan", "evd2_unified_trace", "evd2_requirement_paths", "evd2_path_trace"}
+        evd2_tools = {
+            "evd2_diagnoseplan",
+            "evd2_unified_trace",
+            "evd2_requirement_paths",
+            "evd2_path_trace",
+            "deterministic_path_search",
+        }
         has_evd2_tool = any(str(s.get("tool", "")) in evd2_tools for s in steps if isinstance(s, dict))
         q = (question or "").lower()
         asks_evd2 = any(k in q for k in ["evd2", "triggerd2", "opcua.triggerd2", "gemma", "root-cause", "ursache"])
@@ -3009,7 +3260,9 @@ class ChatBot:
                 continue
             tool = str(s.get("tool", ""))
             args = s.get("args", {}) if isinstance(s.get("args"), dict) else {}
-            if tool == "evd2_path_trace":
+            if tool == "deterministic_path_search":
+                merged_args.update(args)
+            elif tool == "evd2_path_trace":
                 merged_args.update(args)
             elif tool == "evd2_diagnoseplan":
                 if args.get("last_skill"):
@@ -3031,7 +3284,12 @@ class ChatBot:
                     merged_args["assumed_false_states"] = args.get("assumed_false_states")
 
         new_plan = dict(plan)
-        new_plan["steps"] = [{"tool": "evd2_path_trace", "args": merged_args}]
+        new_plan["steps"] = [
+            {
+                "tool": "deterministic_path_search",
+                "args": {"preset": "evd2_bootstrap", **merged_args},
+            }
+        ]
         return new_plan
 
     def _get_dynamic_planner_prompt(self, retry_hint: str = "") -> str:
@@ -3059,7 +3317,8 @@ ROOT-CAUSE STRATEGIE (Fixpoint-Search):
 - Wenn der User eine echte Root-Cause-Kette will (Setter -> Guard -> Upstream-Signale), nutze 'graph_investigate'.
 - Gib als seed_terms die wichtigsten Startknoten: Trigger-Variable(n), lastSkill, und Symbole aus Setter-Guards.
 - Nutze die returned evidence/edges, um konkret zu erklären, welche Bedingung den Setter ausführt.
-- Bei evD2-Analysen zuerst nur 'evd2_path_trace' planen (Single-Source-Analyse), nicht mehrere evd2_* Tools parallel.
+- Wenn bereits POU + Variable/Bedingung bekannt sind und du einen deterministischen Signal-/Hardwarepfad willst, nutze 'deterministic_path_search'.
+- Bei evD2-Analysen zuerst nur 'deterministic_path_search' mit `preset="evd2_bootstrap"` planen (Single-Source-Analyse), nicht mehrere evd2_* Tools parallel.
 
 Heuristiken:
 {chr(10).join(heuristics)}
@@ -3249,6 +3508,7 @@ def build_bot(
     registry.register(EvD2DiagnosisTool())
     registry.register(EvD2UnifiedTraceTool())
     registry.register(EvD2RequirementPathsTool())
+    registry.register(DeterministicPathSearchTool())
     registry.register(EvD2PathTracingTool())
     registry.register(CalledPousTool())
     registry.register(PouCallersTool())

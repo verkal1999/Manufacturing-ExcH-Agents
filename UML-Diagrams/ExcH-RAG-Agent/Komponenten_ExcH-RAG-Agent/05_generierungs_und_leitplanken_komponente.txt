@@ -1,0 +1,10 @@
+Komponente: Generierungs- und Leitplanken-Komponente
+
+Zweck:
+Diese Komponente erzeugt die eigentliche Diagnoseantwort, begrenzt sie aber zugleich durch klare Leitplanken. Sie ist damit der Punkt, an dem der RAG-Agent von reinem Wissensabruf zu kontrollierter fachlicher Assistenz uebergeht.
+
+Diagrammidee:
+Die Generierung arbeitet mit einem gebuendelten Kontext, einer expliziten Guardrail-Policy und einem Antwortvertrag fuer die Struktur der Ausgabe. Das macht sichtbar, dass Leitplanken hier kein Zusatz, sondern ein fester Bestandteil der Architektur sind.
+
+Bezug zum Prototyp:
+Im Prototyp steckt diese Logik vor allem im `ask(...)`-Pfad von `SimpleRagAgent`, insbesondere in den Systeminstruktionen und dem Antwortformat.

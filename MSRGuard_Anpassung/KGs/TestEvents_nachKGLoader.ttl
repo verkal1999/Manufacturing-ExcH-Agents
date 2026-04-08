@@ -171,14 +171,14 @@ dp:hasHardwareAddress a owl:DatatypeProperty ;
     rdfs:subPropertyOf owl:topDataProperty .
 
 dp:hasOPCUADataAccess a owl:DatatypeProperty ;
-    rdfs:domain ag:class_SignalSource ;
+    rdfs:domain ag:class_Variable ;
     rdfs:range xsd:boolean ;
-    rdfs:subPropertyOf dp:hasSignalSourceAttribute .
+    rdfs:subPropertyOf dp:hasVariableAttribute .
 
 dp:hasOPCUAWriteAccess a owl:DatatypeProperty ;
-    rdfs:domain ag:class_SignalSource ;
+    rdfs:domain ag:class_Variable ;
     rdfs:range xsd:boolean ;
-    rdfs:subPropertyOf dp:hasSignalSourceAttribute .
+    rdfs:subPropertyOf dp:hasVariableAttribute .
 
 dp:hasPLCProjectName a owl:DatatypeProperty ;
     rdfs:domain ag:class_PLCProject ;
@@ -2847,6 +2847,8 @@ ag:class_Expression a owl:Class ;
     rdfs:comment "Bbehandelt Ausrücke, wie z.B. AND, OR etc. aus mehreren Variablen oder Werten. Hat zudem immer ExpressionText und einen Verweis auf die erzeugenden Elemente." ;
     rdfs:subClassOf ag:class_SignalSource .
 
+dp:hasSignalSourceAttribute a owl:DatatypeProperty .
+
 dp:isSpecificLayer a owl:DatatypeProperty ;
     rdfs:comment "Hier wird gespeichert, ob etwas ein spezifisches Layer ist oder nicht. Damit wird insbesondere vom KGManager anhand des Programmcodes festgestellt, ob es sich bei diesem POU um ein GEMMA-Layer oder ein Output-Layer handelt, denn es wird von einer GEMMA-Steuerungsarchitektur ausgegangen, bei der es ein GEMMA-Layer als Steuerungsarchitektur gibt und ein Output-Layer,bei dem die Outputs in Abhängigkeit von den GEMMA-Zuständen ausgegeben werden." ;
     rdfs:domain ag:class_POU ;
@@ -2910,17 +2912,15 @@ ag:class_POUCall a owl:Class ;
 
 dp:hasPortAttribute a owl:DatatypeProperty .
 
-dp:hasSignalSourceAttribute a owl:DatatypeProperty .
-
-dp:hasVariableAttribute a owl:DatatypeProperty ;
-    rdfs:subPropertyOf dp:hasSignalSourceAttribute .
-
 dp:hasHypothesisParams a owl:DatatypeProperty ;
     rdfs:domain ag:class_SkillImplementationHypothesis ;
     rdfs:range xsd:string .
 
 ag:class_SignalSource a owl:Class ;
     rdfs:comment "Diese Klasse stellt eine abstrakte Signalquelle dar und dient als gemeinsamer Oberbegriff für unterschiedliche Ursprünge von Werten im FBD Netzwerk. Eine Signalquelle kann beispielsweise eine Variable sein, eine PortInstance eines Bausteins oder ein konstant definierter Literalwert. Im Knowledge Graph ist diese Abstraktion wichtig, weil Parameterzuweisungen immer nach dem gleichen Muster funktionieren, unabhängig davon, ob der Wert aus einer Variable oder aus einer Bausteinausgabe stammt. Dadurch können Signalflüsse einheitlich modelliert und abgefragt werden, ohne für jede Quelle unterschiedliche Datenstrukturen zu benötigen. Aus PLCopen XML entstehen Signalquellen aus Verdrahtungen, die entweder direkt auf Variablen verweisen oder die Ausgänge anderer Bausteine als Quelle verwenden. Die Klasse unterstützt komplexe Analysen wie Abhängigkeitsgraphen, Datenflussverfolgung oder die Ermittlung von Skill Vorbedingungen, da sich jede Eingangsbelegung auf eine SignalSource zurückführen lässt. Insgesamt sorgt class_SignalSource dafür, dass der Knowledge Graph die semantische Struktur des FBD Netzwerks vollständig und flexibel repräsentieren kann."@de .
+
+dp:hasVariableAttribute a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dp:hasSignalSourceAttribute .
 
 dp:hasPOUAttribute a owl:DatatypeProperty ;
     rdfs:domain ag:class_POU .

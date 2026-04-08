@@ -1,0 +1,10 @@
+Komponente: Artefakt- und Dokumenten-Komponente
+
+Zweck:
+Diese Komponente bereitet statische Steuerungsartefakte so auf, dass sie spaeter fuer den Wissensabruf genutzt werden koennen. Im Mittelpunkt steht die PLCOpenXML als strukturierter Dokumentkontext.
+
+Diagrammidee:
+Die XML-Quelle wird geladen, durch einen Chunker in fachlich sinnvolle Segmente zerlegt und als Dokumentkorpus bereitgestellt. Die Klasse `RagChunk` repraesentiert genau jene retrieval-faehigen Dokumentsegmente, von denen Kapitel 3.4.2 spricht.
+
+Bezug zum Prototyp:
+Die Diagrammstruktur folgt direkt den Klassen `PLCOpenXmlSource`, `XmlChunker` und `RagChunk` aus `simple_rag_agent.py`.

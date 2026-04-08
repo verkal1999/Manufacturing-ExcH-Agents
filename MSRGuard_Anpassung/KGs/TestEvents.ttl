@@ -266,14 +266,14 @@ dp:hasHardwareAddress a owl:DatatypeProperty ;
     rdfs:subPropertyOf owl:topDataProperty .
 
 dp:hasOPCUADataAccess a owl:DatatypeProperty ;
-    rdfs:domain ag:class_SignalSource ;
+    rdfs:domain ag:class_Variable ;
     rdfs:range xsd:boolean ;
-    rdfs:subPropertyOf dp:hasSignalSourceAttribute .
+    rdfs:subPropertyOf dp:hasVariableAttribute .
 
 dp:hasOPCUAWriteAccess a owl:DatatypeProperty ;
-    rdfs:domain ag:class_SignalSource ;
+    rdfs:domain ag:class_Variable ;
     rdfs:range xsd:boolean ;
-    rdfs:subPropertyOf dp:hasSignalSourceAttribute .
+    rdfs:subPropertyOf dp:hasVariableAttribute .
 
 dp:hasPLCProjectName a owl:DatatypeProperty ;
     rdfs:domain ag:class_PLCProject ;
@@ -2349,6 +2349,8 @@ ag:class_Expression a owl:Class ;
     rdfs:comment "Bbehandelt Ausrücke, wie z.B. AND, OR etc. aus mehreren Variablen oder Werten. Hat zudem immer ExpressionText und einen Verweis auf die erzeugenden Elemente." ;
     rdfs:subClassOf ag:class_SignalSource .
 
+dp:hasSignalSourceAttribute a owl:DatatypeProperty .
+
 dp:isSpecificLayer a owl:DatatypeProperty ;
     rdfs:comment "Hier wird gespeichert, ob etwas ein spezifisches Layer ist oder nicht. Damit wird insbesondere vom KGManager anhand des Programmcodes festgestellt, ob es sich bei diesem POU um ein GEMMA-Layer oder ein Output-Layer handelt, denn es wird von einer GEMMA-Steuerungsarchitektur ausgegangen, bei der es ein GEMMA-Layer als Steuerungsarchitektur gibt und ein Output-Layer,bei dem die Outputs in Abhängigkeit von den GEMMA-Zuständen ausgegeben werden." ;
     rdfs:domain ag:class_POU ;
@@ -3753,11 +3755,6 @@ ag:class_GlobalVariableList a owl:Class ;
 
 dp:hasPortAttribute a owl:DatatypeProperty .
 
-dp:hasSignalSourceAttribute a owl:DatatypeProperty .
-
-dp:hasVariableAttribute a owl:DatatypeProperty ;
-    rdfs:subPropertyOf dp:hasSignalSourceAttribute .
-
 ag:GVL__dot__DiagnoseRequested a ag:class_SignalSource,
         ag:class_Variable ;
     dp:hasVariableName "DiagnoseRequested",
@@ -3790,6 +3787,9 @@ ag:GVL__dot__Weiter a ag:class_SignalSource,
     dp:hasVariableScope "global" ;
     dp:hasVariableType "BOOL" ;
     op:isBoundToPort ag:Port_FB_Betriebsarten_Weiter .
+
+dp:hasVariableAttribute a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dp:hasSignalSourceAttribute .
 
 ag:FBInst_MAIN_fbBA a ag:class_FBInstance ;
     dp:hasFBInstanceName "fbBA"^^xsd:string ;

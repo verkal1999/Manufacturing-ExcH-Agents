@@ -1,0 +1,10 @@
+Komponente: Modell-, Planner- und Werkzeug-Komponente
+
+Zweck:
+Diese Komponente bildet den eigentlichen agentischen Kern des ExcH-KG-Agenten. Sie waehlt Analysepfade, orchestriert spezialisierte Werkzeuge und uebergibt die aggregierten Ergebnisse an das Foundation-Modell zur sprachlichen Aufbereitung.
+
+Diagrammidee:
+Der Planner erzeugt einen Analyseplan, die Registry verwaltet die Werkzeuge, und das Foundation-Modell synthetisiert aus Teilergebnissen eine Antwort. Damit wird die in Kapitel 3.4.3 hervorgehobene Mehrschrittverarbeitung als Klassengeruest sichtbar.
+
+Bezug zum Prototyp:
+Das Diagramm verdichtet die technische Struktur aus `chatbot_core.py` und `excH_chatbot.py`. Die dort konkret vorhandenen Tool-Klassen werden hier auf die vier fachlichen Werkzeuggruppen aus Kapitel 3.4.3 abgebildet.

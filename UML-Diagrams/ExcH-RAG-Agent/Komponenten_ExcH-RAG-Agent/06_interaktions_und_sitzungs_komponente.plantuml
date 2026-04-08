@@ -1,0 +1,69 @@
+@startuml
+title ExcH-RAG-Agent - Interaktions- und Sitzungs-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Interaktions- und Sitzungs-Komponente" {
+  class UiConfig <<dataclass>> {
+    +openai_api_key_file: str
+  }
+
+  class PipelineConfig <<dataclass>> {
+    +enabled: bool
+    +runner: str
+    +config: str
+  }
+
+  class RagConfig <<dataclass>> {
+    +xml_path: str
+    +model: str
+    +temperature: float
+    +top_k: int
+  }
+
+  class RagAgentUI <<module>> {
+    +streamlit_main(): None
+    +start_analysis(event): None
+    +run_pipeline(cfg, event): dict
+    +write_out_json(blob): str
+  }
+
+  class RagSessionBuilder <<module>> {
+    +build_session_from_input(...): SimpleRagSession
+  }
+
+  class SimpleRagSession {
+    +history: List<ChatTurn>
+    +build_default_prompt(): dict
+    +run_initial_analysis(debug): dict
+    +ask(user_msg: str, debug: bool): dict
+  }
+
+  class ChatTurn <<value object>> {
+    +role: str
+    +text: str
+    +answer: str
+  }
+
+  UiConfig *-- PipelineConfig
+  UiConfig *-- RagConfig
+  RagAgentUI ..> UiConfig : laedt
+  RagAgentUI ..> RagSessionBuilder : startet
+  RagAgentUI --> SimpleRagSession : nutzt
+  RagSessionBuilder --> SimpleRagSession : erzeugt
+  SimpleRagSession o-- ChatTurn
+}
+
+note right of RagAgentUI
+Kap. 3.4.2:
+Die Komponente macht den Agenten
+fuer eine nutzende Instanz zugaenglich
+und verwaltet die Analyse in einer
+fortfuehrbaren Sitzung.
+end note
+
+@enduml

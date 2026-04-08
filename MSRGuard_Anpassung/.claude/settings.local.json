@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "Bash(D:/MA_Python_Agent/.venv311/Scripts/python.exe -c ':*)",
+      "Bash(/d/MA_Python_Agent/.venv311/Scripts/python.exe -c \"with open\\('python/msrguard/excH_kg_agent_ui.py','rb'\\) as f: print\\(repr\\(f.read\\(30\\)\\)\\)\")",
+      "Bash(powershell.exe -Command \"[System.IO.File]::ReadAllBytes\\('D:/MA_Python_Agent/MSRGuard_Anpassung/python/msrguard/excH_kg_agent_ui.py'\\)[0..5] -join ' '\")",
+      "Bash(cmd /c \"D:\\\\MA_Python_Agent\\\\.venv311\\\\Scripts\\\\python.exe -c \\\\\"with open\\('D:/MA_Python_Agent/MSRGuard_Anpassung/python/msrguard/excH_kg_agent_ui.py','rb'\\) as f: b=f.read\\(10\\); print\\([hex\\(x\\) for x in b]\\)\\\\\"\")",
+      "Bash(powershell.exe -NoProfile -Command ':*)"
+    ]
+  }
+}

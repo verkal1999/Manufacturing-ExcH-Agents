@@ -1,0 +1,10 @@
+Komponente: Foundation-Modell-Komponente
+
+Zweck:
+Diese Komponente kapselt die austauschbare Modellbasis des ExcH-RAG-Agenten. Sie bildet die in Kapitel 3.4.2 geforderte Trennung zwischen Architektur und konkreter Modellwahl ab.
+
+Diagrammidee:
+Das Diagramm zeigt, wie eine Konfiguration ueber eine Auswahlstrategie in ein konkretes Modellprofil ueberfuehrt wird. Das Gateway verarbeitet Prompt-Requests und liefert ein Modell-Ergebnis zurueck.
+
+Bezug zum Prototyp:
+Im Code ist diese Rolle vor allem ueber `get_llm_invoke(...)` und den LLM-Aufruf in `SimpleRagAgent` sichtbar. Das Diagramm ist deshalb bewusst leicht abstrahiert, damit die austauschbare Modellbasis als eigene Architekturidee erkennbar bleibt.

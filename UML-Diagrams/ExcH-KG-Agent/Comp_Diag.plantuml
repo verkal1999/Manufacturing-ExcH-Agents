@@ -1,0 +1,83 @@
+@startuml ExcH_KG_Agent_Comp_Diag
+'title Komponentendiagramm des ExcH-KG-Agenten
+
+top to bottom direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+
+actor "Nutzende Instanz" as User
+component "Statische Steuerungsartefakte\nPLCopenXML, I/O-Mappings\nund Projektinformationen" as Artifacts
+component "Laufzeitumgebung\nFehlerereignis und Snapshot" as Runtime
+
+package "ExcH-KG-Agent" {
+
+  component "Artefakt- und\nIngestion-Komponente" as Ingestion
+  component "Ontologie-\nKomponente" as Ontology
+  database "Persistenter\nWissensgraph" as KG
+  component "Kontext- und\nSitzungs-Komponente" as Session
+
+  package "Modell-, Planner- und Werkzeug-Komponente" as PlannerBlock {
+    component "Planner" as Planner
+    component "Foundation-\nModell" as FM
+
+    package "Werkzeuge" {
+      component "Wissensgraph-\nAbfrage" as KGQuery
+      component "Struktur- und\nCodeanalyse" as StructureTool
+      component "Variablen- und\nSignalanalyse" as SignalTool
+      component "Pfadrekonstruktion" as PathTool
+    }
+
+    Planner -[hidden]down-> FM
+    FM -[hidden]down-> KGQuery
+    KGQuery -[hidden]right-> StructureTool
+    StructureTool -[hidden]right-> SignalTool
+    SignalTool -[hidden]right-> PathTool
+  }
+
+  component "Interaktions- und\nAusgabe-Komponente" as UI
+
+  Ingestion -[hidden]down-> Ontology
+  Ontology -[hidden]down-> KG
+  KG -[hidden]down-> Session
+  Session -[hidden]down-> PlannerBlock
+  PlannerBlock -[hidden]down-> UI
+}
+
+Artifacts --> Ingestion : Artefakte aufnehmen,\nnormalisieren und anreichern
+Ingestion --> Ontology : strukturierte Ausgangsbasis\nfür Semantisierung
+Ontology --> KG : semantisch überführen\nund persistent ablegen
+
+Runtime --> Session : Fehlerkontext,\nSnapshot,\nProzessbezug
+KG --> Session : Wissensbezug\nund Graphkontext
+
+Session --> Planner : Diagnosekontext auswerten\nund Analysepfad festlegen
+
+Planner --> FM : Modell passend\nzur Aufgabe auswählen
+Planner --> KGQuery : Werkzeug aufrufen\nbei semantischem Wissensbedarf
+Planner --> StructureTool : Werkzeug aufrufen\nbei Struktur- oder Codefragen
+Planner --> SignalTool : Werkzeug aufrufen\nbei Variablen- oder Signalbezug
+Planner --> PathTool : Werkzeug aufrufen\nbei Pfadrekonstruktion
+
+KG --> KGQuery : semantischen Kontext\nbereitstellen
+KG --> StructureTool : Strukturwissen\nbereitstellen
+KG --> SignalTool : Signal- und Variablenwissen\nbereitstellen
+KG --> PathTool : Beziehungs- und Pfadwissen\nbereitstellen
+
+KGQuery --> FM : Abfrageergebnisse\nals Kontext übergeben
+StructureTool --> FM : Analyseergebnisse\nals Kontext übergeben
+SignalTool --> FM : Analyseergebnisse\nals Kontext übergeben
+PathTool --> FM : rekonstruierte Pfade\nals Kontext übergeben
+
+FM --> UI : Diagnose,\nHinweise und Antwort erzeugen
+User --> UI : Anfrage,\nRückfrage,\nErgebnisnutzung
+UI --> Session : Folgefragen und\nSitzungsfortsetzung
+
+note right of PathTool
+Bei D2-Erstdiagnose mit
+spezifischem Parametersatz
+aufrufbar
+end note
+
+@enduml

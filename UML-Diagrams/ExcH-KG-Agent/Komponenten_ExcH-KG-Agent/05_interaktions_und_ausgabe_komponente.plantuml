@@ -1,0 +1,71 @@
+@startuml
+title ExcH-KG-Agent - Interaktions- und Ausgabe-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Interaktions- und Ausgabe-Komponente" {
+  class ExcHAgentUI <<module>> {
+    +streamlit_main(): None
+    +start_analysis(event): None
+    +run_pipeline(cfg, event): dict
+  }
+
+  class ResponseEnvelope <<value object>> {
+    +diagnosis: str
+    +next_steps: List<str>
+    +proposed_actions: List<dict>
+  }
+
+  class StructuredToolResult <<value object>> {
+    +tool_name: str
+    +payload: dict
+  }
+
+  class FollowUpQuestion <<value object>> {
+    +text: str
+    +priority: int
+  }
+
+  class OutputGuardrail {
+    +check(response: ResponseEnvelope): EscalationDecision
+  }
+
+  class EscalationDecision <<value object>> {
+    +requires_human_review: bool
+    +reason: str
+  }
+
+  class AuditTrailEntry <<value object>> {
+    +timestamp_utc: str
+    +kind: str
+    +data: dict
+  }
+
+  class SessionResumeRequest <<value object>> {
+    +user_msg: str
+    +reuse_session: bool
+  }
+
+  ExcHAgentUI ..> ResponseEnvelope : stellt bereit
+  ResponseEnvelope o-- StructuredToolResult
+  ResponseEnvelope o-- FollowUpQuestion
+  OutputGuardrail ..> ResponseEnvelope : prueft
+  OutputGuardrail --> EscalationDecision : erzeugt
+  ExcHAgentUI o-- AuditTrailEntry
+  SessionResumeRequest ..> ExcHAgentUI : fuehrt zu Folgeanalyse
+}
+
+note right of OutputGuardrail
+Kap. 3.4.3:
+Die Ausgabeseite ist die Stelle,
+an der Nachvollziehbarkeit,
+menschliche Aufsicht,
+Eingriffsgrenzen und Eskalation
+praktisch wirksam werden.
+end note
+
+@enduml

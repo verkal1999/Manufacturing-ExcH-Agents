@@ -1,0 +1,100 @@
+@startuml
+title ExcH-KG-Agent - Ontologie- und Wissensgraph-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Ontologie-Schema" {
+  class PLCProject
+
+  abstract class POU
+  class Program
+  class FBType
+  class StandardFBType
+
+  class Port
+  class FBInstance
+
+  abstract class SignalSource
+  class Variable
+  class PortInstance
+  class SourceLiteral
+  class Expression
+
+  class POUCall
+  class ParameterAssignment
+
+  class GlobalVariableList
+  class IOChannel
+  class Skill
+
+  POU <|-- Program
+  POU <|-- FBType
+  FBType <|-- StandardFBType
+
+  SignalSource <|-- Variable
+  SignalSource <|-- PortInstance
+  SignalSource <|-- SourceLiteral
+  SignalSource <|-- Expression
+
+  PLCProject o-- POU
+  PLCProject o-- GlobalVariableList
+  POU o-- Port
+  POU o-- Variable
+  POU o-- FBInstance
+  POU o-- POUCall
+
+  FBInstance --> FBType : instanziiert
+  GlobalVariableList o-- Variable
+  Variable --> IOChannel : mapped to
+  POUCall --> FBInstance : ruft auf
+  POUCall o-- ParameterAssignment
+  ParameterAssignment --> SignalSource : bindet Quelle
+  Skill ..> POU : wird aus POU/FB abgeleitet
+}
+
+package "Wissensgraph-Services" {
+  class KGLoader {
+    +build_gvl_index_from_objects(): None
+    +ingest_programs_from_mapping_json(): None
+    +ingest_io_mappings(): None
+    +ingest_gvl_globals(): None
+    +save(): None
+  }
+
+  class KGManager {
+    +load(): Graph
+    +analyze_unused_elements(): None
+    +generate_reports(): None
+    +save(output_path): Path
+  }
+
+  class KGStore {
+    +graph: Graph
+  }
+
+  KGLoader --> KGStore : befuellt
+  KGManager --> KGStore : analysiert / erweitert
+}
+
+KGLoader ..> PLCProject : instanziiert
+KGLoader ..> POU : instanziiert
+KGLoader ..> Variable : instanziiert
+KGLoader ..> POUCall : instanziiert
+KGLoader ..> ParameterAssignment : instanziiert
+KGLoader ..> IOChannel : instanziiert
+KGManager ..> Skill : erweitert um semantische Schicht
+
+note right of POUCall
+Kap. 3.4.3 betont fuer den KG-Agenten
+insbesondere die Signalfluss- und
+Parameterzuweisungsebene.
+Diese Ebene ist der zentrale
+Mehrwert gegenueber einem reinen
+Dokumentenabruf.
+end note
+
+@enduml

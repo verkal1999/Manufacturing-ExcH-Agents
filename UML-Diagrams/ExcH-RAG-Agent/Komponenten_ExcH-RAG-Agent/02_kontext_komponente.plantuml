@@ -1,0 +1,67 @@
+@startuml
+title ExcH-RAG-Agent - Kontext-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Kontext-Komponente" {
+  class RuntimeEvent <<input>> {
+    +payload: dict
+  }
+
+  class ContextInterpreter {
+    +from_event(event: RuntimeEvent): RagIncidentContext
+    +extract_snapshot(event: RuntimeEvent): RuntimeSnapshot
+  }
+
+  class RagIncidentContext <<dataclass>> {
+    +correlationId: str
+    +processName: str
+    +summary: str
+    +triggerEvent: str
+    +lastSkill: str
+    +xml_path: str
+    +compact_event_context(): dict
+    +runtime_context_note(): str
+    +default_question(): str
+  }
+
+  class RuntimeSnapshot <<value object>> {
+    +vars: List<ObservedValue>
+    +rows: List<BrowseHint>
+  }
+
+  class ObservedValue <<value object>> {
+    +id: str
+    +type: str
+    +value: Any
+  }
+
+  class BrowseHint <<value object>> {
+    +id: str
+    +node_class: str
+    +type: str
+  }
+
+  ContextInterpreter ..> RuntimeEvent : liest
+  ContextInterpreter --> RagIncidentContext : verdichtet zu
+  ContextInterpreter --> RuntimeSnapshot : extrahiert
+  RagIncidentContext o-- RuntimeSnapshot : nutzt
+  RuntimeSnapshot *-- ObservedValue
+  RuntimeSnapshot *-- BrowseHint
+}
+
+note right of RagIncidentContext
+Kap. 3.4.2 betont:
+- Trennung von Beobachtung und Strukturhinweis
+- Verdichtung des Fehlerkontexts
+- Aufbau eines Diagnosekontexts
+
+Prototypischer Kern:
+RagIncidentContext
+end note
+
+@enduml

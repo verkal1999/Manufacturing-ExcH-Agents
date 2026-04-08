@@ -18,7 +18,7 @@ public:
     // attach() erstellt den Observer und subscribed sicher nach der Konstruktion
     static std::shared_ptr<ExcHUiObserver> attach(EventBus& bus,
                                                   std::string pythonSrcDir,
-                                                  std::string scriptFile = "excH_agent_ui.py",
+                                                  std::string scriptFile = "excH_kg_agent_ui.py",
                                                   int priority = 3,
                                                   std::shared_ptr<AgentGate> gate = nullptr);
 

@@ -1,4 +1,4 @@
-@startuml
+@startuml evd2_sequence_diagram
 skinparam shadowing false
 title evD2 Sequence - Trigger to Diagnosis and KG Ingestion
 

@@ -1,0 +1,56 @@
+@startuml
+title ExcH-RAG-Agent - Artefakt- und Dokumenten-Komponente
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+
+package "Artefakt- und Dokumenten-Komponente" {
+  class ArtifactCatalog <<value object>> {
+    +xml_path: str
+    +document_type: str
+  }
+
+  class PLCOpenXmlSource {
+    +load_text(xml_path: str): str
+  }
+
+  class XmlChunker {
+    +chunk_text(text: str, xml_path: str): List<RagChunk>
+  }
+
+  class RagChunk <<dataclass>> {
+    +chunk_id: str
+    +kind: str
+    +name: str
+    +text: str
+    +metadata: dict
+    +preview(): str
+  }
+
+  class DocumentCorpus {
+    +chunks: List<RagChunk>
+    +add(chunk: RagChunk): None
+  }
+
+  ArtifactCatalog --> PLCOpenXmlSource : verweist auf
+  PLCOpenXmlSource ..> XmlChunker : liefert XML an
+  XmlChunker ..> RagChunk : erzeugt
+  XmlChunker --> DocumentCorpus : fuellt
+  DocumentCorpus o-- RagChunk
+}
+
+note right of XmlChunker
+Kap. 3.4.2:
+Statische Steuerungsartefakte werden
+in retrieval-faehige Dokumentsegmente
+ueberfuehrt, ohne bereits einen
+Wissensgraphen aufzubauen.
+
+Prototypischer Kern:
+PLCOpenXmlSource + XmlChunker + RagChunk
+end note
+
+@enduml

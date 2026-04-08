@@ -1,0 +1,93 @@
+@startuml
+skinparam shadowing false
+title ExcH-RAG Agent Sequence - Initial Diagnosis
+
+actor "User / Operator" as User
+participant "rag_agent_ui.py\\nstart_analysis(event)" as UI
+participant "IngestionPipeline" as Pipeline
+collections "Event JSON" as EventJson
+database "export.xml / PLCOpenXML" as ExportXml
+participant "RagSessionBuilder\\nbuild_session_from_input(...)" as Builder
+participant "RagIncidentContext" as Ctx
+participant "SimpleRagAgent" as Agent
+participant "PLCOpenXmlSource" as XmlSource
+participant "XmlChunker" as Chunker
+participant "SimpleRagIndex" as Index
+participant "SimpleRagSession" as Session
+participant "LLM / OpenAI" as LLM
+
+User -> UI : Klick auf "Weiter"\\n(Start der ersten Diagnose)
+UI -> EventJson : nutze bereits geladenes Event
+
+alt Pipeline vor Analyse aktiviert
+  UI -> Pipeline : run_pipeline(cfg.pipeline, event)
+  Pipeline -> ExportXml : erzeugt / aktualisiert export.xml
+  ExportXml --> Pipeline : aktuelle PLCOpenXML
+  Pipeline --> UI : ok + xml_path
+  UI -> EventJson : payload.plcopen_xml_path := xml_path
+else Pipeline deaktiviert
+  UI -> EventJson : nutze XML-Pfad aus Event / Config / ENV
+end
+
+UI -> Builder : build_session_from_input(event, xml_path,\\npipeline_config_path, model, temperature, top_k)
+Builder -> Builder : _resolve_xml_path(...)
+Builder -> Ctx : from_input(event, xml_path)
+Ctx --> Builder : RagIncidentContext
+Builder -> Agent : __init__(xml_path, model, temperature, top_k)
+Agent -> XmlSource : load_text(xml_path)
+XmlSource -> ExportXml : read_text()
+ExportXml --> XmlSource : XML als Text
+XmlSource --> Agent : xml_text
+Agent -> Chunker : chunk_text(xml_text, xml_path)
+Chunker --> Agent : List<RagChunk>
+Agent -> Index : build lexical index(chunks)
+Index --> Agent : index ready
+Builder -> Session : SimpleRagSession(agent, ctx)
+Session --> Builder : session
+Builder --> UI : SimpleRagSession
+
+UI -> Session : debug_summary()
+Session --> UI : chunk_count + sample_chunks + context
+
+UI -> Session : run_initial_analysis(debug=true)
+Session -> Session : build_default_prompt()
+Session -> Ctx : compact_event_context()
+Ctx --> Session : compact JSON
+Session -> Ctx : runtime_context_note()
+Ctx --> Session : Kontext-Hinweise
+Session -> Ctx : default_question()
+Ctx --> Session : automatisch erzeugte Erstfrage
+
+note right of Session
+Die erste Frage wird nicht manuell eingegeben.
+Sie wird aus Event, Snapshot und XML-Kontext
+automatisch als Diagnosefrage erzeugt.
+end note
+
+Session -> Agent : ask(question, ctx, extra_context)
+Agent -> Index : search(question, top_k)
+Index --> Agent : ranked chunks
+
+alt passende Chunks gefunden
+  Agent -> LLM : system prompt + event context +\\nretrieved PLCOpenXML chunks + question
+  LLM --> Agent : erste Diagnoseantwort
+else keine passenden Chunks
+  Agent --> Session : "keine passenden Kontextstellen gefunden"
+end
+
+Agent --> Session : answer + retrieved_chunks + debug
+Session -> Session : history.append(...)
+Session --> UI : initial result
+
+UI -> UI : speichere rag_session + last_rag_debug\\nin streamlit session_state
+UI --> User : zeige auto-generierte Erstfrage\\nund erste Diagnoseantwort im Chat
+
+note right of Agent
+Minimaler Initialpfad:
+1. XML laden
+2. XML in Chunks zerlegen
+3. lexikalisches Retrieval
+4. genau ein LLM-Aufruf
+end note
+
+@enduml

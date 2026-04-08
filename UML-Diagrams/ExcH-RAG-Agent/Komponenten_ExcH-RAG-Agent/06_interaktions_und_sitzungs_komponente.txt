@@ -1,0 +1,10 @@
+Komponente: Interaktions- und Sitzungs-Komponente
+
+Zweck:
+Die Interaktions- und Sitzungs-Komponente bindet den RAG-Agenten an eine nutzende Instanz an und organisiert die Analyse als fortsetzbare Sitzung. Sie bildet damit die operative Einfuehrungsschicht des Agenten.
+
+Diagrammidee:
+Das Diagramm zeigt die UI-Konfiguration, den Session-Aufbau und die Speicherung einzelner Chat-Turns in einer Sitzung. So wird sichtbar, wie initiale Analyse, Rueckfragen und Folgeanfragen organisatorisch zusammengehalten werden.
+
+Bezug zum Prototyp:
+Die Klassen `RagAgentUI`, `RagSessionBuilder` und `SimpleRagSession` stammen direkt aus der vorhandenen RAG-Implementierung und den bestehenden UML-Slides.
