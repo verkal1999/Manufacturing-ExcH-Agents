@@ -4,7 +4,7 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 package "Modell-, Planner- und Werkzeug-Komponente" {
   class Planner {
@@ -12,12 +12,12 @@ package "Modell-, Planner- und Werkzeug-Komponente" {
     +replan(ctx, partial_results): AnalysisPlan
   }
 
-  class AnalysisPlan <<value object>> {
+  class AnalysisPlan <<dataclass>> {
     +goal: str
     +steps: List<PlanStep>
   }
 
-  class PlanStep <<value object>> {
+  class PlanStep <<dataclass>> {
     +tool_name: str
     +purpose: str
   }
@@ -38,7 +38,7 @@ package "Modell-, Planner- und Werkzeug-Komponente" {
   class VariableSignalAnalysisTool
   class PathReconstructionTool
 
-  class ToolResultBundle <<value object>> {
+  class ToolResultBundle <<dataclass>> {
     +results: Dict<str, Any>
   }
 
@@ -56,7 +56,7 @@ package "Modell-, Planner- und Werkzeug-Komponente" {
   BaseAgentTool <|-- PathReconstructionTool
   Planner --> ToolResultBundle : sammelt
   FoundationModelAdapter ..> ToolResultBundle : nutzt
-  Planner --> FoundationModelAdapter : uebergibt Ergebnisse an
+  Planner --> FoundationModelAdapter : übergibt Ergebnisse an
 }
 
 @enduml

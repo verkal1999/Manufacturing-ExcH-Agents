@@ -4,10 +4,10 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 package "Retrieval-Komponente" {
-  class RetrievalQuery <<value object>> {
+  class RetrievalQuery <<dataclass>> {
     +question: str
     +top_k: int
   }
@@ -23,13 +23,13 @@ package "Retrieval-Komponente" {
     +score(query: RetrievalQuery, chunk: RagChunk): float
   }
 
-  class RetrievalHit <<value object>> {
+  class RetrievalHit <<dataclass>> {
     +rank: int
     +score: float
     +overlap: List<str>
   }
 
-  class RetrievalResultSet <<value object>> {
+  class RetrievalResultSet <<dataclass>> {
     +hits: List<RetrievalHit>
   }
 

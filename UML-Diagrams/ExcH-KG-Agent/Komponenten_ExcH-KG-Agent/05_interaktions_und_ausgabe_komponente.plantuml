@@ -4,7 +4,7 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 package "Interaktions- und Ausgabe-Komponente" {
   class ExcHAgentUI <<module>> {
@@ -13,18 +13,18 @@ package "Interaktions- und Ausgabe-Komponente" {
     +run_pipeline(cfg, event): dict
   }
 
-  class ResponseEnvelope <<value object>> {
+  class ResponseEnvelope <<dataclass>> {
     +diagnosis: str
     +next_steps: List<str>
     +proposed_actions: List<dict>
   }
 
-  class StructuredToolResult <<value object>> {
+  class StructuredToolResult <<dataclass>> {
     +tool_name: str
     +payload: dict
   }
 
-  class FollowUpQuestion <<value object>> {
+  class FollowUpQuestion <<dataclass>> {
     +text: str
     +priority: int
   }
@@ -33,18 +33,18 @@ package "Interaktions- und Ausgabe-Komponente" {
     +check(response: ResponseEnvelope): EscalationDecision
   }
 
-  class EscalationDecision <<value object>> {
+  class EscalationDecision <<dataclass>> {
     +requires_human_review: bool
     +reason: str
   }
 
-  class AuditTrailEntry <<value object>> {
+  class AuditTrailEntry <<dataclass>> {
     +timestamp_utc: str
     +kind: str
     +data: dict
   }
 
-  class SessionResumeRequest <<value object>> {
+  class SessionResumeRequest <<dataclass>> {
     +user_msg: str
     +reuse_session: bool
   }
@@ -52,7 +52,7 @@ package "Interaktions- und Ausgabe-Komponente" {
   ExcHAgentUI ..> ResponseEnvelope : stellt bereit
   ResponseEnvelope o-- StructuredToolResult
   ResponseEnvelope o-- FollowUpQuestion
-  OutputGuardrail ..> ResponseEnvelope : prueft
+  OutputGuardrail ..> ResponseEnvelope : prüft
   OutputGuardrail --> EscalationDecision : erzeugt
   ExcHAgentUI o-- AuditTrailEntry
   ExcHAgentUI ..> SessionResumeRequest : verarbeitet

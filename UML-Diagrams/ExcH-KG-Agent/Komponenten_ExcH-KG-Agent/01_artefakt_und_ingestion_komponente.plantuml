@@ -4,7 +4,7 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 package "Artefakt- und Ingestion-Komponente" {
   class PipelineConfig <<dataclass>> {
@@ -72,8 +72,8 @@ package "Artefakt- und Ingestion-Komponente" {
   Step <|-- BuildIOMappingsStep
   Pipeline *-- Step
   Pipeline --> PipelineContext : arbeitet auf
-  Pipeline --> ArtifactQualityGate : validiert ueber
-  PipelineContext o-- PLCOpenXMLParserWithHW : haelt Parser
+  Pipeline --> ArtifactQualityGate : validiert über
+  PipelineContext o-- PLCOpenXMLParserWithHW : hält Parser
   PLCOpenXMLParserWithHW ..> ProgramMapping : erzeugt
   PLCOpenXMLParserWithHW ..> GVL : erzeugt
   PLCOpenXMLParserWithHW ..> IoHardwareAddress : erzeugt

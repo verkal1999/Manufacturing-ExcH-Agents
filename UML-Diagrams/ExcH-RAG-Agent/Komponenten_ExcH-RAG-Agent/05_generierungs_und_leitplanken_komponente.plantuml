@@ -4,25 +4,29 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
+skinparam dpi 180
+skinparam ranksep 45
+skinparam nodesep 35
+skinparam DefaultFontSize 13
 left to right direction
 
-package "Generierungs- und Leitplanken-Komponente" {
-  class GenerationRequest <<value object>> {
+package "Generierungs- und\nLeitplanken-Komponente" {
+  class GenerationRequest <<dataclass>> {
     +question: str
     +extra_context: str
   }
 
-  class RetrievedContextBlock <<value object>> {
+  class "GroundedContext\nBundle" as GroundedContextBundle <<dataclass>> {
+    +event_context: str
+    +retrieved_chunks: List<RetrievedContextBlock>
+  }
+
+  class "RetrievedContext\nBlock" as RetrievedContextBlock <<dataclass>> {
     +rank: int
     +kind: str
     +name: str
     +score: float
     +text: str
-  }
-
-  class GroundedContextBundle <<value object>> {
-    +event_context: str
-    +retrieved_chunks: List<RetrievedContextBlock>
   }
 
   class GuardrailPolicy {
@@ -34,21 +38,27 @@ package "Generierungs- und Leitplanken-Komponente" {
     +required_sections: List<str>
   }
 
-  class GroundedAnswerGenerator {
-    +generate(req: GenerationRequest, ctx: GroundedContextBundle): GenerationResult
+  class "GroundedAnswer\nGenerator" as GroundedAnswerGenerator {
+    +generate(req, ctx): GenerationResult
   }
 
-  class GenerationResult <<value object>> {
+  class GenerationResult <<dataclass>> {
     +answer: str
     +uncertainty_notes: List<str>
   }
 
-  GroundedContextBundle *-- RetrievedContextBlock
+  GroundedContextBundle *-down- RetrievedContextBlock
   GroundedAnswerGenerator --> GuardrailPolicy : beachtet
   GroundedAnswerGenerator --> AnswerContract : formatiert nach
   GroundedAnswerGenerator ..> GenerationRequest : verarbeitet
   GroundedAnswerGenerator ..> GroundedContextBundle : nutzt
   GroundedAnswerGenerator --> GenerationResult : erzeugt
+
+  GenerationRequest -[hidden]right-> GroundedAnswerGenerator
+  GroundedContextBundle -[hidden]right-> GroundedAnswerGenerator
+  GuardrailPolicy -[hidden]down-> AnswerContract
+  GroundedAnswerGenerator -[hidden]right-> GenerationResult
+  GroundedContextBundle -[hidden]down-> RetrievedContextBlock
 }
 
 @enduml

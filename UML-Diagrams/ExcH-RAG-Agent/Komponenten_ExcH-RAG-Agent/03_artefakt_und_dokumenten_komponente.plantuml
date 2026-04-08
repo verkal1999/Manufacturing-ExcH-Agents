@@ -4,10 +4,10 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 package "Artefakt- und Dokumenten-Komponente" {
-  class ArtifactCatalog <<value object>> {
+  class ArtifactCatalog <<dataclass>> {
     +xml_path: str
     +document_type: str
   }
@@ -37,7 +37,7 @@ package "Artefakt- und Dokumenten-Komponente" {
   ArtifactCatalog --> PLCOpenXmlSource : verweist auf
   PLCOpenXmlSource ..> XmlChunker : liefert XML an
   XmlChunker ..> RagChunk : erzeugt
-  XmlChunker --> DocumentCorpus : fuellt
+  XmlChunker --> DocumentCorpus : füllt
   DocumentCorpus o-- RagChunk
 }
 

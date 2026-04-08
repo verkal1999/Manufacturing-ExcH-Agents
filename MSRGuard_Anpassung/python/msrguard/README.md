@@ -17,7 +17,7 @@ Die beiden Agenten loesen aehnliche Aufgaben, sind aber intern sehr verschieden 
 Beispiele aus `MSRGuard_Anpassung/python`:
 
 ```bash
-streamlit run msrguard/excH_agent_ui.py -- --event_json_path <event.json>
+streamlit run msrguard/excH_kg_agent_ui.py -- --event_json_path <event.json>
 streamlit run msrguard/rag_agent_ui.py -- --event_json_path <event.json>
 ```
 
@@ -35,8 +35,8 @@ Wichtige Voraussetzungen:
 | `chatbot_core.py` | Kernlogik des KG-Agenten | Baut den KG-Zugriff auf, registriert alle Tools, enthaelt den Planner, fuehrt Toolplaene aus und erzeugt finale Antworten fuer den interaktiven Chat. |
 | `d2_trace_analysis.py` | Deterministische Analysebibliothek | Enthaelt die eigentliche ST/FBD-Trace- und Bedingungslogik fuer evD2, Truth Paths, Requirement-Pfade und Rueckverfolgung von Signalen. |
 | `excH_chatbot.py` | ExcH-Sitzung und Diagnoseorchestrierung | Extrahiert Event-Kontext, baut die Session, fuehrt fuer evD2 zuerst eine deterministische Bootstrap-Analyse aus und kapselt den Chatbot fuer Folgefragen. |
-| `excH_agent_ui.py` | Streamlit-Oberflaeche fuer den ExcH-Agenten | Laedt Event-JSON, startet optional die Ingestion-Pipeline, initialisiert den KG-Chatbot, zeigt Chatverlauf und Debug-Informationen an und schreibt Ergebnis-JSONs weg. |
-| `excH_agent_core.py` | Minimaler MVP-Core | Stellt mit `handle_event(...)` einen sehr kleinen, nicht-chatbasierten Einstiegspunkt fuer strukturierte Agent-Ergebnisse bereit. |
+| `excH_kg_agent_ui.py` | Streamlit-Oberflaeche fuer den ExcH-Agenten | Laedt Event-JSON, startet optional die Ingestion-Pipeline, initialisiert den KG-Chatbot, zeigt Chatverlauf und Debug-Informationen an und schreibt Ergebnis-JSONs weg. |
+| `excH_kg_agent_core.py` | Minimaler MVP-Core | Stellt mit `handle_event(...)` einen sehr kleinen, nicht-chatbasierten Einstiegspunkt fuer strukturierte Agent-Ergebnisse bereit. |
 | `simple_rag_agent.py` | Gesamte RAG-Logik | Enthaelt Kontextmodell, XML-Loader, Chunking, Retrieval, Agent, Session und Session-Builder fuer den einfachen RAG-Agenten. |
 | `rag_agent_ui.py` | Streamlit-Oberflaeche fuer den RAG-Agenten | Laedt Event-JSON, startet optional die Pipeline fuer `export.xml`, baut die RAG-Session und startet die initiale Analyse. |
 | `KG_Interface.py` | Legacy-KG-Zugriff | Aelteres RDF-Interface fuer FailureMode-, MonitoringAction- und SystemReaction-Abfragen sowie Ingestion von aufgetretenen Fehlern. |
@@ -68,7 +68,7 @@ Kurz gesagt: Dieser Agent ist fuer tiefere Root-Cause-Analyse gedacht, nicht nur
 
 Der Laufzeitpfad ist im Normalfall:
 
-1. `excH_agent_ui.py` laedt die UI, das Event und optional die Ingestion-Pipeline.
+1. `excH_kg_agent_ui.py` laedt die UI, das Event und optional die Ingestion-Pipeline.
 2. `IncidentContext` in `excH_chatbot.py` extrahiert aus dem Event die fuer die Diagnose wichtigen Felder.
 3. `build_bot(...)` in `chatbot_core.py` laedt den KG, baut den Tool-Stack auf und erstellt den ChatBot.
 4. `ExcHChatBotSession` kapselt Bot plus Incident-Kontext.
@@ -178,7 +178,7 @@ Die Datei macht unter anderem:
 Wenn in der UI spaeter sehr konkrete Aussagen ueber Setter, innere `IF`-Bedingungen, Upstream-Signale oder Zeitphasen `t0`, `t-1`, `t-2` auftauchen, stammen die relevanten Fakten im Kern aus dieser Datei.
 
 
-### Rolle von `excH_agent_ui.py`
+### Rolle von `excH_kg_agent_ui.py`
 
 Die UI-Datei ist fuer die Bedienung da, nicht fuer die Fachlogik.
 
@@ -200,9 +200,9 @@ Wichtig:
 - Sie ruft dafuer gezielt `IncidentContext`, `build_bot(...)`, `ExcHChatBotSession` und `run_initial_analysis(...)` auf.
 
 
-### Rolle von `excH_agent_core.py`
+### Rolle von `excH_kg_agent_core.py`
 
-`excH_agent_core.py` ist ein sehr kleiner MVP-Einstiegspunkt mit `handle_event(...)`.
+`excH_kg_agent_core.py` ist ein sehr kleiner MVP-Einstiegspunkt mit `handle_event(...)`.
 
 Die Datei soll:
 
@@ -384,7 +384,7 @@ Steuert den RAG-Agenten:
 Wenn du Verhalten anpassen willst, ist meist diese Zuordnung sinnvoll:
 
 - UI-Verhalten, Uploads, Streamlit-Darstellung:
-  `excH_agent_ui.py` oder `rag_agent_ui.py`
+  `excH_kg_agent_ui.py` oder `rag_agent_ui.py`
 
 - ExcH-Diagnosefluss, Initialantwort, evD2-Bootstrap:
   `excH_chatbot.py`
@@ -402,7 +402,7 @@ Wenn du Verhalten anpassen willst, ist meist diese Zuordnung sinnvoll:
   `KG_Interface.py`
 
 - Nicht-interaktiver MVP-Einstiegspunkt:
-  `excH_agent_core.py`
+  `excH_kg_agent_core.py`
 
 
 ## Kurzvergleich Der Beiden Agenten

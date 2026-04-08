@@ -4,10 +4,10 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 package "Foundation-Modell-Komponente" {
-  class RagConfig <<value object>> {
+  class RagConfig <<dataclass>> {
     +model: str
     +temperature: float
   }
@@ -16,13 +16,13 @@ package "Foundation-Modell-Komponente" {
     +select_profile(task_kind: str): ModelProfile
   }
 
-  class ModelProfile <<value object>> {
+  class ModelProfile <<dataclass>> {
     +name: str
     +cost_class: str
     +context_window: int
   }
 
-  class PromptRequest <<value object>> {
+  class PromptRequest <<dataclass>> {
     +system_prompt: str
     +user_prompt: str
   }
@@ -31,13 +31,13 @@ package "Foundation-Modell-Komponente" {
     +invoke(req: PromptRequest): ModelResponse
   }
 
-  class ModelResponse <<value object>> {
+  class ModelResponse <<dataclass>> {
     +answer: str
     +finish_reason: str
   }
 
   RagConfig --> ModelSelectionPolicy : parametrisiert
-  ModelSelectionPolicy --> ModelProfile : waehlt
+  ModelSelectionPolicy --> ModelProfile : wählt
   FoundationModelGateway --> ModelProfile : nutzt
   FoundationModelGateway ..> PromptRequest : verarbeitet
   FoundationModelGateway --> ModelResponse : erzeugt

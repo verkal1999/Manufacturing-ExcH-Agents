@@ -4,7 +4,7 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 package "Kontext-Komponente" {
   class RuntimeEvent <<input>> {
@@ -28,18 +28,18 @@ package "Kontext-Komponente" {
     +default_question(): str
   }
 
-  class RuntimeSnapshot <<value object>> {
+  class RuntimeSnapshot <<dataclass>> {
     +vars: List<ObservedValue>
     +rows: List<BrowseHint>
   }
 
-  class ObservedValue <<value object>> {
+  class ObservedValue <<dataclass>> {
     +id: str
     +type: str
     +value: Any
   }
 
-  class BrowseHint <<value object>> {
+  class BrowseHint <<dataclass>> {
     +id: str
     +node_class: str
     +type: str

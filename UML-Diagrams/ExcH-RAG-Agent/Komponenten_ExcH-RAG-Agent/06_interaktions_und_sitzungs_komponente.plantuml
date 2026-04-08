@@ -4,7 +4,7 @@ skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 skinparam linetype ortho
-left to right direction
+top to bottom direction
 
 package "Interaktions- und Sitzungs-Komponente" {
   class UiConfig <<dataclass>> {
@@ -42,7 +42,7 @@ package "Interaktions- und Sitzungs-Komponente" {
     +ask(user_msg: str, debug: bool): dict
   }
 
-  class ChatTurn <<value object>> {
+  class ChatTurn <<dataclass>> {
     +role: str
     +text: str
     +answer: str
@@ -50,7 +50,7 @@ package "Interaktions- und Sitzungs-Komponente" {
 
   UiConfig *-- PipelineConfig
   UiConfig *-- SimpleRagConfig
-  RagAgentUI ..> UiConfig : laedt
+  RagAgentUI ..> UiConfig : lädt
   RagAgentUI ..> RagSessionBuilder : startet
   RagAgentUI --> SimpleRagSession : nutzt
   RagSessionBuilder --> SimpleRagSession : erzeugt

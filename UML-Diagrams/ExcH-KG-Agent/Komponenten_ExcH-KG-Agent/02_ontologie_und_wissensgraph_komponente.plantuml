@@ -30,11 +30,11 @@ package "Ontologie- und Wissensgraph-Komponente" {
     +graph: Graph
   }
 
-  KGLoader --> KGStore : befuellt
+  KGLoader --> KGStore : befüllt
   KGManager --> KGStore : analysiert\nund erweitert
 }
 
 Ontology ..> KGLoader
-KGStore <..> KGDatabase : persistiert / laedt
+KGStore <..> KGDatabase : persistiert / lädt
 
 @enduml

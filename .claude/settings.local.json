@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where plantuml:*)",
+      "Bash(where java:*)",
+      "Bash(java -version)"
+    ]
+  }
+}

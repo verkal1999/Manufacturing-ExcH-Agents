@@ -29,10 +29,10 @@ Der praktische Lauf im Code sieht so aus:
 4. `AgentStartCoordinator` emittiert `evAgentStart`, sobald beide Signale fuer den Incident da sind:
    - `evUnknownFM`
    - `evIngestionDone`
-5. `ExcHUiObserver` schreibt `<corr>_event.json`, startet `excH_agent_ui.py` und wartet auf `<corr>_result.json`.
+5. `ExcHUiObserver` schreibt `<corr>_event.json`, startet `excH_kg_agent_ui.py` und wartet auf `<corr>_result.json`.
 6. UI/Agent-Seite:
    - optional Pipeline-Lauf,
-   - `excH_agent_core.handle_event(...)` liefert strukturierte Basisdiagnose,
+   - `excH_kg_agent_core.handle_event(...)` liefert strukturierte Basisdiagnose,
    - Chatbot initialisiert KG-Tools und startet initiale evD2-Analyse.
 7. Operator entscheidet in der UI "Weiter" oder "Abbrechen":
    - Ergebnis wird als `out_json` persistiert.
@@ -98,7 +98,8 @@ Typische KG-Artefakte stehen danach in den konfigurierten TTL-Pfaden (`kg_after_
 
 ## Relevante Einstiege
 - Runtime: `MSRGuard_Anpassung/src/main.cpp`
-- UI/Agent: `MSRGuard_Anpassung/python/msrguard/excH_agent_ui.py`
+- UI/Agent (KG): `MSRGuard_Anpassung/python/msrguard/excH_kg_agent_ui.py`
+- UI/Agent (RAG): `MSRGuard_Anpassung/python/msrguard/rag_agent_ui.py`
 - Chatbot-Engine: `MSRGuard_Anpassung/python/msrguard/chatbot_core.py`
 - evD2-Trace-Logik: `MSRGuard_Anpassung/python/msrguard/d2_trace_analysis.py`
 - Ingestion-Runner: `Pipelines/IngestionPipeline/run_ingestion.py`
@@ -111,15 +112,15 @@ python Pipelines/IngestionPipeline/run_ingestion.py
 
 ### Agent-UI mit Event-Datei
 ```powershell
-python MSRGuard_Anpassung/python/msrguard/excH_agent_ui.py --event_json_path <pfad_zum_event.json> --out_json <pfad_zum_result.json>
+streamlit run MSRGuard_Anpassung/python/msrguard/excH_kg_agent_ui.py -- --event_json_path <pfad_zum_event.json> --out_json <pfad_zum_result.json>
 ```
 
-Alternativ direkt ueber Streamlit:
+RAG-Agent:
 ```powershell
-streamlit run MSRGuard_Anpassung/python/msrguard/excH_agent_ui.py -- --event_json_path <pfad_zum_event.json> --out_json <pfad_zum_result.json>
+streamlit run MSRGuard_Anpassung/python/msrguard/rag_agent_ui.py -- --event_json_path <pfad_zum_event.json>
 ```
 
 ## Bekannte Grenzen (Stand im aktuellen Code)
-- `excH_agent_core.py` ist absichtlich MVP-lastig (strukturierte Basisantwort, noch keine tiefe Auto-Aktionsplanung).
+- `excH_kg_agent_core.py` ist absichtlich MVP-lastig (strukturierte Basisantwort, noch keine tiefe Auto-Aktionsplanung).
 - Teile von `KG_Interface.py` enthalten feste Dateipfade und Legacy-Zugriffe.
 - Die hohe Diagnosequalitaet haengt stark von der Aktualitaet und Vollstaendigkeit des KG aus der Ingestion ab.
