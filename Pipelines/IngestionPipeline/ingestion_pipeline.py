@@ -24,6 +24,7 @@ class PipelineConfig:
     write_objects_json: bool = True
     build_hw_mappings: bool = True
     mark_traces_with_hw: bool = True
+    simulation_mode: bool = False
 
 
 @dataclass
@@ -253,6 +254,32 @@ class KGLoadStep(Step):
         loader.ingest_programs_from_mapping_json()
         loader.ingest_io_mappings()
         loader.ingest_gvl_globals()
+
+        if ctx.cfg.simulation_mode:
+            result = loader.mirror_hw_to_simulation_gvls()
+            ctx.logger.info(
+                "Simulation HW mirror applied (%s variables on %s _Sim lists).",
+                result.mapped_variables,
+                result.mapped_lists,
+            )
+
+            if result.missing_source_variables:
+                ctx.logger.warning(
+                    "Simulation HW mirror missing source variables: %s",
+                    ", ".join(result.missing_source_variables[:10]),
+                )
+            if result.missing_target_variables:
+                ctx.logger.warning(
+                    "Simulation HW mirror missing target variables: %s",
+                    ", ".join(result.missing_target_variables[:10]),
+                )
+            if result.source_without_hw_data:
+                ctx.logger.warning(
+                    "Simulation HW mirror source variables without HW data: %s",
+                    ", ".join(result.source_without_hw_data[:10]),
+                )
+            ctx.set("simulation_mirror_result", result)
+
         loader.save()
 
         ctx.set("kg_loader", loader)
@@ -326,6 +353,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--no-objects-json", action="store_true")
     p.add_argument("--no-hw-mappings", action="store_true")
     p.add_argument("--no-mark-traces", action="store_true")
+    p.add_argument("--simulation-mode", action="store_true")
     return p.parse_args()
 
 
@@ -342,6 +370,7 @@ def main() -> int:
         write_objects_json=not args.no_objects_json,
         build_hw_mappings=not args.no_hw_mappings,
         mark_traces_with_hw=not args.no_mark_traces,
+        simulation_mode=args.simulation_mode,
     )
 
     ctx = PipelineContext(cfg=cfg, logger=logger)

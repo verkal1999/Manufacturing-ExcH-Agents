@@ -212,6 +212,7 @@ def _set_api_key(api_key_file: str, provider: str) -> None:
         "azure_openai": "AZURE_OPENAI_API_KEY",
         "google": "GOOGLE_API_KEY",
         "groq": "GROQ_API_KEY",
+        "together": "TOGETHER_API_KEY",
     }
     _provider = (provider or "openai").lower().strip()
     if _provider == "ollama":
@@ -343,7 +344,7 @@ def _run_llm_judge(cfg: EvalConfig, result: EvalResult) -> EvalResult:
         + ignored_question_note
         + f"Frage:\n{effective_question}\n\n"
         f"Ground Truth:\n{cfg.ground_truth}\n\n"
-        f"Modellantwort:\n{result.answer}\n\n"
+        f"Modellantwort:\n{result.answer_initial if result.agent == 'rag' and result.answer_initial else result.answer}\n\n"
         "Gib nur JSON in genau diesem Format zurück:\n"
         "{\n"
         '  "root_cause_found": true,\n'

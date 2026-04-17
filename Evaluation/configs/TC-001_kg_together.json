@@ -4,11 +4,11 @@
 
   "event_json_path": "MSRGuard_Anpassung/python/agent_results/evD2-1760790156023800_event.json",
   "question": "Warum wurde TriggerD2 gesetzt? Welche Bedingungen in welchem POU haben dazu geführt?",
-  "ground_truth": "Der TriggerD2 wurde gesetzt, weil eseinen periodischen Timer mit 60s gibt, der dazu geführt hat. Das ganze geschah in FB_Automatikbertrieb_F1. Alle Lösungen, um den Timer zu entfernen oder zu deaktivieren mit irgendeiner Verzweigung sind korrekt, alles andere ist falsch.",
+  "ground_truth": null,
 
   "model": {
-    "provider": "groq",
-    "model": "llama-3.3-70b-versatile",
+    "provider": "together",
+    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     "temperature": 0.0,
     "planner_provider": null,
     "planner_model": null
@@ -16,12 +16,12 @@
 
   "kg_ttl_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\TestEvents.ttl",
   "xml_path": "C:\\Users\\Alexander Verkhov\\OneDrive\\Dokumente\\MPA\\TestProjektTwinCATEvents\\export.xml",
-  "api_key_file": "C:\\Users\\Alexander Verkhov\\Desktop\\APIKey_Groq.txt",
+  "api_key_file": "C:\\Users\\Alexander Verkhov\\Desktop\\Together API Key.txt",
   "pipeline_config": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion.json",
 
   "pricing": {
-    "input_per_1k":  0.00,
-    "output_per_1k": 0.00
+    "input_per_1k":  0.00088,
+    "output_per_1k": 0.00088
   },
   "planner_pricing": null,
   "top_k": 6,

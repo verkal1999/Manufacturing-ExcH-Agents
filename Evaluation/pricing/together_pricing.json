@@ -1,0 +1,7 @@
+{
+  "_comment": "Preise in USD pro 1.000 Tokens (Stand: April 2026). Bitte aktuell halten. Quelle: api.together.ai/models",
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo": {
+    "input_per_1k":  0.00088,
+    "output_per_1k": 0.00088
+  }
+}

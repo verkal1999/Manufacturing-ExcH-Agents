@@ -1,0 +1,37 @@
+{
+  "test_id": "TC-002",
+  "agent": "kg",
+
+  "event_json_path": "MSRGuard_Anpassung/python/agent_results/evD2-1760790156023800_event.json",
+  "question": "Warum wurde TriggerD2 gesetzt? Welche Bedingungen in welchem POU haben dazu geführt?",
+  "ground_truth": "Der TriggerD2 wurde verschachtelt durch viele FBs in FB_Diagranose_D2 und FB_Automatikbetrieb_F1 gesetzt, weil es einen periodischen Timer mit 60s gibt, der dazu geführt hat. Der Timer wird in FB_Automatikbetrieb_F1 gesetzt, während das setzen des Triggers in FB_Diagnose_D2 erfolgt. Alle Maßnahmen, die sich alo darum kümmern, den Timer durch eine Schleife oder ähnliches zu bearbeiten, sind korrekt.",
+
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "temperature": 0.0,
+    "planner_provider": null,
+    "planner_model": null,
+    "judge_provider": "openai",
+    "judge_model": "gpt-4o"
+  },
+
+  "kg_ttl_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\TestEvents.ttl",
+  "xml_path": "C:\\Users\\Alexander Verkhov\\OneDrive\\Dokumente\\MPA\\TestProjektTwinCATEvents\\export.xml",
+  "api_key_file": "C:\\Users\\Alexander Verkhov\\Desktop\\OpenAI API Key.txt",
+  "pipeline_config": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion.json",
+
+  "pricing": {
+    "input_per_1k": 0.0025,
+    "output_per_1k": 0.01
+  },
+  "planner_pricing": null,
+  "judge_pricing": {
+    "input_per_1k": 0.0025,
+    "output_per_1k": 0.01
+  },
+  "top_k": 6,
+
+  "results_dir": "Evaluation/results",
+  "out_json": ""
+}

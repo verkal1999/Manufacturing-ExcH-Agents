@@ -36,6 +36,7 @@ def load_cfg(p: Path) -> PipelineConfig:
         write_objects_json=bool(d.get("write_objects_json", True)),
         build_hw_mappings=bool(d.get("build_hw_mappings", True)),
         mark_traces_with_hw=bool(d.get("mark_traces_with_hw", True)),
+        simulation_mode=bool(d.get("simulation_mode", False)),
     )
 
 def main():
@@ -43,7 +44,7 @@ def main():
     # FIX 2: Relativen Pfad zur Config-Datei sicherstellen
     # ---------------------------------------------------------------------
     script_dir = Path(__file__).parent.resolve()
-    config_path = script_dir / "config_ingestion.json"
+    config_path = script_dir / "config_ingestion2.json"
     
     if not config_path.exists():
         print(f"FEHLER: Konfigurationsdatei nicht gefunden unter: {config_path}")

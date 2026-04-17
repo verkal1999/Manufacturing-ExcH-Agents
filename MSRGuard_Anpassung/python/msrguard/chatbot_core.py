@@ -378,6 +378,7 @@ _PROVIDER_ENV_VARS: Dict[str, str] = {
     "azure_openai": "AZURE_OPENAI_API_KEY",
     "google": "GOOGLE_API_KEY",
     "groq": "GROQ_API_KEY",
+    "together": "TOGETHER_API_KEY",
 }
 
 _PROVIDER_INSTALL_HINTS: Dict[str, str] = {
@@ -387,6 +388,7 @@ _PROVIDER_INSTALL_HINTS: Dict[str, str] = {
     "ollama": "pip install -U langchain-ollama",
     "google": "pip install -U langchain-google-genai",
     "groq": "pip install -U langchain-groq",
+    "together": "pip install -U langchain-together",
 }
 
 
@@ -439,21 +441,21 @@ def get_llm_invoke(
             from langchain_openai import ChatOpenAI
         except ImportError as e:
             raise RuntimeError(_PROVIDER_INSTALL_HINTS["openai"]) from e
-        llm = ChatOpenAI(model=model, temperature=temperature, max_tokens=1200)
+        llm = ChatOpenAI(model=model, temperature=temperature, max_tokens=4096)
 
     elif provider == "anthropic":
         try:
             from langchain_anthropic import ChatAnthropic
         except ImportError as e:
             raise RuntimeError(_PROVIDER_INSTALL_HINTS["anthropic"]) from e
-        llm = ChatAnthropic(model=model, temperature=temperature, max_tokens=1200)
+        llm = ChatAnthropic(model=model, temperature=temperature, max_tokens=4096)
 
     elif provider == "azure_openai":
         try:
             from langchain_openai import AzureChatOpenAI
         except ImportError as e:
             raise RuntimeError(_PROVIDER_INSTALL_HINTS["azure_openai"]) from e
-        llm = AzureChatOpenAI(azure_deployment=model, temperature=temperature, max_tokens=1200)
+        llm = AzureChatOpenAI(azure_deployment=model, temperature=temperature, max_tokens=4096)
 
     elif provider == "ollama":
         try:
@@ -474,7 +476,14 @@ def get_llm_invoke(
             from langchain_groq import ChatGroq
         except ImportError as e:
             raise RuntimeError(_PROVIDER_INSTALL_HINTS["groq"]) from e
-        llm = ChatGroq(model=model, temperature=temperature, max_tokens=1200)
+        llm = ChatGroq(model=model, temperature=temperature, max_tokens=4096)
+
+    elif provider == "together":
+        try:
+            from langchain_together import ChatTogether
+        except ImportError as e:
+            raise RuntimeError(_PROVIDER_INSTALL_HINTS["together"]) from e
+        llm = ChatTogether(model=model, temperature=temperature, max_tokens=4096)
 
     else:
         raise ValueError(

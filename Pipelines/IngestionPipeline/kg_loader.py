@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, Tuple, List, Optional, Any
 import xml.etree.ElementTree as ET
 import json
+import re
 from rdflib import Graph, Namespace, RDF, URIRef, Literal, OWL
 from rdflib.namespace import XSD, RDFS
 
@@ -33,6 +34,16 @@ class KGConfig:
         return self.twincat_folder / "gvl_globals.json"
 
 
+@dataclass(frozen=True)
+class SimulationMirrorResult:
+    mapped_lists: int
+    mapped_variables: int
+    missing_source_variables: tuple[str, ...]
+    missing_target_variables: tuple[str, ...]
+    source_without_hw_data: tuple[str, ...]
+    skipped_control_variables: tuple[str, ...]
+
+
 class KGLoader:
     """
     KGLoader mit integrierter Definition von IEC 61131-3 Standard-Bausteinen.
@@ -52,6 +63,15 @@ class KGLoader:
         "TON": {"inputs": {"IN": "BOOL", "PT": "TIME"}, "outputs": {"Q": "BOOL", "ET": "TIME"}},
         "TOF": {"inputs": {"IN": "BOOL", "PT": "TIME"}, "outputs": {"Q": "BOOL", "ET": "TIME"}}
     }
+    _gvl_var_stmt_re = re.compile(
+        r'^\s*([A-Za-z_]\w*)'
+        r'(?:\s+AT\s+([^:]+))?'
+        r'\s*:\s*'
+        r'([^:=;]+?)'
+        r'(?:\s*:=\s*([^;]+?))?'
+        r'\s*;\s*$',
+        re.M | re.S
+    )
 
     def __init__(self, config: KGConfig):
         self.config = config
@@ -546,35 +566,191 @@ class KGLoader:
         if not self.config.gvl_globals_path.exists(): return
         gvl_data = json.loads(self.config.gvl_globals_path.read_text(encoding="utf-8"))
 
-        def make_var_name(gvl_name: str, var_name: str) -> str:
-            return f"{gvl_name}__dot__{var_name}"
-
         for gvl in gvl_data:
-            gvl_name = gvl["name"]
-            list_uri = self.make_uri(f"GVLList_{gvl_name}")
-            self.kg.add((list_uri, RDF.type, self.AG.class_GlobalVariableList))
-            self.kg.add((list_uri, self.DP.hasGlobalVariableListName, Literal(gvl_name)))
+            self._add_gvl_definition_to_graph(gvl)
+
+    def _add_gvl_definition_to_graph(self, gvl: Dict[str, Any]) -> None:
+        gvl_name = gvl["name"]
+        list_uri = self.make_uri(f"GVLList_{gvl_name}")
+        self.kg.add((list_uri, RDF.type, self.AG.class_GlobalVariableList))
+        self.kg.add((list_uri, self.DP.hasGlobalVariableListName, Literal(gvl_name)))
+
+        for gv in gvl.get("globals", []):
+            base_name = gv["name"]
+            var_local = f"{gvl_name}__dot__{base_name}"
+            locvname = var_local.replace("__dot__", ".")
+            var_uri = self.AG[var_local]
+
+            self.kg.add((var_uri, RDF.type, self.AG.class_Variable))
+            self.kg.add((var_uri, self.DP.hasVariableName, Literal(locvname)))
+            self._add_variable_name(var_uri, base_name)
+            self.kg.add((list_uri, self.OP.listsGlobalVariable, var_uri))
+
+            if gv.get("type"):
+                self.kg.add((var_uri, self.DP.hasVariableType, Literal(gv["type"])))
+            if gv.get("init") is not None:
+                self.kg.add((var_uri, self.DP.hasInitialValue, Literal(gv["init"])))
+            if gv.get("address"):
+                self.kg.add((var_uri, self.DP.hasHardwareAddress, Literal(gv["address"])))
+            if gv.get("opcua_da"):
+                self.kg.add((var_uri, self.DP.hasOPCUADataAccess, Literal(True)))
+            if gv.get("opcua_write"):
+                self.kg.add((var_uri, self.DP.hasOPCUAWriteAccess, Literal(True)))
+
+    @staticmethod
+    def _strip_st_comments(text: str) -> str:
+        text = re.sub(r'\(\*.*?\*\)', '', text, flags=re.S)
+        text = re.sub(r'//.*', '', text)
+        return text
+
+    @classmethod
+    def _extract_global_vars_from_declaration(cls, declaration: str) -> List[Dict[str, Any]]:
+        text = cls._strip_st_comments(declaration or "")
+        match = re.search(r'VAR_GLOBAL\b.*?\n(.*?)END_VAR', text, flags=re.S | re.I)
+        if not match:
+            return []
+
+        globals_: List[Dict[str, Any]] = []
+        for var_match in cls._gvl_var_stmt_re.finditer(match.group(1)):
+            name, address, typ, init = [g.strip() if g else None for g in var_match.groups()]
+            globals_.append({
+                "name": name,
+                "type": re.sub(r'\s+', ' ', typ).strip() if typ else None,
+                "init": init.strip() if init else None,
+                "address": address,
+            })
+        return globals_
+
+    def _load_standalone_sim_gvls(self) -> List[Dict[str, Any]]:
+        discovered: List[Dict[str, Any]] = []
+        seen_names: set[str] = set()
+
+        for gvl_path in self.config.twincat_folder.rglob("*_Sim.TcGVL"):
+            try:
+                root = ET.fromstring(gvl_path.read_text(encoding="utf-8", errors="replace"))
+            except Exception:
+                continue
+
+            gvl_elem = root.find(".//GVL")
+            if gvl_elem is None:
+                continue
+
+            gvl_name = gvl_elem.get("Name")
+            if not gvl_name or gvl_name in seen_names:
+                continue
+
+            decl_elem = root.find(".//Declaration")
+            declaration = (decl_elem.text or "") if decl_elem is not None else ""
+            discovered.append({
+                "name": gvl_name,
+                "globals": self._extract_global_vars_from_declaration(declaration),
+            })
+            seen_names.add(gvl_name)
+
+        return discovered
+
+    def _find_variable_uri_by_full_name(self, full_name: str) -> Optional[URIRef]:
+        cached = self.hw_var_uris.get(full_name)
+        if cached is not None and (cached, None, None) in self.kg:
+            return cached
+
+        candidate = self.make_uri(full_name)
+        if (candidate, None, None) in self.kg:
+            return candidate
+
+        literal_name = Literal(full_name)
+        for subj in self.kg.subjects(self.DP.hasVariableName, literal_name):
+            if isinstance(subj, URIRef):
+                return subj
+        return None
+
+    def mirror_hw_to_simulation_gvls(self) -> SimulationMirrorResult:
+        gvl_by_name: Dict[str, Dict[str, Any]] = {}
+
+        if self.config.gvl_globals_path.exists():
+            gvl_data = json.loads(self.config.gvl_globals_path.read_text(encoding="utf-8"))
+            for gvl in gvl_data:
+                gvl_name = gvl.get("name")
+                if gvl_name:
+                    gvl_by_name[gvl_name] = gvl
+
+        for sim_gvl in self._load_standalone_sim_gvls():
+            gvl_name = sim_gvl["name"]
+            gvl_by_name[gvl_name] = sim_gvl
+            self._add_gvl_definition_to_graph(sim_gvl)
+
+        hw_predicates = (
+            self.DP.hasHardwareAddress,
+            self.DP.ioRawXml,
+            self.OP.isBoundToChannel,
+        )
+        control_variables = {"bSimMode"}
+
+        mapped_lists = 0
+        mapped_variables = 0
+        missing_source_variables: set[str] = set()
+        missing_target_variables: set[str] = set()
+        source_without_hw_data: set[str] = set()
+        skipped_control_variables: set[str] = set()
+
+        for gvl in gvl_by_name.values():
+            sim_gvl_name = gvl.get("name")
+            if not sim_gvl_name or not sim_gvl_name.endswith("_Sim"):
+                continue
+
+            source_gvl_name = sim_gvl_name[:-4]
+            mapped_in_this_list = 0
+
             for gv in gvl.get("globals", []):
-                base_name = gv["name"]
-                var_local = make_var_name(gvl_name, base_name)
-                locvname = var_local.replace("__dot__", ".")
-                var_uri = self.AG[var_local]
+                var_name = gv.get("name")
+                if not var_name:
+                    continue
 
-                self.kg.add((var_uri, RDF.type, self.AG.class_Variable))
-                self.kg.add((var_uri, self.DP.hasVariableName, Literal(locvname)))
-                self._add_variable_name(var_uri, base_name)
-                self.kg.add((list_uri, self.OP.listsGlobalVariable, var_uri))
+                if var_name in control_variables:
+                    skipped_control_variables.add(f"{sim_gvl_name}.{var_name}")
+                    continue
 
-                if gv.get("type"):
-                    self.kg.add((var_uri, self.DP.hasVariableType, Literal(gv["type"])))
-                if gv.get("init") is not None:
-                    self.kg.add((var_uri, self.DP.hasInitialValue, Literal(gv["init"])))
-                if gv.get("address"):
-                    self.kg.add((var_uri, self.DP.hasHardwareAddress, Literal(gv["address"])))
-                if gv.get("opcua_da"):
-                    self.kg.add((var_uri, self.DP.hasOPCUADataAccess, Literal(True)))
-                if gv.get("opcua_write"):
-                    self.kg.add((var_uri, self.DP.hasOPCUAWriteAccess, Literal(True)))
+                source_full_name = f"{source_gvl_name}.{var_name}"
+                target_full_name = f"{sim_gvl_name}.{var_name}"
+
+                source_uri = self._find_variable_uri_by_full_name(source_full_name)
+                if source_uri is None:
+                    missing_source_variables.add(source_full_name)
+                    continue
+
+                target_uri = self._find_variable_uri_by_full_name(target_full_name)
+                if target_uri is None:
+                    missing_target_variables.add(target_full_name)
+                    continue
+
+                for pred in hw_predicates:
+                    for obj in list(self.kg.objects(target_uri, pred)):
+                        self.kg.remove((target_uri, pred, obj))
+
+                copied = 0
+                for pred in hw_predicates:
+                    for obj in self.kg.objects(source_uri, pred):
+                        self.kg.add((target_uri, pred, obj))
+                        copied += 1
+
+                if copied == 0:
+                    source_without_hw_data.add(source_full_name)
+                    continue
+
+                mapped_variables += 1
+                mapped_in_this_list += 1
+
+            if mapped_in_this_list > 0:
+                mapped_lists += 1
+
+        return SimulationMirrorResult(
+            mapped_lists=mapped_lists,
+            mapped_variables=mapped_variables,
+            missing_source_variables=tuple(sorted(missing_source_variables)),
+            missing_target_variables=tuple(sorted(missing_target_variables)),
+            source_without_hw_data=tuple(sorted(source_without_hw_data)),
+            skipped_control_variables=tuple(sorted(skipped_control_variables)),
+        )
 
     def get_or_create_plc_project(self, project_name: str) -> URIRef:
         proj_uri = self.make_uri(f"PLCProject__{project_name}")

@@ -1,0 +1,26 @@
+Dieses Diagramm gibt einen vereinfachten Ueberblick ueber den Aufbau der Evaluationsinfrastruktur.
+Die Agenten werden dabei als Black Boxes behandelt; ihre interne Struktur ist nicht Gegenstand dieser Darstellung.
+
+1. Die Konfiguration eines Testfalls ist in EvalConfig gekapselt, die ihrerseits eine ModelConfig als Komposition enthaelt.
+2. EvalRunner liest die EvalConfig und steuert den gesamten Ablauf.
+3. Je nach dem Feld agent in EvalConfig wird entweder der ExcH-KG-Agent oder der ExcH-RAG-Agent aufgerufen.
+4. Optional bewertet ein LLM-Judge das Ergebnis, sofern in der Konfiguration eine ground_truth hinterlegt ist.
+5. EvalRunner erzeugt abschliessend ein EvalResult, das Antwort, Zeitmetriken, Tokenkosten und das Judge-Urteil zusammenfasst.
+
+Wissenschaftlicher Beschreibungstext:
+--------------------------------------
+Die Evaluationsinfrastruktur folgt einem einheitlichen Orchestrierungsprinzip, das unabhaengig vom
+konkret eingesetzten Agenten gilt. Zentrale Konfigurationsklasse ist EvalConfig, die saemtliche
+Testparameter kapselt: den Agenttyp, den Pfad zur Event-JSON, die Testfrage sowie optional eine
+Ground Truth fuer die automatische Bewertung. Die Modellkonfiguration ist als separate Klasse
+ModelConfig eingebettet und haelt die Angaben zu LLM-Provider, Modellname, Temperatur sowie
+optionalen Planner- und Judge-Modellen. Der EvalRunner fungiert als Orchestrator: Er liest die
+Konfiguration, bestimmt anhand des Feldes agent, ob der wissensbasierte KG-Agent oder der
+retrieval-gestuetzte RAG-Agent aufgerufen wird, und kapselt beide Agenten als Black Box hinter
+einer einheitlichen Schnittstelle (run_initial_analysis / ask). Liegt eine Ground Truth vor, wird
+nach dem Agentenlauf optional ein LLM-basierter Judge aufgerufen, der die erzeugte Antwort
+automatisiert bewertet. Alle Ergebnisse, einschliesslich Antworttext, gestaffelter Ausgabe,
+Zeitmetriken, Token- und Kostentracking sowie Judge-Urteil, werden in einer EvalResult-Instanz
+zusammengefuehrt und als JSON-Datei persistiert. Durch diese klare Trennung zwischen
+Konfiguration, Orchestrierung, Agenten und Ergebnis ist die Evaluationsinfrastruktur einfach um
+weitere Agenttypen oder Bewertungsstrategien erweiterbar.

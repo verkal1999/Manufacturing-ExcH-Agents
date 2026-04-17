@@ -1,0 +1,79 @@
+@startuml eval_overview_diagram
+
+set namespaceSeparator none
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 140
+skinparam ranksep 50
+skinparam nodesep 36
+skinparam DefaultFontSize 12
+skinparam packageTitleFontSize 13
+skinparam classFontSize 12
+hide empty members
+left to right direction
+'top to bottom direction
+scale max 1400 width
+
+'title Evaluationsaufbau - vereinfachte Uebersicht
+
+package "Eval-Orchestrierung" {
+
+  class ModelConfig <<dataclass>> {
+    +provider, model: str
+    +temperature: float
+    +planner_provider, planner_model: str
+    +judge_provider, judge_model: str
+  }
+  class EvalConfig <<dataclass>> {
+    +agent: str
+    +question: str
+    +ground_truth: str
+    +from_json_file(path: str): EvalConfig
+  }
+
+  class EvalRunner <<module>> {
+    +run_eval(cfg: EvalConfig): EvalResult
+  }
+
+  class EvalResult <<dataclass>> {
+    +answer, effective_question: str
+    +answer_stages: List[Dict]
+    +t_total_s: float
+    +cost_usd: float
+    +judge_verdict: str
+    +save(path: str): None
+  }
+
+  EvalConfig *-- ModelConfig
+  EvalRunner --> EvalConfig : liest
+  EvalRunner --> EvalResult : erzeugt
+}
+
+package "ExcH KG Agent (Black Box)" {
+  class KgAgent <<api>> {
+    +run_initial_analysis(): Dict
+    +ask(question): Dict
+  }
+}
+
+package "ExcH RAG Agent (Black Box)" {
+  class RagAgent <<api>> {
+    +run_initial_analysis(): Dict
+    +ask(question): Dict
+  }
+}
+
+package "LLM Judge (optional)" {
+  class JudgeAPI <<api>> {
+    +evaluate(question, ground_truth, answer): JSON
+  }
+}
+
+EvalRunner --> KgAgent : agent = kg
+EvalRunner --> RagAgent : agent = rag
+EvalRunner --> JudgeAPI : falls ground_truth vorhanden
+
+@enduml

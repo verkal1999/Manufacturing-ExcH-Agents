@@ -1,20 +1,9 @@
 {
-  "project_dir": "C:\\Users\\Alexander Verkhov\\OneDrive\\Dokumente\\MPA\\TwinCAT Simulator ST\\",
-  "sln_path": "C:\\Users\\Alexander Verkhov\\OneDrive\\Dokumente\\MPA\\TwinCAT Simulator ST\\v1.0_Tisch01_Beckhoff_I4.0_ST.sln",
+  "project_dir": "F:\\MA\\TwinCAT Simulator ST2\\",
+  "sln_path": "F:\\MA\\TwinCAT Simulator ST2\\v1.0_Tisch01_Beckhoff_I4.0.sln",
   "kg_cleaned_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\Test_cleaned.ttl",
-  "kg_after_loader_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\Test2_nachKGLoader.ttl",
-  "kg_final_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\Test2_filled.ttl",
-  "write_objects_json": true,
-  "build_hw_mappings": true,
-  "mark_traces_with_hw": true
-}
-
-{
-  "project_dir": "C:\\Users\\Alexander Verkhov\\OneDrive\\Dokumente\\MPA\\TestProjektTwinCATEvents\\",
-  "sln_path": "C:\\Users\\Alexander Verkhov\\OneDrive\\Dokumente\\MPA\\TestProjektTwinCATEvents\\TestProjektTwinCATEvents.sln",
-  "kg_cleaned_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\Test_cleaned.ttl",
-  "kg_after_loader_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\TestEvents_nachKGLoader.ttl",
-  "kg_final_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\TestEvents.ttl",
+  "kg_after_loader_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\TestSIM_nachKGLoader.ttl",
+  "kg_final_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\TestSIM_filled.ttl",
   "write_objects_json": true,
   "build_hw_mappings": true,
   "mark_traces_with_hw": true
