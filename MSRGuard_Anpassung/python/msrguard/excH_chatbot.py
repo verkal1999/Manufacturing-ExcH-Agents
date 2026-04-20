@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from collections import Counter
 from typing import Any, Dict, Optional, List, Set, Tuple
@@ -69,6 +70,7 @@ class IncidentContext:
     triggerEvent: str = ""  # z.B. evD2
 
     lastSkill: str = ""  # z.B. TestSkill3
+    lastFinishedSkill: str = ""
     plcSnapshot: Any = None
 
     lastGEMMAStateBeforeFailure: str = ""  # z.B. F1
@@ -103,6 +105,11 @@ class IncidentContext:
             if v is not None:
                 proc = str(v)
 
+        last_finished = ""
+        vfinished = _snapshot_get_var(plc_snapshot, ["lastFinishedSkill", "OPCUA.lastFinishedSkill"])
+        if vfinished is not None:
+            last_finished = str(vfinished).strip()
+
         trigger_d2_val: Optional[bool] = None
         vtd2 = _snapshot_get_var(plc_snapshot, ["TriggerD2", "OPCUA.TriggerD2"])
         if isinstance(vtd2, bool):
@@ -133,6 +140,7 @@ class IncidentContext:
             summary=summ,
             triggerEvent=trig_evt,
             lastSkill=last,
+            lastFinishedSkill=last_finished,
             plcSnapshot=plc_snapshot,
             lastGEMMAStateBeforeFailure=last_gemma,
             kg_ttl_path=_pick(payload, ["kg_ttl_path", "kgTtlPath", "kg_path", "kgPath", "ttl_path", "ttlPath"]),
@@ -419,6 +427,411 @@ def _fetch_pou_code_context_from_kg(pou_name: str) -> Dict[str, Any]:
     }
 
 
+def _sparql_select(query: str, max_rows: int = 20) -> List[Dict[str, Any]]:
+    try:
+        from msrguard.chatbot_core import sparql_select_raw  # type: ignore
+    except Exception:
+        from chatbot_core import sparql_select_raw  # type: ignore
+
+    rows = sparql_select_raw(query, max_rows=max_rows)
+    return rows if isinstance(rows, list) else []
+
+
+def _unique_nonempty(values: List[Any]) -> List[str]:
+    out: List[str] = []
+    seen: Set[str] = set()
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+    return out
+
+
+def _snapshot_candidates_for_token(token: str) -> List[str]:
+    text = str(token or "").strip()
+    if not text:
+        return []
+    out = [text]
+    if "." in text:
+        out.append(text.rsplit(".", 1)[-1].strip())
+    return _unique_nonempty(out)
+
+
+def _extract_code_snippets(code: str, terms: List[str], *, radius: int = 2, max_snips: int = 6) -> List[str]:
+    src = str(code or "")
+    if not src:
+        return []
+
+    needles = [str(t or "").strip() for t in terms if str(t or "").strip()]
+    if not needles:
+        return []
+
+    lines = src.splitlines()
+    seen: Set[Tuple[int, int]] = set()
+    snippets: List[str] = []
+
+    for idx, line in enumerate(lines):
+        lower = line.lower()
+        if not any(needle.lower() in lower for needle in needles):
+            continue
+        start = max(0, idx - radius)
+        end = min(len(lines), idx + radius + 1)
+        key = (start, end)
+        if key in seen:
+            continue
+        seen.add(key)
+        snippet = "\n".join(lines[start:end]).strip()
+        if snippet and snippet not in snippets:
+            snippets.append(snippet[:1200])
+        if len(snippets) >= max_snips:
+            break
+
+    return snippets
+
+
+def _counterpart_sensor_short_name(token: str) -> str:
+    short = str(token or "").strip()
+    if "." in short:
+        short = short.rsplit(".", 1)[-1].strip()
+    if re.search(r"_aussen$", short, flags=re.I):
+        return re.sub(r"_aussen$", "_innen", short, flags=re.I)
+    if re.search(r"_innen$", short, flags=re.I):
+        return re.sub(r"_innen$", "_aussen", short, flags=re.I)
+    return ""
+
+
+def _fetch_variable_context_from_kg(var_name: str) -> Dict[str, Any]:
+    name = str(var_name or "").strip()
+    if not name:
+        return {"error": "Variablenname ist leer.", "variable_name": name}
+
+    candidates = _snapshot_candidates_for_token(name)
+    var_uri = ""
+    find_query = ""
+
+    for cand in candidates:
+        esc = _sparql_escape_text(cand)
+        q_find = f"""
+        SELECT DISTINCT ?var WHERE {{
+          ?var a ag:class_Variable ;
+               dp:hasVariableName "{esc}" .
+        }}
+        """
+        rows = _sparql_select(q_find, max_rows=5)
+        find_query = q_find
+        if rows:
+            row = rows[0] if isinstance(rows[0], dict) else {}
+            var_uri = str(row.get("var", "") or "").strip()
+            if var_uri:
+                break
+
+    if not var_uri:
+        return {
+            "error": f"Kein KG-Treffer fuer Variable '{name}'.",
+            "variable_name": name,
+            "query": find_query,
+        }
+
+    q_meta = f"""
+    SELECT ?var_name ?var_type ?hw ?opcua_da ?opcua_wa ?ioxml WHERE {{
+      OPTIONAL {{ <{var_uri}> dp:hasVariableName ?var_name . }}
+      OPTIONAL {{ <{var_uri}> dp:hasVariableType ?var_type . }}
+      OPTIONAL {{ <{var_uri}> dp:hasHardwareAddress ?hw . }}
+      OPTIONAL {{ <{var_uri}> dp:hasOPCUADataAccess ?opcua_da . }}
+      OPTIONAL {{ <{var_uri}> dp:hasOPCUAWriteAccess ?opcua_wa . }}
+      OPTIONAL {{ <{var_uri}> dp:ioRawXml ?ioxml . }}
+    }}
+    """
+    meta_rows = _sparql_select(q_meta, max_rows=40)
+
+    q_incoming = f"""
+    SELECT ?src_name ?src_expr WHERE {{
+      ?assign op:assignsToVariable <{var_uri}> ;
+              op:assignsFrom ?src .
+      OPTIONAL {{ ?src dp:hasVariableName ?src_name . }}
+      OPTIONAL {{ ?src dp:hasExpressionText ?src_expr . }}
+    }}
+    """
+    incoming_rows = _sparql_select(q_incoming, max_rows=40)
+
+    names = _unique_nonempty([r.get("var_name", "") for r in meta_rows if isinstance(r, dict)])
+    var_types = _unique_nonempty([r.get("var_type", "") for r in meta_rows if isinstance(r, dict)])
+    hardware_addresses = _unique_nonempty([r.get("hw", "") for r in meta_rows if isinstance(r, dict)])
+    incoming_sources = _unique_nonempty(
+        [
+            r.get("src_name", "") or r.get("src_expr", "")
+            for r in incoming_rows
+            if isinstance(r, dict)
+        ]
+    )
+
+    return {
+        "variable_name": name,
+        "variable_uri": var_uri,
+        "names": names,
+        "variable_types": var_types,
+        "hardware_addresses": hardware_addresses,
+        "opcua_data_access": _unique_nonempty([r.get("opcua_da", "") for r in meta_rows if isinstance(r, dict)]),
+        "opcua_write_access": _unique_nonempty([r.get("opcua_wa", "") for r in meta_rows if isinstance(r, dict)]),
+        "incoming_sources": incoming_sources,
+        "query_find": find_query,
+        "query_meta": q_meta,
+        "query_incoming": q_incoming,
+    }
+
+
+def _classify_variable_context(var_ctx: Dict[str, Any]) -> Dict[str, Any]:
+    hw_list = [str(x).strip() for x in (var_ctx.get("hardware_addresses") or []) if str(x).strip()]
+    type_list = [str(x).strip().upper() for x in (var_ctx.get("variable_types") or []) if str(x).strip()]
+    incoming_sources = [str(x).strip() for x in (var_ctx.get("incoming_sources") or []) if str(x).strip()]
+
+    def _has_input_hw(text: str) -> bool:
+        t = str(text or "").strip().upper()
+        return t.startswith("%I") or bool(re.search(r"(^|\\s)I\\s*\\d", t))
+
+    def _has_output_hw(text: str) -> bool:
+        t = str(text or "").strip().upper()
+        return t.startswith("%Q") or bool(re.search(r"(^|\\s)Q\\s*\\d", t))
+
+    is_bool = "BOOL" in type_list
+    is_input = any(_has_input_hw(x) for x in hw_list)
+    is_output = any(_has_output_hw(x) for x in hw_list)
+    sim_sources = [src for src in incoming_sources if "_SIM" in src.upper()]
+
+    return {
+        "is_bool": is_bool,
+        "is_input": is_input,
+        "is_output": is_output,
+        "is_input_bool_sensor": bool(is_input and is_bool),
+        "has_sim_mapping": bool(sim_sources),
+        "sim_sources": sim_sources,
+    }
+
+
+def _fetch_pou_input_wiring_from_kg(pou_name: str) -> Dict[str, Any]:
+    name = str(pou_name or "").strip()
+    if not name:
+        return {"error": "POU-Name fuer Wiring-Abfrage ist leer.", "pou_name": name}
+
+    esc = _sparql_escape_text(name)
+    q = f"""
+    SELECT ?port_name ?src_name ?src_expr WHERE {{
+      ?pou a ag:class_POU ;
+           dp:hasPOUName "{esc}" ;
+           op:hasPort ?port .
+      ?port dp:hasPortName ?port_name .
+      ?assign a ag:class_ParameterAssignment ;
+              op:assignsToPort ?port ;
+              op:assignsFrom ?src .
+      OPTIONAL {{ ?src dp:hasVariableName ?src_name . }}
+      OPTIONAL {{ ?src dp:hasExpressionText ?src_expr . }}
+    }}
+    ORDER BY ?port_name ?src_name
+    """
+    rows = _sparql_select(q, max_rows=200)
+    wiring: List[Dict[str, str]] = []
+    seen: Set[Tuple[str, str, str]] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        port_name = str(row.get("port_name", "") or "").strip()
+        source_name = str(row.get("src_name", "") or row.get("src_expr", "") or "").strip()
+        key = (port_name.lower(), source_name.lower(), name.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        wiring.append({"port_name": port_name, "source_name": source_name})
+
+    return {"pou_name": name, "query": q, "wiring": wiring}
+
+
+def _fetch_method_contexts_for_owner_pou(owner_name: str) -> Dict[str, Any]:
+    name = str(owner_name or "").strip()
+    if not name:
+        return {"error": "Owner-POU-Name fuer Methodenabfrage ist leer.", "owner_name": name}
+
+    esc = _sparql_escape_text(name)
+    q = f"""
+    SELECT ?method_type ?code ?header WHERE {{
+      ?owner a ag:class_POU ;
+             dp:hasPOUName "{esc}" .
+      ?method a ag:class_Method ;
+              op:isMethodOf ?owner ;
+              dp:hasMethodType ?method_type ;
+              dp:hasPOUCode ?code .
+      OPTIONAL {{ ?method dp:hasPOUDeclarationHeader ?header . }}
+    }}
+    ORDER BY ?method_type
+    """
+    rows = _sparql_select(q, max_rows=30)
+    methods: List[Dict[str, str]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        methods.append(
+            {
+                "method_type": str(row.get("method_type", "") or "").strip(),
+                "code": str(row.get("code", "") or ""),
+                "header": str(row.get("header", "") or ""),
+            }
+        )
+    return {"owner_name": name, "query": q, "methods": methods}
+
+
+def _build_last_finished_skill_context(last_finished_skill: str, anchor_token: str) -> Dict[str, Any]:
+    skill_name = str(last_finished_skill or "").strip()
+    anchor_name = str(anchor_token or "").strip()
+    if not skill_name:
+        return {"last_finished_skill": "", "available": False}
+
+    pou_ctx = _fetch_pou_code_context_from_kg(skill_name)
+    if pou_ctx.get("error"):
+        return {
+            "last_finished_skill": skill_name,
+            "available": False,
+            "error": str(pou_ctx.get("error", "") or ""),
+        }
+
+    wiring_ctx = _fetch_pou_input_wiring_from_kg(skill_name)
+    methods_ctx = _fetch_method_contexts_for_owner_pou(skill_name)
+
+    anchor_short = anchor_name.rsplit(".", 1)[-1].strip() if "." in anchor_name else anchor_name
+    counterpart_short = _counterpart_sensor_short_name(anchor_short)
+
+    wiring = wiring_ctx.get("wiring") if isinstance(wiring_ctx.get("wiring"), list) else []
+    relevant_wiring: List[Dict[str, str]] = []
+    for row in wiring:
+        if not isinstance(row, dict):
+            continue
+        port_name = str(row.get("port_name", "") or "").strip()
+        source_name = str(row.get("source_name", "") or "").strip()
+        combined = f"{port_name} {source_name}".upper()
+        if "LS_" in combined or (anchor_short and anchor_short.upper() in combined) or (
+            counterpart_short and counterpart_short.upper() in combined
+        ):
+            relevant_wiring.append({"port_name": port_name, "source_name": source_name})
+
+    code = str(pou_ctx.get("code", "") or "")
+    evidence_terms = _unique_nonempty(
+        [
+            anchor_short,
+            counterpart_short,
+            "fbConveyorForward(",
+            "cmdConveyorForward",
+            "REQ_CB_forwards",
+            "jobFinished",
+        ]
+    )
+    body_snippets = _extract_code_snippets(code, evidence_terms, radius=2, max_snips=8)
+
+    method_snippets: List[Dict[str, Any]] = []
+    methods = methods_ctx.get("methods") if isinstance(methods_ctx.get("methods"), list) else []
+    for method in methods:
+        if not isinstance(method, dict):
+            continue
+        method_type = str(method.get("method_type", "") or "").strip()
+        if method_type not in {"Start", "CheckState", "Abort"}:
+            continue
+        terms = evidence_terms + ["OPCUA.lastExecutedSkill", "OPCUA.lastExecutedProcess", "MethodCall"]
+        snippets = _extract_code_snippets(str(method.get("code", "") or ""), terms, radius=2, max_snips=4)
+        if snippets:
+            method_snippets.append({"method_type": method_type, "snippets": snippets})
+
+    reads_anchor_sensor = any(
+        anchor_short
+        and (
+            str(row.get("port_name", "") or "").strip().lower() == anchor_short.lower()
+            or str(row.get("source_name", "") or "").strip().lower().endswith(anchor_short.lower())
+        )
+        for row in relevant_wiring
+        if isinstance(row, dict)
+    )
+    reads_counterpart_sensor = any(
+        counterpart_short
+        and (
+            str(row.get("port_name", "") or "").strip().lower() == counterpart_short.lower()
+            or str(row.get("source_name", "") or "").strip().lower().endswith(counterpart_short.lower())
+        )
+        for row in relevant_wiring
+        if isinstance(row, dict)
+    )
+    actuation_path_detected = any(
+        term.lower() in code.lower() for term in ["fbconveyorforward(", "cmdconveyorforward", "req_cb_forwards"]
+    )
+
+    return {
+        "last_finished_skill": skill_name,
+        "available": True,
+        "pou_name": skill_name,
+        "sensor_wiring": relevant_wiring,
+        "body_snippets": body_snippets,
+        "method_snippets": method_snippets,
+        "reads_anchor_sensor": reads_anchor_sensor,
+        "reads_counterpart_sensor": reads_counterpart_sensor,
+        "counterpart_sensor_short": counterpart_short,
+        "actuation_path_detected": actuation_path_detected,
+    }
+
+
+def _build_hardware_followup_context(
+    ctx: IncidentContext,
+    point1: Dict[str, Any],
+    point3: Dict[str, Any],
+) -> Dict[str, Any]:
+    causal = _build_causal_sequence_summary(point1, point3)
+    anchor = _as_dict(causal.get("anchor"))
+    chain_summary = _as_dict(_as_dict(point1.get("condition_chain")).get("summary"))
+    anchor_token = str(anchor.get("token", "") or "").strip()
+
+    snapshot_value = None
+    if anchor_token:
+        snapshot_value = _snapshot_get_var(ctx.plcSnapshot, _snapshot_candidates_for_token(anchor_token))
+
+    var_ctx = _fetch_variable_context_from_kg(anchor_token) if anchor_token else {}
+    var_cls = _classify_variable_context(var_ctx if isinstance(var_ctx, dict) else {})
+
+    last_finished = str(
+        ctx.lastFinishedSkill
+        or _snapshot_get_var(ctx.plcSnapshot, ["lastFinishedSkill", "OPCUA.lastFinishedSkill"])
+        or ""
+    ).strip()
+    last_finished_ctx = _build_last_finished_skill_context(last_finished, anchor_token)
+
+    mode = "software_prevention"
+    if chain_summary.get("has_hardware_address") is True:
+        mode = "hardware_diagnosis"
+
+    manual_checks: List[str] = []
+    if var_cls.get("is_input_bool_sensor"):
+        manual_checks = [
+            "Sensor-LED bzw. Eingangskanal an der Klemme prüfen.",
+            "Werkstückposition direkt am Sensor prüfen.",
+            "Sensor auf Verschmutzung, Verstellung oder Beschädigung prüfen.",
+            "Stecker, Leitung und Klemmenkontakt prüfen.",
+            "Online-Wert in der SPS mit der realen physischen Situation vergleichen.",
+        ]
+        if var_cls.get("has_sim_mapping"):
+            sim_src = ", ".join(var_cls.get("sim_sources") or [])
+            manual_checks.append(f"Zusätzlich die Simulationsquelle pruefen: {sim_src}.")
+
+    return {
+        "mode": mode,
+        "anchor": anchor,
+        "snapshot_value": snapshot_value,
+        "variable_context": var_ctx,
+        "variable_classification": var_cls,
+        "last_finished_skill": last_finished,
+        "last_finished_skill_context": last_finished_ctx,
+        "manual_checks": manual_checks,
+        "origin_assessment": str(chain_summary.get("origin_assessment", "") or ""),
+    }
+
+
 def _question_wants_prevention_suggestions(user_text: str) -> bool:
     q = str(user_text or "").lower()
     keys = [
@@ -435,6 +848,13 @@ def _question_wants_prevention_suggestions(user_text: str) -> bool:
         "fix",
         "beheben",
         "abstellen",
+        "hardware",
+        "sensor",
+        "diagnose",
+        "pruefen",
+        "prüfen",
+        "behandlung",
+        "werkst",
     ]
     return any(k in q for k in keys)
 
@@ -694,6 +1114,16 @@ def _build_llm_prevention_suggestions(
     chain_summary = _as_dict(_as_dict(point1.get("condition_chain")).get("summary"))
     software_likely = chain_summary.get("software_likely")
     has_hw = chain_summary.get("has_hardware_address")
+    hardware_ctx = _build_hardware_followup_context(session.ctx, point1, point3)
+    followup_mode = str(hardware_ctx.get("mode", "") or "software_prevention")
+
+    hw_anchor = _as_dict(hardware_ctx.get("anchor"))
+    hw_var_ctx = _as_dict(hardware_ctx.get("variable_context"))
+    hw_var_cls = _as_dict(hardware_ctx.get("variable_classification"))
+    last_finished_skill = str(hardware_ctx.get("last_finished_skill", "") or "")
+    last_finished_ctx = _as_dict(hardware_ctx.get("last_finished_skill_context"))
+    hw_snapshot_value = hardware_ctx.get("snapshot_value")
+    manual_checks = hardware_ctx.get("manual_checks") if isinstance(hardware_ctx.get("manual_checks"), list) else []
 
     analysis_short = analysis_text[:12000]
     header_short = header[:5000]
@@ -704,58 +1134,167 @@ def _build_llm_prevention_suggestions(
         "Du bist ein erfahrener SPS-Engineer fuer Root-Cause-Praevention. "
         "Antworte nur auf Deutsch, technisch praezise, ohne Halluzinationen."
     )
-    user_prompt = (
-        "Ziel:\n"
-        "Erarbeite konkrete Loesungsvorschlaege, wie der in der Analyse gefundene Pfad "
-        "zu `OPCUA.TriggerD2 := TRUE` zukuenftig verhindert werden kann.\n\n"
-        "WICHTIG zur Struktur:\n"
-        "1) ZUERST die Fehlerfolge erklaeren (Upstream -> Trigger),\n"
-        "2) DANACH Massnahmen vorschlagen.\n\n"
-        "Upstream-Anker aus dem Trace:\n"
-        f"- Token: {anchor.get('token', '-')}\n"
-        f"- Wert: {anchor.get('value', '-')}\n"
-        f"- POU: {anchor.get('pou', '-')}\n"
-        f"- Assignment/Quelle: {anchor.get('assignment', '') or anchor.get('source', '') or '-'}\n\n"
-        "Kompakte Fehlerfolge (aus Trace):\n"
-        f"- {' -> '.join(str(x) for x in chain)}\n\n"
-        "POU-/Programm-Wechsel ueber Assignments (aus Triggerpfad):\n"
-        + ("\n".join(f"- ({b.get('pou','-')}) {b.get('assignment','')}" for b in bridges) if bridges else "- keine")
-        + "\n\n"
-        "Periodizitaets-Hinweise aus dem Trace (rohe Evidenz):\n"
-        + ("\n".join(f"- {x}" for x in periodicity_evidence) if periodicity_evidence else "- keine")
-        + "\n\n"
-        f"Pfad-Bewertung: software_likely={software_likely}, has_hardware_address={has_hw}\n\n"
-        "Analyse (Auszug):\n"
-        f"{analysis_short}\n\n"
-        "Zusatzkontext aus dem KG (SPARQL bei bekanntem FB-Namen):\n"
-        "```sparql\n"
-        f"{str(pou_ctx.get('query', '')).strip()}\n"
-        "```\n\n"
-        f"POU: {focus_pou}\n\n"
-        "POU Declaration Header:\n"
-        "```pascal\n"
-        f"{header_short}\n"
-        "```\n\n"
-        "Extrahierte Variablendeklaration:\n"
-        "```pascal\n"
-        f"{var_decl_short}\n"
-        "```\n\n"
-        "POU Code:\n"
-        "```pascal\n"
-        f"{code_short}\n"
-        "```\n\n"
-        "Bitte liefere:\n"
-        "0) Eine kurze Fehlerfolge-Erklaerung in 4-8 Schritten (ohne Massnahmen).\n"
-        "1) Eine explizite Periodizitaetsbewertung:\n"
-        "   - Leite aus der Evidenz ab, ob eine periodische Ausloesung plausibel ist.\n"
-        "   - Falls plausibel: nenne abgeleitete Periode (z.B. aus PT-Wert) und Unschaerfen.\n"
-        "   - Falls nicht plausibel: benenne fehlende Evidenz.\n"
-        "2) Drei umsetzbare Gegenmassnahmen mit Prioritaet (hoch/mittel/niedrig).\n"
-        "3) Fuer jede Massnahme: konkrete ST-Aenderung (Patch-Style), warum sie wirkt, Nebenwirkungen.\n"
-        "4) Eine bevorzugte Empfehlung mit kurzer Begruendung.\n"
-        "5) Eine Watchlist mit 6-10 Signalen fuer Online-Validierung nach dem Fix.\n"
-        "Regel: Keine Hardware-/OPCUA-Massnahmen vorschlagen, wenn der Triggerpfad software_likely=true und has_hardware_address=false.\n"
-    )
+    if followup_mode == "hardware_diagnosis":
+        sensor_wiring = last_finished_ctx.get("sensor_wiring") if isinstance(last_finished_ctx.get("sensor_wiring"), list) else []
+        wiring_text = (
+            "\n".join(
+                f"- {str(w.get('port_name', '')).strip()} <= {str(w.get('source_name', '')).strip()}"
+                for w in sensor_wiring
+                if isinstance(w, dict)
+            )
+            if sensor_wiring
+            else "- keine sensorbezogene Verdrahtung gefunden"
+        )
+        body_snippets = last_finished_ctx.get("body_snippets") if isinstance(last_finished_ctx.get("body_snippets"), list) else []
+        body_snippets_text = (
+            "\n\n".join(f"```pascal\n{str(s).strip()}\n```" for s in body_snippets if str(s).strip())
+            if body_snippets
+            else "- keine relevanten Body-Snippets gefunden"
+        )
+        method_snippets = last_finished_ctx.get("method_snippets") if isinstance(last_finished_ctx.get("method_snippets"), list) else []
+        method_snippets_text = []
+        for item in method_snippets:
+            if not isinstance(item, dict):
+                continue
+            method_type = str(item.get("method_type", "") or "").strip()
+            snippets = item.get("snippets") if isinstance(item.get("snippets"), list) else []
+            if not snippets:
+                continue
+            block = [f"{method_type}:"]
+            block.extend(f"```pascal\n{str(sn).strip()}\n```" for sn in snippets if str(sn).strip())
+            method_snippets_text.append("\n".join(block))
+
+        hw_types = ", ".join(str(x) for x in (hw_var_ctx.get("variable_types") or []) if str(x).strip()) or "-"
+        hw_addresses = ", ".join(str(x) for x in (hw_var_ctx.get("hardware_addresses") or []) if str(x).strip()) or "-"
+        sim_sources = ", ".join(str(x) for x in (hw_var_cls.get("sim_sources") or []) if str(x).strip()) or "-"
+        incoming_sources = ", ".join(str(x) for x in (hw_var_ctx.get("incoming_sources") or []) if str(x).strip()) or "-"
+        manual_checks_text = "\n".join(f"- {x}" for x in manual_checks) if manual_checks else "- keine vordefinierten Checks"
+
+        user_prompt = (
+            "Ziel:\n"
+            "Fuehre eine hardware-orientierte Folgeanalyse fuer einen bereits ermittelten Hardware-Endpunkt im Fehlerpfad "
+            "zu `OPCUA.TriggerD2 := TRUE` durch.\n\n"
+            "WICHTIG zur Struktur:\n"
+            "1) ZUERST die Fehlerfolge erklaeren (Upstream -> Trigger),\n"
+            "2) DANACH Hardware-Diagnose und Behandlungsweise fuer den Nutzer an der Anlage liefern,\n"
+            "3) den Bezug von `lastFinishedSkill` zum Sensor / Werkstueck sauber bewerten.\n\n"
+            "Upstream-Anker aus dem Trace:\n"
+            f"- Token: {hw_anchor.get('token', anchor.get('token', '-'))}\n"
+            f"- Wert: {hw_anchor.get('value', anchor.get('value', '-'))}\n"
+            f"- Snapshot-Wert: {hw_snapshot_value!r}\n"
+            f"- POU: {hw_anchor.get('pou', anchor.get('pou', '-'))}\n"
+            f"- Assignment/Quelle: {hw_anchor.get('assignment', '') or hw_anchor.get('source', '') or '-'}\n\n"
+            "Kompakte Fehlerfolge (aus Trace):\n"
+            f"- {' -> '.join(str(x) for x in chain)}\n\n"
+            "Hardware-/Variablenkontext aus dem KG:\n"
+            f"- Typ: {hw_types}\n"
+            f"- Hardware-Adressen: {hw_addresses}\n"
+            f"- Eingang/BOOL-Sensor: {bool(hw_var_cls.get('is_input_bool_sensor'))}\n"
+            f"- Eingehende Quellen/Mappings: {incoming_sources}\n"
+            f"- Simulations-Mapping erkannt: {bool(hw_var_cls.get('has_sim_mapping'))}\n"
+            f"- Simulationsquellen: {sim_sources}\n\n"
+            "POU-/Programm-Wechsel ueber Assignments (aus Triggerpfad):\n"
+            + ("\n".join(f"- ({b.get('pou','-')}) {b.get('assignment','')}" for b in bridges) if bridges else "- keine")
+            + "\n\n"
+            f"lastFinishedSkill aus Snapshot: {last_finished_skill or '-'}\n"
+            f"- Liest Anker-Sensor: {bool(last_finished_ctx.get('reads_anchor_sensor'))}\n"
+            f"- Liest Gegen-/Nachbarsensor: {bool(last_finished_ctx.get('reads_counterpart_sensor'))}\n"
+            f"- Gegen-/Nachbarsensor (kurz): {str(last_finished_ctx.get('counterpart_sensor_short', '') or '-')}\n"
+            f"- Aktorik-/Foerderpfad erkannt: {bool(last_finished_ctx.get('actuation_path_detected'))}\n\n"
+            "Sensorbezogene Verdrahtung des lastFinishedSkill:\n"
+            f"{wiring_text}\n\n"
+            "Relevante Body-Snippets des lastFinishedSkill:\n"
+            f"{body_snippets_text}\n\n"
+            "Relevante Methoden-Snippets des lastFinishedSkill:\n"
+            + ("\n\n".join(method_snippets_text) if method_snippets_text else "- keine relevanten Methoden-Snippets gefunden")
+            + "\n\n"
+            "Empfohlene manuelle Vor-Ort-Checks (deterministisch vorbereitet):\n"
+            f"{manual_checks_text}\n\n"
+            "Analyse (Auszug):\n"
+            f"{analysis_short}\n\n"
+            f"POU mit Fehlerbedingung: {focus_pou}\n\n"
+            "POU Declaration Header:\n"
+            "```pascal\n"
+            f"{header_short}\n"
+            "```\n\n"
+            "Extrahierte Variablendeklaration:\n"
+            "```pascal\n"
+            f"{var_decl_short}\n"
+            "```\n\n"
+            "POU Code:\n"
+            "```pascal\n"
+            f"{code_short}\n"
+            "```\n\n"
+            "Bitte liefere:\n"
+            "0) Eine kurze Fehlerfolge-Erklaerung in 4-8 Schritten (ohne Massnahmen).\n"
+            "1) Eine Hardware-Diagnose vor Ort: 4-8 konkrete Pruefschritte fuer Nutzer/Instandhaltung.\n"
+            "2) Plausible Ursachen, priorisiert, mit Evidenz aus KG/Snapshot/Code. Bewerte mindestens:\n"
+            "   - Sensorausfall / Sensor verstellt / verschmutzt / Verkabelung,\n"
+            "   - Werkstueck physisch oder manuell entfernt / verrutscht,\n"
+            "   - Simulations- bzw. Spiegelungsproblem ueber GVL_*_Sim, falls relevant.\n"
+            "3) Eine Erklaerung des Bezugs von `lastFinishedSkill` zum Sensorsignal und ggf. zum Nachbarsensor.\n"
+            "   - Erklaere, ob der Skill das Werkstueck bzw. den Materialfluss so beeinflusst, dass der Sensor danach plausibel TRUE gewesen sein koennte.\n"
+            "   - Bewerte daraus, ob eine zwischenzeitliche physische/manuelle Aenderung plausibel ist.\n"
+            "4) Eine bevorzugte Arbeitshypothese mit kurzer Begruendung.\n"
+            "5) Eine Watchlist mit 6-10 Signalen fuer Online-Validierung.\n"
+            "Regeln:\n"
+            "- KEINE Periodizitaetsbewertung.\n"
+            "- KEINE ST-Code-Aenderungen als primaere Massnahme, solange die Hardware-Ursache plausibel ist.\n"
+            "- Wenn ein Simulations-Mapping existiert, benenne explizit, welche reale Variable und welche Simulationsquelle zu pruefen sind.\n"
+        )
+    else:
+        user_prompt = (
+            "Ziel:\n"
+            "Erarbeite konkrete Loesungsvorschlaege, wie der in der Analyse gefundene Pfad "
+            "zu `OPCUA.TriggerD2 := TRUE` zukuenftig verhindert werden kann.\n\n"
+            "WICHTIG zur Struktur:\n"
+            "1) ZUERST die Fehlerfolge erklaeren (Upstream -> Trigger),\n"
+            "2) DANACH Massnahmen vorschlagen.\n\n"
+            "Upstream-Anker aus dem Trace:\n"
+            f"- Token: {anchor.get('token', '-')}\n"
+            f"- Wert: {anchor.get('value', '-')}\n"
+            f"- POU: {anchor.get('pou', '-')}\n"
+            f"- Assignment/Quelle: {anchor.get('assignment', '') or anchor.get('source', '') or '-'}\n\n"
+            "Kompakte Fehlerfolge (aus Trace):\n"
+            f"- {' -> '.join(str(x) for x in chain)}\n\n"
+            "POU-/Programm-Wechsel ueber Assignments (aus Triggerpfad):\n"
+            + ("\n".join(f"- ({b.get('pou','-')}) {b.get('assignment','')}" for b in bridges) if bridges else "- keine")
+            + "\n\n"
+            "Periodizitaets-Hinweise aus dem Trace (rohe Evidenz):\n"
+            + ("\n".join(f"- {x}" for x in periodicity_evidence) if periodicity_evidence else "- keine")
+            + "\n\n"
+            f"Pfad-Bewertung: software_likely={software_likely}, has_hardware_address={has_hw}\n\n"
+            "Analyse (Auszug):\n"
+            f"{analysis_short}\n\n"
+            "Zusatzkontext aus dem KG (SPARQL bei bekanntem FB-Namen):\n"
+            "```sparql\n"
+            f"{str(pou_ctx.get('query', '')).strip()}\n"
+            "```\n\n"
+            f"POU: {focus_pou}\n\n"
+            "POU Declaration Header:\n"
+            "```pascal\n"
+            f"{header_short}\n"
+            "```\n\n"
+            "Extrahierte Variablendeklaration:\n"
+            "```pascal\n"
+            f"{var_decl_short}\n"
+            "```\n\n"
+            "POU Code:\n"
+            "```pascal\n"
+            f"{code_short}\n"
+            "```\n\n"
+            "Bitte liefere:\n"
+            "0) Eine kurze Fehlerfolge-Erklaerung in 4-8 Schritten (ohne Massnahmen).\n"
+            "1) Eine explizite Periodizitaetsbewertung:\n"
+            "   - Leite aus der Evidenz ab, ob eine periodische Ausloesung plausibel ist.\n"
+            "   - Falls plausibel: nenne abgeleitete Periode (z.B. aus PT-Wert) und Unschaerfen.\n"
+            "   - Falls nicht plausibel: benenne fehlende Evidenz.\n"
+            "2) Drei umsetzbare Gegenmassnahmen mit Prioritaet (hoch/mittel/niedrig).\n"
+            "3) Fuer jede Massnahme: konkrete ST-Aenderung (Patch-Style), warum sie wirkt, Nebenwirkungen.\n"
+            "4) Eine bevorzugte Empfehlung mit kurzer Begruendung.\n"
+            "5) Eine Watchlist mit 6-10 Signalen fuer Online-Validierung nach dem Fix.\n"
+            "Regel: Keine Hardware-/OPCUA-Massnahmen vorschlagen, wenn der Triggerpfad software_likely=true und has_hardware_address=false.\n"
+        )
 
     try:
         llm_answer = session.bot.llm(system_prompt, user_prompt)
@@ -764,14 +1303,17 @@ def _build_llm_prevention_suggestions(
             "error": f"LLM konnte keine Loesungsvorschlaege erzeugen: {e}",
             "focus_pou": focus_pou,
             "sparql_query": pou_ctx.get("query", ""),
+            "mode": followup_mode,
         }
 
     return {
+        "mode": followup_mode,
         "focus_pou": focus_pou,
         "sparql_query": pou_ctx.get("query", ""),
         "declaration_header": header_short,
         "variable_declaration": var_decl_short,
         "code_excerpt": code_short,
+        "hardware_context": hardware_ctx,
         "llm_answer": llm_answer,
     }
 
@@ -790,6 +1332,8 @@ def build_initial_prompt(ctx: IncidentContext, diagnoseplan: Optional[Dict[str, 
 
     if ctx.lastSkill:
         parts.append(f"lastSkill (lastExecutedSkill): {ctx.lastSkill}")
+    if ctx.lastFinishedSkill:
+        parts.append(f"lastFinishedSkill: {ctx.lastFinishedSkill}")
     if ctx.processName:
         parts.append(f"process: {ctx.processName}")
     if ctx.correlationId:
@@ -838,6 +1382,7 @@ def _build_chat_context_summary(ctx: IncidentContext) -> str:
         "summary": ctx.summary,
         "triggerEvent": ctx.triggerEvent,
         "lastSkill": ctx.lastSkill,
+        "lastFinishedSkill": ctx.lastFinishedSkill,
         "lastGEMMAStateBeforeFailure": ctx.lastGEMMAStateBeforeFailure,
         "triggerD2": ctx.triggerD2,
         "has_plcSnapshot": bool(ctx.plcSnapshot),
@@ -888,6 +1433,7 @@ def _build_sticky_planner_context(
         "summary": ctx.summary,
         "triggerEvent": ctx.triggerEvent,
         "lastSkill": ctx.lastSkill,
+        "lastFinishedSkill": ctx.lastFinishedSkill,
         "lastGEMMAStateBeforeFailure": ctx.lastGEMMAStateBeforeFailure,
         "triggerD2": ctx.triggerD2,
         "has_plcSnapshot": bool(ctx.plcSnapshot),
@@ -900,6 +1446,7 @@ def _build_sticky_planner_context(
             f"Trigger-Event: {ctx.triggerEvent or '-'}",
             f"Prozess: {ctx.processName or '-'}",
             f"Letzter Skill: {ctx.lastSkill or '-'}",
+            f"Letzter abgeschlossener Skill: {ctx.lastFinishedSkill or '-'}",
             f"Letzter GEMMA-State: {ctx.lastGEMMAStateBeforeFailure or '-'}",
         ],
     }
@@ -1058,6 +1605,17 @@ class ExcHChatBotSession:
 
                 llm_text = str(suggestion_block.get("llm_answer", "") or "").strip()
                 llm_err = str(suggestion_block.get("error", "") or "").strip()
+                followup_mode = str(suggestion_block.get("mode", "") or "software_prevention")
+                followup_title = (
+                    "LLM-basierte Hardware-Diagnose und Behandlungsweise:"
+                    if followup_mode == "hardware_diagnosis"
+                    else "LLM-basierte Loesungsvorschlaege zur Vermeidung des Pfads:"
+                )
+                followup_error_title = (
+                    "LLM-basierte Hardware-Diagnose konnte nicht erzeugt werden: "
+                    if followup_mode == "hardware_diagnosis"
+                    else "LLM-basierte Loesungsvorschlaege konnten nicht erzeugt werden: "
+                )
 
                 path_trace = _as_dict(diagnoseplan.get("path_trace"))
                 point1 = _as_dict(path_trace.get("point_1_trigger_setter"))
@@ -1078,14 +1636,11 @@ class ExcHChatBotSession:
 
                 if llm_text:
                     lines.append("")
-                    lines.append("LLM-basierte Loesungsvorschlaege zur Vermeidung des Pfads:")
+                    lines.append(followup_title)
                     lines.append(llm_text)
                 else:
                     lines.append("")
-                    lines.append(
-                        "LLM-basierte Loesungsvorschlaege konnten nicht erzeugt werden: "
-                        + (llm_err or "unbekannter Fehler")
-                    )
+                    lines.append(followup_error_title + (llm_err or "unbekannter Fehler"))
 
                 response: Dict[str, Any] = {"answer": "\n".join(lines).strip()}
                 if debug:
@@ -1175,6 +1730,53 @@ def build_evd2_diagnoseplan(session: ExcHChatBotSession) -> Dict[str, Any]:
         "requirement_paths": req,
         "path_trace": path_trace,
         "compact": compact,
+    }
+
+
+def build_auto_followup_request(session: ExcHChatBotSession) -> Dict[str, str]:
+    diagnoseplan = session.ensure_bootstrap_plan()
+    path_trace = _as_dict(diagnoseplan.get("path_trace")) if isinstance(diagnoseplan, dict) else {}
+    point1 = _as_dict(path_trace.get("point_1_trigger_setter"))
+    point3 = _as_dict(path_trace.get("point_3_path_trace"))
+    hardware_ctx = _build_hardware_followup_context(session.ctx, point1, point3)
+
+    if str(hardware_ctx.get("mode", "") or "") == "hardware_diagnosis":
+        anchor = _as_dict(hardware_ctx.get("anchor"))
+        var_ctx = _as_dict(hardware_ctx.get("variable_context"))
+        last_finished = str(hardware_ctx.get("last_finished_skill", "") or "-")
+        sim_sources = ", ".join(str(x) for x in (hardware_ctx.get("variable_classification", {}) or {}).get("sim_sources", []) if str(x).strip()) or "-"
+        prompt = (
+            "Bitte erklaere jetzt den Hardware-Fehlerpfad aus der Initialanalyse im Detail. "
+            f"Fokus: Welche Rolle spielt der Hardware-Endpunkt `{anchor.get('token', '-')}` mit Snapshot-Wert `{hardware_ctx.get('snapshot_value', None)!r}` "
+            f"und Hardware-Adresse(n) `{', '.join(str(x) for x in (var_ctx.get('hardware_addresses') or []) if str(x).strip()) or '-'}`? "
+            f"Untersuche den letzten abgeschlossenen Skill `{last_finished}` und seinen Bezug zu `{anchor.get('token', '-')}` "
+            f"sowie zum zugehoerigen Nachbar-/Gegensensor `{str(_as_dict(hardware_ctx.get('last_finished_skill_context')).get('counterpart_sensor_short', '') or '-')}`. "
+            f"Wenn ein Simulations-/Spiegelungs-Mapping existiert, beruecksichtige explizit die Quelle(n) `{sim_sources}`. "
+            "Keine Periodizitaetsbewertung. Stattdessen: leite plausible Hardware-Ursachen ab, nenne konkrete manuelle Diagnose-/Behandlungsschritte an der Anlage, "
+            "und bewerte auf Basis von Snapshot, KG und Code, ob Sensorfehler oder eine zwischenzeitliche manuelle/physische Werkstueckentfernung plausibler ist."
+        )
+        return {
+            "mode": "hardware_diagnosis",
+            "label": "Pfad-Erklärung + Hardware-Diagnose",
+            "prompt": prompt,
+        }
+
+    point1 = _as_dict(path_trace.get("point_1_trigger_setter"))
+    point3 = _as_dict(path_trace.get("point_3_path_trace"))
+    focus_pou = _pick_focus_pou_for_solution(point1, point3)
+    prompt = (
+        "Bitte erklaere jetzt den Fehlerpfad aus der Initialanalyse im Detail. "
+        f"Fokus: Welche Rolle spielen die relevanten Signale im FB/POU `{focus_pou}`, "
+        "wie fuehrt der Pfad bis `OPCUA.TriggerD2`, und ob eine periodische Ausloesung "
+        "aus den vorhandenen Trace-Belegen abgeleitet werden kann (ohne Annahmen ohne Evidenz). "
+        f"Nutze Code + Variablendeklaration von `{focus_pou}`, die bereits im KG liegen. "
+        "Danach nenne konkrete Vermeidungsmaßnahmen, priorisiert, und begruende sie nur mit "
+        "der vorhandenen softwareseitigen Evidenz des Triggerpfads."
+    )
+    return {
+        "mode": "software_prevention",
+        "label": "Pfad-Erklärung + Vermeidungsmaßnahmen",
+        "prompt": prompt,
     }
 
 
@@ -1378,10 +1980,25 @@ def run_initial_analysis(session: ExcHChatBotSession, debug: bool = True) -> Dic
     if _should_build_evd2_plan(session.ctx) and isinstance(diagnoseplan, dict):
         answer = _render_initial_evd2_answer(session.ctx, diagnoseplan)
         if answer:
+            path_trace = _as_dict(diagnoseplan.get("path_trace"))
+            point1 = _as_dict(path_trace.get("point_1_trigger_setter"))
+            point3 = _as_dict(path_trace.get("point_3_path_trace"))
+            heading = "4) LLM-basierte Loesungsvorschlaege zur Vermeidung des Pfads:\n"
+            followup_hint = (
+                "Auf Nachfrage. Frage z.B.: `Bitte gib Massnahmen zur Vermeidung dieses Pfads.`"
+            )
+            hardware_ctx = _build_hardware_followup_context(session.ctx, point1, point3)
+            if str(hardware_ctx.get("mode", "") or "") == "hardware_diagnosis":
+                heading = "4) LLM-basierte Hardware-Diagnose und Behandlungsweise:\n"
+                followup_hint = (
+                    "Auf Nachfrage. Frage z.B.: "
+                    "`Bitte gib Hardware-Diagnose und manuelle Prüfschritte fuer diesen Pfad.`"
+                )
             answer = (
                 answer
-                + "\n\n4) LLM-basierte Loesungsvorschlaege zur Vermeidung des Pfads:\n"
-                + "Auf Nachfrage. Frage z.B.: `Bitte gib Massnahmen zur Vermeidung dieses Pfads.`"
+                + "\n\n"
+                + heading
+                + followup_hint
             )
 
             result: Dict[str, Any] = {"answer": answer}

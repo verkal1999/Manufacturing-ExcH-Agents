@@ -1,4 +1,4 @@
-"""
+﻿"""
 Streamlit UI fuer den MSRGuard ExcH-KG Agent (Chat + JSON Side Panels).
 
 Start (mit optionalen Script-Args):
@@ -34,7 +34,7 @@ DEFAULT_CONFIG_NAME = "excH_agent_config.json"
 
 USER_AVATAR = "👤"
 BOT_AVATAR = "🤖"
-SYSTEM_AVATAR = "ℹ️"
+SYSTEM_AVATAR = "⚙️"
 
 
 @dataclass
@@ -148,7 +148,7 @@ def try_set_openai_key_from_file(path_str: str, provider: str = "openai") -> Opt
     }
     _provider = (provider or "openai").lower().strip()
     if _provider == "ollama":
-        return None  # kein API-Key nötig
+        return None  # kein API-Key noetig
 
     env_var = _PROVIDER_ENV.get(_provider, "OPENAI_API_KEY")
     if os.environ.get(env_var):
@@ -182,17 +182,17 @@ def _read_kg_final_path_from_config(config_path: str) -> str:
 
 def parse_args() -> argparse.Namespace:
     """
-    Streamlit startet das Script selbst und übergibt ggf. zusätzliche CLI-Flags.
+    Streamlit startet das Script selbst und uebergibt ggf. zusaetzliche CLI-Flags.
     Deshalb nur bekannte Argumente parsen und alles andere ignorieren.
 
-    Übergabe in Streamlit:
+    Uebergabe in Streamlit:
       streamlit run python/msrguard/excH_kg_agent_ui.py -- --event_json_path <...> --out_json <...>
     """
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--event_json_path", required=False, default="", help="Pfad zur Event JSON (Input)")
     ap.add_argument("--out_json", required=False, default="", help="Pfad zur Result JSON (Output)")
     ap.add_argument("--server_port", required=False, type=int, default=8501, help="Streamlit Port (default: 8501)")
-    ap.add_argument("--no_open_browser", action="store_false", dest="open_browser", help="Browser nicht automatisch öffnen")
+    ap.add_argument("--no_open_browser", action="store_false", dest="open_browser", help="Browser nicht automatisch oeffnen")
     ap.set_defaults(open_browser=True)
     ns, _unknown = ap.parse_known_args()
     return ns
@@ -285,6 +285,8 @@ def streamlit_main() -> None:
             st.session_state["auto_followup_enabled"] = True
         if "pending_auto_followup_prompt" not in st.session_state:
             st.session_state["pending_auto_followup_prompt"] = ""
+        if "pending_auto_followup_label" not in st.session_state:
+            st.session_state["pending_auto_followup_label"] = "Pfad-Erklaerung + Vermeidungsmassnahmen"
         if "auto_followup_done" not in st.session_state:
             st.session_state["auto_followup_done"] = False
 
@@ -372,23 +374,25 @@ def streamlit_main() -> None:
         if tool_results_look_empty(tool_results):
             add_message(
                 "System",
-                "Hinweis: Keine/zu wenige Tool-Ergebnisse für eine konkrete Antwort. "
-                "Der ChatBot konnte vermutlich nicht die richtigen Tools auswählen oder das KG enthält die Info nicht.",
+                "Hinweis: Keine/zu wenige Tool-Ergebnisse fuer eine konkrete Antwort. "
+                "Der ChatBot konnte vermutlich nicht die richtigen Tools auswaehlen oder das KG enthaelt die Info nicht.",
             )
 
     def run_pending_auto_followup_if_needed() -> None:
         prompt = str(st.session_state.get("pending_auto_followup_prompt") or "").strip()
+        label = str(st.session_state.get("pending_auto_followup_label") or "Pfad-Erklaerung + Vermeidungsmassnahmen").strip()
         if not prompt:
             return
 
         session = st.session_state.get("chatbot_session")
         if session is None:
             st.session_state["pending_auto_followup_prompt"] = ""
+            st.session_state["pending_auto_followup_label"] = "Pfad-Erklaerung + Vermeidungsmassnahmen"
             st.session_state["auto_followup_done"] = False
             return
 
         with st.chat_message("assistant", avatar=BOT_AVATAR):
-            with st.spinner("Automatische Folgeanalyse läuft…"):
+            with st.spinner("Automatische Folgeanalyse laeuft..."):
                 try:
                     res = session.ask(prompt, debug=True)
                     plan = res.get("plan") if isinstance(res, dict) else None
@@ -401,10 +405,7 @@ def streamlit_main() -> None:
 
                     answer = res.get("answer") if isinstance(res, dict) else None
                     out_text = answer or _json_or_str(res)
-                    add_message(
-                        "Assistant",
-                        "Automatische Folgeanalyse (Pfad-Erklärung + Vermeidungsmaßnahmen):\n\n" + out_text,
-                    )
+                    add_message("Assistant", f"Automatische Folgeanalyse ({label}):\n\n" + out_text)
                     show_debug_hints(plan, tool_results)
                     st.session_state["auto_followup_done"] = True
                     log_ui_event("chatbot_auto_followup_done", {"ok": True})
@@ -414,6 +415,7 @@ def streamlit_main() -> None:
                     log_ui_event("chatbot_auto_followup_done", {"ok": False, "error": str(e)})
 
         st.session_state["pending_auto_followup_prompt"] = ""
+        st.session_state["pending_auto_followup_label"] = "Pfad-Erklaerung + Vermeidungsmassnahmen"
         st.rerun()
 
     def import_handle_event():
@@ -430,16 +432,16 @@ def streamlit_main() -> None:
     def import_chatbot_pieces():
         ensure_python_root_on_sys_path()
         try:
-            from msrguard.excH_chatbot import IncidentContext, ExcHChatBotSession, run_initial_analysis  # type: ignore
+            from msrguard.excH_chatbot import IncidentContext, ExcHChatBotSession, run_initial_analysis, build_auto_followup_request  # type: ignore
         except Exception:
-            from excH_chatbot import IncidentContext, ExcHChatBotSession, run_initial_analysis  # type: ignore
+            from excH_chatbot import IncidentContext, ExcHChatBotSession, run_initial_analysis, build_auto_followup_request  # type: ignore
 
         try:
             from msrguard.chatbot_core import build_bot  # type: ignore
         except Exception:
             from chatbot_core import build_bot  # type: ignore
 
-        return IncidentContext, ExcHChatBotSession, run_initial_analysis, build_bot
+        return IncidentContext, ExcHChatBotSession, run_initial_analysis, build_auto_followup_request, build_bot
 
     def run_pipeline(cfg: PipelineConfig, event: Dict[str, Any]) -> Dict[str, Any]:
         runner = Path(cfg.runner).expanduser().resolve()
@@ -506,7 +508,7 @@ def streamlit_main() -> None:
         add_message("System", msg1)
 
         if pipeline_enabled:
-            add_message("System", "Pipeline wird vor der Analyse ausgeführt. Klicke 'Weiter' um zu starten oder 'Abbrechen'.")
+            add_message("System", "Pipeline wird vor der Analyse ausgefuehrt. Klicke 'Weiter' um zu starten oder 'Abbrechen'.")
         else:
             add_message("System", "Klicke 'Weiter' um Analyse zu starten oder 'Abbrechen'.")
 
@@ -598,7 +600,7 @@ def streamlit_main() -> None:
 
         if st.session_state.get("pipeline_enabled"):
             with st.chat_message("assistant", avatar=SYSTEM_AVATAR):
-                with st.spinner("Pipeline läuft…"):
+                with st.spinner("Pipeline laeuft..."):
                     try:
                         status = run_pipeline(cfg.pipeline, event)
                         st.session_state["pipeline_status"] = status
@@ -616,7 +618,7 @@ def streamlit_main() -> None:
                         log_ui_event("pipeline_done", {"ok": False, "error": str(e)})
 
         with st.chat_message("assistant", avatar=BOT_AVATAR):
-            with st.spinner("Agent-Analyse läuft…"):
+            with st.spinner("Agent-Analyse laeuft..."):
                 try:
                     handle_event = import_handle_event()
                     st.session_state["agent_result"] = handle_event(event)
@@ -627,9 +629,9 @@ def streamlit_main() -> None:
                     log_ui_event("agent_core_done", {"ok": False, "error": str(e)})
 
         with st.chat_message("assistant", avatar=BOT_AVATAR):
-            with st.spinner("ChatBot initialisiert und denkt…"):
+            with st.spinner("ChatBot initialisiert und denkt..."):
                 try:
-                    IncidentContext, ExcHChatBotSession, run_initial_analysis, build_bot = import_chatbot_pieces()
+                    IncidentContext, ExcHChatBotSession, run_initial_analysis, build_auto_followup_request, build_bot = import_chatbot_pieces()
                     ctx = IncidentContext.from_event(event)
 
                     payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
@@ -658,19 +660,16 @@ def streamlit_main() -> None:
                     show_debug_hints(plan, tool_results)
 
                     if st.session_state.get("auto_followup_enabled"):
-                        st.session_state["pending_auto_followup_prompt"] = (
-                            "Bitte erklaere jetzt den Fehlerpfad aus der Initialanalyse im Detail. "
-                            "Fokus: Welche Rolle spielt `PeriodicFaultPeriod` in `FB_Automatikbetrieb_F1`, "
-                            "wie fuehrt der Pfad bis `OPCUA.TriggerD2`, und ob eine periodische Ausloesung "
-                            "aus den vorhandenen Trace-Belegen abgeleitet werden kann (ohne Annahmen ohne Evidenz). "
-                            "Nutze Code + Variablendeklaration von `FB_Automatikbetrieb_F1`, die bereits im KG liegen. "
-                            "Danach nenne konkrete Vermeidungsmaßnahmen, priorisiert, und begruende sie nur mit "
-                            "der vorhandenen softwareseitigen Evidenz des Triggerpfads."
+                        followup_req = build_auto_followup_request(session)
+                        st.session_state["pending_auto_followup_prompt"] = str(followup_req.get("prompt", "") or "").strip()
+                        st.session_state["pending_auto_followup_label"] = str(
+                            followup_req.get("label", "Pfad-Erklaerung + Vermeidungsmassnahmen")
+                            or "Pfad-Erklaerung + Vermeidungsmassnahmen"
                         )
                         st.session_state["auto_followup_done"] = False
                         add_message(
                             "System",
-                            "Automatische Folgeanalyse wird gestartet (Pfad-Erklärung + Vermeidungsmaßnahmen).",
+                            f"Automatische Folgeanalyse wird gestartet ({st.session_state['pending_auto_followup_label']}).",
                         )
                         log_ui_event("chatbot_auto_followup_queued", {"enabled": True})
                 except Exception as e:
@@ -703,9 +702,9 @@ def streamlit_main() -> None:
 
     with st.sidebar:
         st.subheader("Einstellungen")
-        st.checkbox("Pipeline vor Analyse ausführen", key="pipeline_enabled")
+        st.checkbox("Pipeline vor Analyse ausfuehren", key="pipeline_enabled")
         st.checkbox(
-            "Automatische Folgeanalyse (Pfad-Erklärung + Maßnahmen)",
+            "Automatische Folgeanalyse (Pfad-Erklaerung + Massnahmen)",
             key="auto_followup_enabled",
         )
         st.text_input("Result JSON (out_json)", key="out_json_path", placeholder="optional: Pfad zur Result JSON")
@@ -776,7 +775,7 @@ def streamlit_main() -> None:
 
         with st.expander("Event JSON bearbeiten"):
             raw = st.text_area("Event JSON", value=json.dumps(event or {}, ensure_ascii=False, indent=2), height=260)
-            if st.button("Übernehmen", use_container_width=True):
+            if st.button("bernehmen", use_container_width=True):
                 try:
                     st.session_state["event"] = json.loads(raw)
                     st.session_state["event_loaded_from_path"] = "__manual__"
@@ -787,7 +786,7 @@ def streamlit_main() -> None:
                     st.success("Event aktualisiert.")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Ungültiges JSON: {e}")
+                    st.error(f"Ungueltiges JSON: {e}")
 
     with mid:
         st.subheader("ChatBot")
@@ -798,7 +797,7 @@ def streamlit_main() -> None:
         elif st.session_state.get("analysis_done"):
             start_label = "Weiter (Result schreiben)"
         else:
-            start_label = "Analyse läuft…"
+            start_label = "Analyse laeuft..."
 
         start_clicked = btn_c1.button(start_label, use_container_width=True)
         abort_clicked = btn_c2.button("Abbrechen", use_container_width=True)
@@ -845,16 +844,16 @@ def streamlit_main() -> None:
         run_pending_auto_followup_if_needed()
 
         chatbot_ready = st.session_state.get("chatbot_session") is not None
-        user_msg = st.chat_input("Frage an den ChatBot…", disabled=not chatbot_ready)
+        user_msg = st.chat_input("Frage an den ChatBot...", disabled=not chatbot_ready)
         if user_msg:
             add_message("User", user_msg)
             session = st.session_state.get("chatbot_session")
             if session is None:
-                add_message("System", "ChatBot ist nicht initialisiert. Bitte zuerst 'Weiter' drücken oder Key/Config prüfen.")
+                add_message("System", "ChatBot ist nicht initialisiert. Bitte zuerst 'Weiter' druecken oder Key/Config pruefen.")
                 st.rerun()
 
             with st.chat_message("assistant", avatar=BOT_AVATAR):
-                with st.spinner("Denke…"):
+                with st.spinner("Denke..."):
                     try:
                         res = session.ask(user_msg, debug=True)
                         plan = res.get("plan") if isinstance(res, dict) else None
@@ -877,7 +876,7 @@ def streamlit_main() -> None:
         if st.session_state.get("agent_result") is not None:
             st.json(st.session_state.get("agent_result"))
         else:
-            st.info("Noch keine Analyse ausgeführt.")
+            st.info("Noch keine Analyse ausgefuehrt.")
 
         with st.expander("Pipeline"):
             st.json(st.session_state.get("pipeline_status") or {})
@@ -950,9 +949,9 @@ def main() -> None:
         if bool(getattr(args, "open_browser", True)):
             try:
                 webbrowser.open_new_tab(ui_url)
-                print(f"[excH_kg_agent_ui] UI geöffnet: {ui_url}")
+                print(f"[excH_kg_agent_ui] UI geoeffnet: {ui_url}")
             except Exception as e:
-                print(f"[excH_kg_agent_ui] Konnte Browser nicht automatisch öffnen ({ui_url}): {e}")
+                print(f"[excH_kg_agent_ui] Konnte Browser nicht automatisch oeffnen ({ui_url}): {e}")
         wrote_out_json = False
         try:
             if out_json_file is None:

@@ -396,6 +396,24 @@ def gemma_state_list() -> List[str]:
     return a + f + d
 
 
+def _gemma_state_aliases(state: str) -> Set[str]:
+    text = str(state or "").strip()
+    if not text:
+        return set()
+
+    aliases: Set[str] = set()
+    aliases.add(text.upper())
+
+    if "." in text:
+        aliases.add(text.rsplit(".", 1)[-1].strip().upper())
+
+    m = re.search(r"([AFD]\d+)$", text, flags=re.I)
+    if m:
+        aliases.add(str(m.group(1) or "").strip().upper())
+
+    return {a for a in aliases if a}
+
+
 def infer_suspected_input_port_from_last_state(
     d2_trace: Dict[str, Any],
     last_state: str,
@@ -408,6 +426,7 @@ def infer_suspected_input_port_from_last_state(
         return {"error": "Kein set_tree/focus_tree im d2_trace vorhanden."}
 
     gemma_states = set(gemma_state_list())
+    last_state_aliases = _gemma_state_aliases(last_state)
     or_node = _find_first_or_node(set_tree)
     if not or_node:
         leaves = [x for x in _collect_leaf_tokens(set_tree) if x and x not in gemma_states and not _is_internal_v(x)]
@@ -419,12 +438,13 @@ def infer_suspected_input_port_from_last_state(
     for idx, b in enumerate(branches, start=1):
         leaves = _collect_leaf_tokens(b)
         states = sorted({x for x in leaves if x in gemma_states})
+        branch_state_aliases = {str(x or "").strip().upper() for x in states if str(x or "").strip()}
         branch_infos.append(
             {
                 "idx": idx,
                 "expr": _node_to_expr(b),
                 "gemma_states_in_branch": states,
-                "contains_last_state": last_state in states,
+                "contains_last_state": bool(last_state_aliases & branch_state_aliases),
             }
         )
 

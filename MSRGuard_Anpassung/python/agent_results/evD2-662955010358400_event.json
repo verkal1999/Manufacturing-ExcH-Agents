@@ -1,0 +1,1062 @@
+{
+  "outJson": "D:/MA_Python_Agent/MSRGuard_Anpassung/python\\agent_results\\evD2-662955010358400_result.json",
+  "payload": {
+    "correlationId": "evD2-662955010358400",
+    "ingestion": {
+      "correlationId": "evD2-662955010358400",
+      "message": "ingested via single-call",
+      "rc": 1
+    },
+    "plcSnapshot": {
+      "rows": [
+        {
+          "id": "ns=1;s=PLC1.DeviceManual",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.DeviceRevision",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.HardwareRevision",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.Manufacturer",
+          "nodeClass": "Variable",
+          "t": "LocalizedText"
+        },
+        {
+          "id": "ns=1;s=PLC1.Model",
+          "nodeClass": "Variable",
+          "t": "LocalizedText"
+        },
+        {
+          "id": "ns=1;s=PLC1.RevisionCounter",
+          "nodeClass": "Variable",
+          "t": "Int32"
+        },
+        {
+          "id": "ns=1;s=PLC1.SerialNumber",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.SoftwareRevision",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.Programs",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=1;s=PLC1.Tasks",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;i=20737",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=OPCUA",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=OPCUA.TriggerD1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.TriggerD2",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.TriggerD3",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Alt_found",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Alt_abort",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Diag_finished",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Cycle_finished",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.LastGEMMAStateBeforeFailure",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.lastExecutedSkill",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.lastExecutedProcess",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.lastFinishedSkill",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_ErrorDetected",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_ErrorCode",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_HorizontalMoveForwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_HorizontalMoveBackwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_VerticalMoveForwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_VerticalMoveBackwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_RotationMoveCW",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_RotationMoveCCW",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_SuctionProcess",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.A1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.A2",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.A5",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.A6",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.F1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.F4",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.D1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.D2",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_OperatingModes.D3",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_SuctionProcess.JobMethode_CompressorControl",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32], out: [UInt32, Boolean, Boolean, UInt32]"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_RotationMoveCCW.JobMethode_RotationMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [UInt32, Boolean]"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_RotationMoveCW.JobMethode_RotationMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [UInt32, Boolean]"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_VerticalMoveBackwards.JobMethode_VerticalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [UInt32, Boolean]"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_VerticalMoveForwards.JobMethode_VerticalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [UInt32, Boolean]"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_HorizontalMoveBackwards.JobMethode_HorizontalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [UInt32, Boolean]"
+        },
+        {
+          "id": "ns=4;s=VSG_SkillSet.VSG_Skill_HorizontalMoveForwards.JobMethode_HorizontalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [UInt32, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_NMethod_Auslagern",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_CB_MoveForwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_CB_MoveBackwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveBackwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveForwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveVerticalForwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveVerticalBackwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveHorizontalForwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveHorizontalBackwards",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.A1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.A2",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.A5",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.A6",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.F1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.F4",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.D1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.D2",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_OperatingModes.D3",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveHorizontalBackwards.JobMethode_HorizontalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [Boolean, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveHorizontalForwards.JobMethode_HorizontalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [Boolean, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveVerticalBackwards.JobMethode_VerticalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [Boolean, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveVerticalForwards.JobMethode_VerticalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, UInt32, UInt32, Boolean], out: [Boolean, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveForwards.JobMethode_HorizontalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, Boolean], out: [Boolean, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_RGB_MoveBackwards.JobMethode_HorizontalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean, Boolean], out: [Boolean, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_CB_MoveBackwards.JobMethode_HorizontalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean], out: [Boolean, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_Skill_CB_MoveForwards.JobMethode_HorizontalMove",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, Boolean], out: [Boolean, Boolean]"
+        },
+        {
+          "id": "ns=4;s=HRL_SkillSet.HRL_NMethod_Auslagern.HRL_NMethod_Auslagern",
+          "nodeClass": "Method",
+          "t": "in: [Boolean, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, Int64], out: [UInt32, Boolean, Boolean, UInt32]"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Ref_Schalter_vertikal",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Ref_Schalter_horizontal",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Enc_vertikal_I1",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Enc_vertikal_I2",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Enc_horizontal_I1",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Enc_horizontal_I2",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Enc_drehen_I1",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Enc_drehen_I2",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Ref_Schalter_drehen",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_MOT_vertikal_hoch",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_MOT_vertikal_runter",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_MOT_horizontal_rueckwaerts",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_MOT_horizontal_vorwaerts",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_MOT_drehen_CW",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_MOT_drehen_CCW",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_Kompressor",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_MV_Vakuum",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_K1_4_Zaehler_Zuruecksetzen",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_K1_5_Zaehler_Zuruecksetzen",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_VSG.VSG_K1_3_Zaehler_Zuruecksetzen",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Ref_Taster_horizontal",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Enc_horizontal_I1",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Enc_horizontal_I2",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Enc_vertikal_I1",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Enc_vertikal_I2",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_LS_innen",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_LS_aussen",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Ref_Taster_vertikal",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Spursensor_1_unten",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Spursensor_2_oben",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Ref_Taster_Ausleger_vorne",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_Ref_Taster_Ausleger_hinten",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_MOT_Foerderband_vorwaerts",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_MOT_Foerderband_rueckwaerts",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_MOT_horizontal_zum_Regal",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_MOT_horizontal_zum_Foerderband",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_MOT_vertikal_runter",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_MOT_vertikal_hoch",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_MOT_Ausleger_vorwaerts",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_MOT_Ausleger_rueckwaerts",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_K1_1_Zaehler_Zuruecksetzen",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=GVL_HRL.HRL_K1_2_Zaehler_Zuruecksetzen",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;i=1301",
+          "nodeClass": "Variable",
+          "t": "AdsDeviceState (-> Enumeration)"
+        },
+        {
+          "id": "ns=4;i=1302",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=4;i=1303",
+          "nodeClass": "Variable",
+          "t": "LocalizedText"
+        },
+        {
+          "id": "ns=4;i=1304",
+          "nodeClass": "Variable",
+          "t": "UInt32"
+        },
+        {
+          "id": "ns=1;s=PLC1.Tasks.SupportedTypes",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=1;s=PLC1.Programs.SupportedTypes",
+          "nodeClass": "Object",
+          "t": "-"
+        }
+      ],
+      "vars": [
+        {
+          "id": "GVL_HRL.HRL_Ref_Taster_vertikal",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_MOT_vertikal_runter",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_ErrorDetected",
+          "t": "bool",
+          "v": true
+        },
+        {
+          "id": "GVL_HRL.HRL_K1_2_Zaehler_Zuruecksetzen",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_MOT_horizontal_zum_Regal",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_LS_innen",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_MOT_horizontal_rueckwaerts",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.A6",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.A6",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.TriggerD1",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.Cycle_finished",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_MOT_Foerderband_rueckwaerts",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.TriggerD3",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_Spursensor_1_unten",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_K1_5_Zaehler_Zuruecksetzen",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_MV_Vakuum",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.Diag_finished",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_K1_1_Zaehler_Zuruecksetzen",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_Ref_Schalter_vertikal",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.F4",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.A5",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.F4",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.A5",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.TriggerD2",
+          "t": "bool",
+          "v": true
+        },
+        {
+          "id": "OPCUA.Alt_abort",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_Ref_Schalter_drehen",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_Ref_Schalter_horizontal",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.Alt_found",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_Ref_Taster_Ausleger_hinten",
+          "t": "bool",
+          "v": true
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.A1",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.A1",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.A2",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.A2",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_MOT_vertikal_runter",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.F1",
+          "t": "bool",
+          "v": true
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.F1",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_MOT_vertikal_hoch",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_Ref_Taster_horizontal",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.D1",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.D1",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_MOT_horizontal_vorwaerts",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.D2",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.D2",
+          "t": "bool",
+          "v": true
+        },
+        {
+          "id": "GVL_HRL.HRL_MOT_Ausleger_rueckwaerts",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_K1_4_Zaehler_Zuruecksetzen",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_MOT_drehen_CW",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "HRL_SkillSet.HRL_OperatingModes.D3",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "VSG_SkillSet.VSG_OperatingModes.D3",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_Spursensor_2_oben",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_MOT_vertikal_hoch",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_MOT_drehen_CCW",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_MOT_Foerderband_vorwaerts",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_Ref_Taster_Ausleger_vorne",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_K1_3_Zaehler_Zuruecksetzen",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_VSG.VSG_Kompressor",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_MOT_Ausleger_vorwaerts",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_MOT_horizontal_zum_Foerderband",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "GVL_HRL.HRL_LS_aussen",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "PLC1.SoftwareRevision",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.DeviceManual",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.HardwareRevision",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.SerialNumber",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.DeviceRevision",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "OPCUA.LastGEMMAStateBeforeFailure",
+          "t": "string",
+          "v": "VSG_OperatingModes.F1"
+        },
+        {
+          "id": "OPCUA.lastExecutedSkill",
+          "t": "string",
+          "v": "VSG_AS_CompressorControl"
+        },
+        {
+          "id": "OPCUA.lastExecutedProcess",
+          "t": "string",
+          "v": "VSG_Skill_SuctionProcess"
+        },
+        {
+          "id": "OPCUA.lastFinishedSkill",
+          "t": "string",
+          "v": "HRL_NMethod_Auslagern"
+        },
+        {
+          "id": "PLC1.RevisionCounter",
+          "t": "int32",
+          "v": 0
+        },
+        {
+          "id": "GVL_VSG.VSG_Enc_horizontal_I2",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "GVL_VSG.VSG_Enc_drehen_I2",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "GVL_VSG.VSG_Enc_vertikal_I2",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "GVL_HRL.HRL_Enc_vertikal_I2",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "VSG_SkillSet.VSG_ErrorCode",
+          "t": "uint32",
+          "v": 1001
+        },
+        {
+          "id": "GVL_HRL.HRL_Enc_horizontal_I1",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "GVL_VSG.VSG_Enc_horizontal_I1",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "GVL_VSG.VSG_Enc_drehen_I1",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "GVL_VSG.VSG_Enc_vertikal_I1",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "GVL_HRL.HRL_Enc_horizontal_I2",
+          "t": "uint32",
+          "v": 0
+        },
+        {
+          "id": "GVL_HRL.HRL_Enc_vertikal_I1",
+          "t": "uint32",
+          "v": 0
+        }
+      ]
+    },
+    "processName": "VSG_Skill_SuctionProcess",
+    "summary": "KG: no failure modes for skill 'VSG_AS_CompressorControl'",
+    "triggerEvent": "evD2"
+  },
+  "ts_ticks": 662956131738100,
+  "type": "evAgentStart"
+}

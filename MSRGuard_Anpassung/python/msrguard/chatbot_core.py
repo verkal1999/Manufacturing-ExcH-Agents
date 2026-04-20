@@ -1852,6 +1852,35 @@ class EvD2DiagnosisTool(BaseAgentTool):
         }
 
     @staticmethod
+    def _gemma_state_aliases(active_state: str) -> List[str]:
+        text = str(active_state or "").strip()
+        if not text:
+            return []
+
+        out: List[str] = []
+        seen: Set[str] = set()
+
+        def add(value: str) -> None:
+            v = str(value or "").strip()
+            if not v:
+                return
+            key = v.upper()
+            if key in seen:
+                return
+            seen.add(key)
+            out.append(v)
+
+        add(text)
+        if "." in text:
+            add(text.rsplit(".", 1)[-1].strip())
+
+        m = re.search(r"([AFD]\d+)$", text, flags=re.I)
+        if m:
+            add(str(m.group(1) or "").strip().upper())
+
+        return out
+
+    @staticmethod
     def _pick_or_branch(expr: str, active_state: str) -> dict:
         """
         Heuristik: Wenn expr eine ODER-Verknüpfung enthält, wähle den Branch, der active_state enthält.
@@ -1866,12 +1895,13 @@ class EvD2DiagnosisTool(BaseAgentTool):
             return {"picked": "", "branches": branches if len(branches) > 1 else [], "explanation": ""}
 
         for b in branches:
-            if re.search(rf"\\b{re.escape(active_state)}\\b", b):
-                return {
-                    "picked": b,
-                    "branches": branches,
-                    "explanation": f"Active GEMMA state hint '{active_state}' matches this OR-branch.",
-                }
+            for alias in EvD2DiagnosisTool._gemma_state_aliases(active_state):
+                if re.search(rf"\\b{re.escape(alias)}\\b", b):
+                    return {
+                        "picked": b,
+                        "branches": branches,
+                        "explanation": f"Active GEMMA state hint '{active_state}' matches this OR-branch via '{alias}'.",
+                    }
 
         return {
             "picked": "",
@@ -2084,12 +2114,14 @@ class EvD2DiagnosisTool(BaseAgentTool):
         inferred_driver = ""
         if branch_hint.get("picked") and last_gemma_state:
             picked = str(branch_hint.get("picked") or "")
-            m = re.search(
-                rf"\\b([A-Za-z_][A-Za-z0-9_.]*)\\b\\s+UND\\s+\\b{re.escape(last_gemma_state)}\\b",
-                picked,
-            )
-            if m:
-                inferred_driver = m.group(1)
+            for alias in EvD2DiagnosisTool._gemma_state_aliases(last_gemma_state):
+                m = re.search(
+                    rf"\\b([A-Za-z_][A-Za-z0-9_.]*)\\b\\s+UND\\s+\\b{re.escape(alias)}\\b",
+                    picked,
+                )
+                if m:
+                    inferred_driver = m.group(1)
+                    break
 
         executed_gemma_path = []
         if last_gemma_state:
