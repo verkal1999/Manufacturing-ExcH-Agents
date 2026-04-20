@@ -15,6 +15,8 @@ P_DP_HAS_POU_CODE = AG["dp_hasPOUCode"]
 P_DP_HAS_POU_LANGUAGE = AG["dp_hasPOULanguage"]
 P_DP_IS_GEMMA = AG["dp_isGEMMAStateMachine"]
 P_DP_HAS_FBTYPE_DESCRIPTION = AG["dp_hasFBTypeDescription"]
+P_DP_IS_JOB_METHOD = AG["dp_isJobMethod"]
+P_DP_HAS_METHOD_TYPE = AG["dp_hasMethodType"]
 
 P_OP_HAS_PORT = AG["op_hasPort"]
 P_DP_HAS_PORT_NAME = AG["dp_hasPortName"]
@@ -39,9 +41,15 @@ P_DP_HAS_FBINSTANCE_NAME = AG["dp_hasFBInstanceName"]
 P_OP_REPRESENTS_FB_INSTANCE = AG["op_representsFBInstance"]
 P_OP_IS_INSTANCE_OF_FBTYPE = AG["op_isInstanceOfFBType"]
 P_OP_IS_PORT_OF_INSTANCE = AG["op_isPortOfInstance"]
+P_OP_HAS_METHOD = AG["op_hasMethod"]
+P_OP_HAS_START_METHOD = AG["op_hasStartMethod"]
+P_OP_HAS_ABORT_METHOD = AG["op_hasAbortMethod"]
+P_OP_HAS_CHECK_STATE_METHOD = AG["op_hasCheckStateMethod"]
+P_OP_IS_METHOD_OF = AG["op_isMethodOf"]
 
 CLASS_CUSTOM_FB = AG["class_CustomFBType"]
 CLASS_PORT_INSTANCE = AG["class_PortInstance"]
+CLASS_METHOD = AG["class_Method"]
 
 
 def _literal_is_true(lit: Optional[Literal]) -> bool:
@@ -266,6 +274,121 @@ def _find_first_or_node(node: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _leading_scope_token(text: str) -> str:
+    s = str(text or "").strip()
+    if not s:
+        return ""
+    m = re.match(r"^([A-Za-z0-9]+)(?:[_\.].*)?$", s)
+    return str(m.group(1) or "").strip() if m else ""
+
+
+def _collect_scope_hints(values: Optional[Iterable[Any]]) -> List[str]:
+    out: List[str] = []
+    seen: Set[str] = set()
+    for raw in values or []:
+        text = str(raw or "").strip()
+        if not text:
+            continue
+        for cand in (text, _leading_scope_token(text)):
+            key = str(cand or "").strip()
+            if not key:
+                continue
+            norm = key.upper()
+            if norm in seen:
+                continue
+            seen.add(norm)
+            out.append(key)
+    return out
+
+
+def _score_name_with_scope(
+    name: str,
+    *,
+    preferred_names: Optional[Iterable[str]] = None,
+    scope_hints: Optional[Iterable[str]] = None,
+) -> int:
+    text = str(name or "").strip()
+    if not text:
+        return 0
+
+    score = 0
+    name_upper = text.upper()
+    name_prefix = _leading_scope_token(text).upper()
+
+    for pref in preferred_names or []:
+        pref_text = str(pref or "").strip()
+        if not pref_text:
+            continue
+        pref_upper = pref_text.upper()
+        pref_prefix = _leading_scope_token(pref_text).upper()
+        if name_upper == pref_upper:
+            score = max(score, 100)
+            continue
+        if pref_prefix and name_prefix and pref_prefix == name_prefix:
+            score = max(score, 60)
+
+    for hint in scope_hints or []:
+        hint_text = str(hint or "").strip()
+        if not hint_text:
+            continue
+        hint_upper = hint_text.upper()
+        hint_prefix = _leading_scope_token(hint_text).upper()
+        if name_upper == hint_upper:
+            score = max(score, 90)
+            continue
+        if hint_prefix and name_prefix and hint_prefix == name_prefix:
+            score = max(score, 50)
+            continue
+        if name_upper.startswith(hint_upper + "_"):
+            score = max(score, 40)
+            continue
+        if hint_upper in name_upper:
+            score = max(score, 20)
+
+    return score
+
+
+def _pick_scoped_gemma_pou(
+    graph: Graph,
+    gemma_hits: List[Tuple[URIRef, str]],
+    *,
+    preferred_names: Optional[Iterable[str]] = None,
+    scope_hints: Optional[Iterable[str]] = None,
+    trace: Optional[Tracer] = None,
+) -> Tuple[URIRef, str]:
+    if not gemma_hits:
+        raise ValueError("gemma_hits ist leer.")
+
+    ranked: List[Tuple[int, str, URIRef, str]] = []
+    pref_list = [str(x).strip() for x in (preferred_names or []) if str(x).strip()]
+    hint_list = [str(x).strip() for x in (scope_hints or []) if str(x).strip()]
+
+    for pou_uri, pou_name in gemma_hits:
+        lang = get_pou_language(graph, pou_uri)
+        score = _score_name_with_scope(
+            pou_name,
+            preferred_names=pref_list,
+            scope_hints=hint_list,
+        )
+        if str(lang or "").strip().upper() == "FBD":
+            score += 5
+        ranked.append((score, str(pou_name or ""), pou_uri, str(lang or "")))
+
+    ranked.sort(key=lambda item: (-item[0], item[1]))
+    chosen = ranked[0]
+
+    if trace:
+        if pref_list or hint_list:
+            trace.log(
+                "[KG] Scoped GEMMA selection: "
+                f"preferred={pref_list or '-'} scope={hint_list or '-'} -> {chosen[1]} (score={chosen[0]})"
+            )
+        else:
+            trace.log(f"[KG] GEMMA selection fallback -> {chosen[1]} (alphabetisch/FBD)")
+
+    return chosen[2], chosen[1]
+
+
 def gemma_state_list() -> List[str]:
     a = [f"A{i}" for i in range(1, 8)]
     f = [f"F{i}" for i in range(1, 7)]
@@ -311,13 +434,37 @@ def infer_suspected_input_port_from_last_state(
             trace.log(f"[AUTO]   b{bi['idx']}: {bi['expr']} states={bi['gemma_states_in_branch']} contains_last={bi['contains_last_state']}")
 
     matching = [x for x in branch_infos if x["contains_last_state"]]
-    if len(matching) != 1:
+    chosen: Optional[Dict[str, Any]] = None
+    note = ""
+    if len(matching) == 1:
+        chosen = matching[0]
+    elif not str(last_state or "").strip():
+        def _branch_rank(info: Dict[str, Any]) -> Tuple[int, int, int, int]:
+            states = [str(x or "").strip().upper() for x in (info.get("gemma_states_in_branch") or []) if str(x or "").strip()]
+            stable = sum(1 for s in states if re.fullmatch(r"[AF]\d+", s))
+            errors = sum(1 for s in states if re.fullmatch(r"D\d+", s))
+            others = len(states) - stable - errors
+            # Ohne last_state bevorzugen wir A/F-Zweige vor D-Zweigen, da D2 typischerweise
+            # aus einem stabilen Zustand heraus betreten wird und nicht aus einem anderen Fehlerzustand.
+            return (stable, -errors, -others, -len(states))
+
+        ranked = sorted(branch_infos, key=_branch_rank, reverse=True)
+        if ranked:
+            best = ranked[0]
+            second_rank = _branch_rank(ranked[1]) if len(ranked) > 1 else None
+            if second_rank is None or _branch_rank(best) > second_rank:
+                chosen = best
+                note = (
+                    "LastGEMMAStateBeforeFailure fehlt; OR-Zweig heuristisch ueber stabilen GEMMA-Zustand "
+                    "(A/F vor D) gewaehlt."
+                )
+
+    if chosen is None:
         return {
             "or_branches": branch_infos,
             "error": f"Nicht deterministisch: {len(matching)} passende OR-Ã„ste fÃ¼r last_state='{last_state}'.",
         }
 
-    chosen = matching[0]
     chosen_node = branches[chosen["idx"] - 1]
     leaves = _collect_leaf_tokens(chosen_node)
     candidates: List[str] = []
@@ -337,8 +484,13 @@ def infer_suspected_input_port_from_last_state(
     if trace:
         trace.log(f"[AUTO] Chosen branch: {chosen['expr']}")
         trace.log(f"[AUTO] Next trace candidates: {candidates}")
+        if note:
+            trace.log(f"[AUTO] {note}")
 
-    return {"or_branches": branch_infos, "chosen_branch": chosen, "next_trace_candidates": candidates}
+    out = {"or_branches": branch_infos, "chosen_branch": chosen, "next_trace_candidates": candidates}
+    if note:
+        out["note"] = note
+    return out
 
 
 def find_gemma_pous(graph: Graph, trace: Optional[Tracer] = None) -> List[Tuple[URIRef, str]]:
@@ -406,22 +558,35 @@ def resolve_input_to_upstream_output(graph: Graph, pou_uri: URIRef, input_port_n
         }
 
     assignment = assigns[0]
-    caller_port_instance = _first(graph, assignment, P_OP_ASSIGNS_FROM)
-    if not caller_port_instance:
+    caller_source = _first(graph, assignment, P_OP_ASSIGNS_FROM)
+    if not caller_source:
         return {"error": f"Assignment {assignment} hat kein op_assignsFrom."}
-    caller_port = _first(graph, caller_port_instance, P_OP_INSTANTIATES_PORT)
-    if not caller_port:
-        return {"error": f"PortInstance {caller_port_instance} hat kein op_instantiatesPort."}
+    caller_port = _first(graph, caller_source, P_OP_INSTANTIATES_PORT)
+    caller_port_name = ""
+    caller_port_dir = ""
+    caller_pou: Optional[URIRef] = None
+    caller_pou_name = ""
+    caller_code = ""
 
-    caller_port_name = _as_text(_first(graph, caller_port, P_DP_HAS_PORT_NAME))
-    caller_port_dir = get_port_direction(graph, caller_port)
+    if caller_port:
+        caller_port_name = _as_text(_first(graph, caller_port, P_DP_HAS_PORT_NAME))
+        caller_port_dir = get_port_direction(graph, caller_port)
 
-    caller_pous = list(graph.subjects(P_OP_HAS_PORT, caller_port))
-    if not caller_pous:
-        return {"error": f"Kein CallerPOU gefunden, das caller_port {caller_port} besitzt."}
-    caller_pou = caller_pous[0]
-    caller_pou_name = get_pou_name(graph, caller_pou)
-    caller_code = get_pou_code(graph, caller_pou)
+        caller_pous = list(graph.subjects(P_OP_HAS_PORT, caller_port))
+        if not caller_pous:
+            return {"error": f"Kein CallerPOU gefunden, das caller_port {caller_port} besitzt."}
+        caller_pou = caller_pous[0]
+        caller_pou_name = get_pou_name(graph, caller_pou)
+        caller_code = get_pou_code(graph, caller_pou)
+    else:
+        caller_var_name = _as_text(_first(graph, caller_source, P_DP_HAS_VARIABLE_NAME))
+        caller_expr = _as_text(_first(graph, caller_source, P_DP_HAS_EXPRESSION_TEXT))
+        caller_port_name = caller_var_name or caller_expr
+        caller_pou = pou_uri
+        caller_pou_name = "-"
+        caller_code = get_pou_code(graph, pou_uri)
+        if not caller_port_name:
+            return {"error": f"Quelle {caller_source} hat weder op_instantiatesPort noch Variable-/Expression-Namen."}
 
     return {
         "pou_uri": str(pou_uri),
@@ -922,10 +1087,158 @@ def _variable_metadata(graph: Graph, var_uri: URIRef) -> Dict[str, Any]:
     }
 
 
+def _is_job_method_fb(graph: Graph, fb_uri: Optional[URIRef]) -> bool:
+    if fb_uri is None:
+        return False
+    return _literal_is_true(_first(graph, fb_uri, P_DP_IS_JOB_METHOD))
+
+
+def _get_job_method_owner_fb(graph: Graph, ctx_pou_uri: URIRef) -> Optional[URIRef]:
+    if (ctx_pou_uri, RDF.type, CLASS_METHOD) not in graph:
+        return None
+    owner = _first(graph, ctx_pou_uri, P_OP_IS_METHOD_OF)
+    if isinstance(owner, URIRef) and _is_job_method_fb(graph, owner):
+        return owner
+    return None
+
+
+def _context_bundle(graph: Graph, pou_uri: URIRef) -> Dict[str, Any]:
+    return {
+        "pou_uri": pou_uri,
+        "pou_name": get_pou_name(graph, pou_uri),
+        "code": get_pou_code(graph, pou_uri),
+        "lang": get_pou_language(graph, pou_uri),
+    }
+
+
+def _effective_trace_context(
+    graph: Graph,
+    cls: Dict[str, Any],
+    fallback_pou_uri: URIRef,
+    fallback_code: str,
+    fallback_lang: str,
+) -> Dict[str, Any]:
+    declared_txt = str(cls.get("declared_in_pou_uri", "") or "").strip()
+    if declared_txt:
+        declared_uri = URIRef(declared_txt)
+        if str(declared_uri) != str(fallback_pou_uri):
+            return _context_bundle(graph, declared_uri)
+    return {
+        "pou_uri": fallback_pou_uri,
+        "pou_name": get_pou_name(graph, fallback_pou_uri),
+        "code": fallback_code,
+        "lang": fallback_lang or get_pou_language(graph, fallback_pou_uri),
+    }
+
+
+def _job_method_contexts(graph: Graph, fb_uri: URIRef) -> List[Dict[str, Any]]:
+    seen: Set[str] = set()
+    out: List[Dict[str, Any]] = []
+    rels = [
+        (P_OP_HAS_START_METHOD, "Start"),
+        (P_OP_HAS_ABORT_METHOD, "Abort"),
+        (P_OP_HAS_CHECK_STATE_METHOD, "CheckState"),
+        (P_OP_HAS_METHOD, ""),
+    ]
+    for pred, default_type in rels:
+        for method_uri in graph.objects(fb_uri, pred):
+            if not isinstance(method_uri, URIRef):
+                continue
+            key = str(method_uri)
+            if key in seen:
+                continue
+            seen.add(key)
+            method_type = _as_text(_first(graph, method_uri, P_DP_HAS_METHOD_TYPE)) or default_type
+            bundle = _context_bundle(graph, method_uri)
+            bundle["method_type"] = method_type
+            bundle["owner_fb_uri"] = str(fb_uri)
+            bundle["owner_fb_name"] = get_pou_name(graph, fb_uri)
+            out.append(bundle)
+    return out
+
+
+def _pick_assignment_for_requirement(assignments: List[Dict[str, Any]], required_value: bool) -> Optional[Dict[str, Any]]:
+    if not assignments:
+        return None
+    wanted = [a for a in assignments if _rhs_bool_literal(a.get("rhs", "")) == required_value]
+    if wanted:
+        return wanted[-1]
+    non_literal = [a for a in assignments if _rhs_bool_literal(a.get("rhs", "")) is None and str(a.get("rhs", "")).strip()]
+    if non_literal:
+        return non_literal[-1]
+    return assignments[-1]
+
+
+def _score_assignment_candidate(candidate: Dict[str, Any], required_value: bool) -> int:
+    rhs_lit = _rhs_bool_literal(candidate.get("rhs", ""))
+    source_kind = str(candidate.get("source_kind", "")).strip().lower()
+    method_type = str(candidate.get("method_type", "")).strip().lower()
+    score = 0
+
+    if rhs_lit is required_value:
+        score += 120
+    elif rhs_lit is None and str(candidate.get("rhs", "")).strip():
+        score += 70
+    else:
+        score += 10
+
+    if source_kind == "local":
+        score += 40
+    elif source_kind == "job_method":
+        score += 20
+
+    if method_type == "start":
+        score += 35 if required_value else -5
+    elif method_type == "abort":
+        score += 35 if not required_value else -5
+    elif method_type == "checkstate":
+        score += 5
+
+    return score
+
+
+def _collect_job_method_assignment_candidates(
+    graph: Graph,
+    fb_uri: URIRef,
+    token: str,
+    required_value: bool,
+) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for ctx in _job_method_contexts(graph, fb_uri):
+        method_uri = ctx.get("pou_uri")
+        if not isinstance(method_uri, URIRef):
+            continue
+        code = str(ctx.get("code", "") or "")
+        assigns = extract_assignments_st(code, token, trace=None)
+        chosen = _pick_assignment_for_requirement(assigns, required_value)
+        if not chosen:
+            continue
+        rec = dict(chosen)
+        rec["source_kind"] = "job_method"
+        rec["method_uri"] = str(method_uri)
+        rec["method_type"] = str(ctx.get("method_type", "") or "")
+        rec["method_pou_name"] = str(ctx.get("pou_name", "") or "")
+        rec["method_display_name"] = f"{ctx.get('owner_fb_name', '')}.{ctx.get('pou_name', '')}".strip(".")
+        rec["code"] = code
+        rec["lang"] = str(ctx.get("lang", "") or "")
+        rec["_candidate_score"] = _score_assignment_candidate(rec, required_value)
+        out.append(rec)
+    out.sort(
+        key=lambda x: (
+            -_safe_int(x.get("_candidate_score", 0), 0),
+            _safe_int(x.get("line_no", 999999), 999999),
+            str(x.get("method_display_name", "")),
+        )
+    )
+    return out
+
+
 def _classify_token(graph: Graph, token: str, ctx_pou_uri: URIRef, trace: Optional[Tracer] = None) -> Dict[str, Any]:
     token = (token or "").strip()
     if not token:
         return {"kind": "empty", "token": token}
+
+    owner_fb_uri = _get_job_method_owner_fb(graph, ctx_pou_uri)
 
     if "." in token:
         pi_obj = _lookup_instance_port_by_expression(graph, ctx_pou_uri, token)
@@ -935,6 +1248,7 @@ def _classify_token(graph: Graph, token: str, ctx_pou_uri: URIRef, trace: Option
                 "token": token,
                 "instance": pi_obj.get("instance_name", token.split(".", 1)[0].strip()),
                 "port": pi_obj.get("port_name", token.split(".", 1)[1].strip()),
+                "declared_in_pou_uri": str(ctx_pou_uri),
                 **pi_obj,
             }
             if trace:
@@ -949,11 +1263,42 @@ def _classify_token(graph: Graph, token: str, ctx_pou_uri: URIRef, trace: Option
                 "token": token,
                 "instance": inst_obj.get("instance_name", inst),
                 "port": port,
+                "declared_in_pou_uri": str(ctx_pou_uri),
                 **inst_obj,
             }
             if trace:
                 trace.log(f"[CLS] token='{token}' kind=instance_port")
             return out
+        if owner_fb_uri is not None:
+            pi_obj = _lookup_instance_port_by_expression(graph, owner_fb_uri, token)
+            if pi_obj:
+                out = {
+                    "kind": "instance_port",
+                    "token": token,
+                    "instance": pi_obj.get("instance_name", token.split(".", 1)[0].strip()),
+                    "port": pi_obj.get("port_name", token.split(".", 1)[1].strip()),
+                    "declared_in_pou_uri": str(owner_fb_uri),
+                    "resolved_via_owner_fb": True,
+                    **pi_obj,
+                }
+                if trace:
+                    trace.log(f"[CLS] token='{token}' kind=instance_port (via owner job-method FB)")
+                return out
+
+            inst_obj = _lookup_instance_in_pou(graph, owner_fb_uri, inst)
+            if inst_obj:
+                out = {
+                    "kind": "instance_port",
+                    "token": token,
+                    "instance": inst_obj.get("instance_name", inst),
+                    "port": port,
+                    "declared_in_pou_uri": str(owner_fb_uri),
+                    "resolved_via_owner_fb": True,
+                    **inst_obj,
+                }
+                if trace:
+                    trace.log(f"[CLS] token='{token}' kind=instance_port (owner job-method FB)")
+                return out
         gv = _lookup_global_variable_by_name(graph, token)
         if gv:
             out = {"kind": "global_variable", "token": token, **_variable_metadata(graph, gv)}
@@ -972,6 +1317,7 @@ def _classify_token(graph: Graph, token: str, ctx_pou_uri: URIRef, trace: Option
             "port_uri": port_uri,
             "direction": get_port_direction(graph, port_uri),
             "default_value": get_port_default_value(graph, port_uri),
+            "declared_in_pou_uri": str(ctx_pou_uri),
         }
         if trace:
             trace.log(f"[CLS] token='{token}' kind=local_port direction={out['direction']}")
@@ -984,10 +1330,49 @@ def _classify_token(graph: Graph, token: str, ctx_pou_uri: URIRef, trace: Option
             chosen_var = var
             break
     if chosen_var is not None:
-        out = {"kind": "internal_variable", "token": token, **_variable_metadata(graph, chosen_var)}
+        out = {
+            "kind": "internal_variable",
+            "token": token,
+            "declared_in_pou_uri": str(ctx_pou_uri),
+            **_variable_metadata(graph, chosen_var),
+        }
         if trace:
             trace.log(f"[CLS] token='{token}' kind=internal_variable")
         return out
+
+    if owner_fb_uri is not None:
+        owner_port_uri = get_port_by_name(graph, owner_fb_uri, token)
+        if owner_port_uri:
+            out = {
+                "kind": "local_port",
+                "token": token,
+                "port_uri": owner_port_uri,
+                "direction": get_port_direction(graph, owner_port_uri),
+                "default_value": get_port_default_value(graph, owner_port_uri),
+                "declared_in_pou_uri": str(owner_fb_uri),
+                "resolved_via_owner_fb": True,
+            }
+            if trace:
+                trace.log(f"[CLS] token='{token}' kind=local_port (owner job-method FB)")
+            return out
+
+        owner_var_hits = list(graph.subjects(P_DP_HAS_VARIABLE_NAME, Literal(token)))
+        chosen_owner_var: Optional[URIRef] = None
+        for var in owner_var_hits:
+            if (owner_fb_uri, P_OP_HAS_INTERNAL_VARIABLE, var) in graph or (owner_fb_uri, P_OP_USES_VARIABLE, var) in graph:
+                chosen_owner_var = var
+                break
+        if chosen_owner_var is not None:
+            out = {
+                "kind": "internal_variable",
+                "token": token,
+                "declared_in_pou_uri": str(owner_fb_uri),
+                "resolved_via_owner_fb": True,
+                **_variable_metadata(graph, chosen_owner_var),
+            }
+            if trace:
+                trace.log(f"[CLS] token='{token}' kind=internal_variable (owner job-method FB)")
+            return out
 
     gv = _lookup_global_variable_by_name(graph, token)
     if gv:
@@ -1137,11 +1522,10 @@ def _trace_token(
             value=req_text,
             pou_name=pou_name,
             kind="guard_false",
-            reason="Negierte Guard-Bedingung (Pre-State), kein weiterer RÃ¼ckwÃ¤rts-Trace",
+            reason="Negierte Guard-Bedingung (Pre-State)",
             depth=depth,
             source="guard",
         )
-        return
 
     if depth >= max_depth:
         trace.log(f"{indent}[STOP] max_depth erreicht bei '{token}'")
@@ -1195,6 +1579,11 @@ def _trace_token(
         kind = cls.get("kind")
 
         if kind == "instance_port":
+            token_ctx = _effective_trace_context(graph, cls, ctx_pou_uri, ctx_code, ctx_lang)
+            token_ctx_pou_uri = token_ctx["pou_uri"]
+            token_ctx_code = str(token_ctx.get("code", "") or "")
+            token_ctx_lang = str(token_ctx.get("lang", "") or "")
+            token_ctx_name = str(token_ctx.get("pou_name", "") or pou_name)
             inst = cls["instance"]
             port = cls["port"]
             fb_type_uri = cls["fb_type_uri"]
@@ -1203,7 +1592,7 @@ def _trace_token(
             fb_desc = cls.get("fb_type_desc") or ""
             port_uri = get_port_by_name(graph, fb_type_uri, port)
             port_dir = get_port_direction(graph, port_uri) if port_uri else ""
-            call_block = _find_first_call_block(ctx_code, inst)
+            call_block = _find_first_call_block(token_ctx_code, inst)
             call_line = call_block.get("line_no") if call_block else None
             call_text = call_block.get("call_text") if call_block else ""
             call_params = _parse_call_params(call_text)
@@ -1221,7 +1610,7 @@ def _trace_token(
                 path_id=path_id,
                 token=token,
                 value=req_text,
-                pou_name=pou_name,
+                pou_name=token_ctx_name,
                 kind="instance_port",
                 reason=f"Instanzport ({port_dir or 'unbekannt'})",
                 depth=depth,
@@ -1251,9 +1640,9 @@ def _trace_token(
                         graph=graph,
                         expr=expr,
                         required_value=required_value,
-                        ctx_pou_uri=ctx_pou_uri,
-                        ctx_code=ctx_code,
-                        ctx_lang=ctx_lang,
+                        ctx_pou_uri=token_ctx_pou_uri,
+                        ctx_code=token_ctx_code,
+                        ctx_lang=token_ctx_lang,
                         path_id=path_id,
                         depth=depth + 1,
                         max_depth=max_depth,
@@ -1362,8 +1751,8 @@ def _trace_token(
                 )
                 return
 
-            trace.log(f"{indent}  [KG] Instanz-Typ: {fb_type_uri} (lang={fb_lang})")
-            trace.log(f"{indent}  [KG] Port '{port}' direction im callee: {port_dir}")
+                trace.log(f"{indent}  [KG] Instanz-Typ: {fb_type_uri} (lang={fb_lang})")
+                trace.log(f"{indent}  [KG] Port '{port}' direction im callee: {port_dir}")
 
             if fb_lang == "FBD":
                 out_trace = trace_symbol_from_fbd(callee_code, port, target_value=req_text, trace=None)
@@ -1471,28 +1860,53 @@ def _trace_token(
             return
 
         if kind == "local_port":
+            local_ctx = _effective_trace_context(graph, cls, ctx_pou_uri, ctx_code, ctx_lang)
+            local_ctx_pou_uri = local_ctx["pou_uri"]
+            local_ctx_code = str(local_ctx.get("code", "") or "")
+            local_ctx_lang = str(local_ctx.get("lang", "") or "")
+            local_pou_name = str(local_ctx.get("pou_name", "") or pou_name)
             direction = _norm_dir(cls.get("direction") or "")
             default_value = cls.get("default_value")
-            trace.log(f"{indent}'{token}' ist {direction or 'unbekannter'}-Port von {pou_name}")
+            trace.log(f"{indent}'{token}' ist {direction or 'unbekannter'}-Port von {local_pou_name}")
             if direction != "Input":
                 _add_requirement_row(
                     rows,
                     path_id=path_id,
                     token=token,
                     value=req_text,
-                    pou_name=pou_name,
+                    pou_name=local_pou_name,
                     kind="local_port",
                     reason=f"{direction or 'Port'}",
                     depth=depth,
                     source="token",
                 )
             if direction == "Input":
-                origin = resolve_input_to_upstream_output(graph, ctx_pou_uri, token)
+                origin = resolve_input_to_upstream_output(graph, local_ctx_pou_uri, token)
                 if "error" in origin:
                     trace.log(f"{indent}  {origin['error']}")
                     return
                 if not origin.get("is_wired"):
-                    st_decl_default = _find_var_default_in_st_declaration(ctx_code, token)
+                    method_owner_fb = _get_job_method_owner_fb(graph, local_ctx_pou_uri)
+                    if method_owner_fb is not None:
+                        method_type = _as_text(_first(graph, local_ctx_pou_uri, P_DP_HAS_METHOD_TYPE)) or local_pou_name
+                        owner_name = get_pou_name(graph, method_owner_fb)
+                        display_name = f"{owner_name}.{local_pou_name}".strip(".")
+                        trace.log(f"{indent}  Job-Method Input erkannt -> externer TcRpc/OPC-UA-Aufruf.")
+                        _add_requirement_row(
+                            rows,
+                            path_id=path_id,
+                            token=token,
+                            value=req_text,
+                            pou_name=display_name,
+                            kind="job_method_input",
+                            reason=f"Job-Method Input ({method_type}) via TcRpc/OPC UA",
+                            depth=depth + 1,
+                            source="job_method",
+                            assignment=f"{display_name}({token})",
+                        )
+                        return
+
+                    st_decl_default = _find_var_default_in_st_declaration(local_ctx_code, token)
                     default_effective = default_value if default_value is not None else st_decl_default
                     if default_effective is None:
                         default_effective = "DEFAULT_UNBEKANNT"
@@ -1504,7 +1918,7 @@ def _trace_token(
                         path_id=path_id,
                         token=token,
                         value=default_effective,
-                        pou_name=pou_name,
+                        pou_name=local_pou_name,
                         kind="terminal",
                         reason="Input unverdrahtet -> DefaultValue",
                         depth=depth + 1,
@@ -1517,7 +1931,9 @@ def _trace_token(
                 caller_code = origin.get("caller_code", "") or get_pou_code(graph, caller_pou_uri)
                 caller_lang = get_pou_language(graph, caller_pou_uri)
                 trace.log(f"{indent}  Verdrahtet von {origin.get('caller_pou_name')}:{caller_port}")
-                mapping_txt = f"{token} <= {origin.get('caller_pou_name', '')}.{caller_port}".strip(".")
+                caller_pou_name = str(origin.get("caller_pou_name", "") or "").strip()
+                caller_ref = f"{caller_pou_name}.{caller_port}".strip(".") if caller_pou_name and caller_pou_name != "-" else str(caller_port)
+                mapping_txt = f"{token} <= {caller_ref}".strip()
                 if origin.get("assignment"):
                     mapping_txt = f"{mapping_txt} [{origin.get('assignment')}]".strip()
                 _add_requirement_row(
@@ -1525,7 +1941,7 @@ def _trace_token(
                     path_id=path_id,
                     token=token,
                     value=req_text,
-                    pou_name=pou_name,
+                    pou_name=local_pou_name,
                     kind="port_mapping",
                     reason="Input-Port Verdrahtung",
                     depth=depth + 1,
@@ -1586,9 +2002,9 @@ def _trace_token(
                 return
 
             if direction == "Output":
-                owning_lang = (ctx_lang or get_pou_language(graph, ctx_pou_uri) or "").upper()
+                owning_lang = (local_ctx_lang or get_pou_language(graph, local_ctx_pou_uri) or "").upper()
                 if owning_lang == "FBD":
-                    out_trace = trace_symbol_from_fbd(ctx_code, token, target_value=req_text, trace=None)
+                    out_trace = trace_symbol_from_fbd(local_ctx_code, token, target_value=req_text, trace=None)
                     if "error" in out_trace:
                         trace.log(f"{indent}  [POU-OUT][FBD] {out_trace['error']}")
                         return
@@ -1604,9 +2020,9 @@ def _trace_token(
                             graph=graph,
                             token=leaf,
                             required_value=True,
-                            ctx_pou_uri=ctx_pou_uri,
-                            ctx_code=ctx_code,
-                            ctx_lang=ctx_lang,
+                            ctx_pou_uri=local_ctx_pou_uri,
+                            ctx_code=local_ctx_code,
+                            ctx_lang=local_ctx_lang,
                             path_id=path_id,
                             depth=depth + 1,
                             max_depth=max_depth,
@@ -1619,7 +2035,7 @@ def _trace_token(
                         )
                     return
 
-                assigns = extract_assignments_st(ctx_code, token, trace=None)
+                assigns = extract_assignments_st(local_ctx_code, token, trace=None)
                 if not assigns:
                     trace.log(f"{indent}  Output-Port: Wert wird intern im POU berechnet.")
                     _add_requirement_row(
@@ -1627,7 +2043,7 @@ def _trace_token(
                         path_id=path_id,
                         token=token,
                         value=req_text,
-                        pou_name=pou_name,
+                        pou_name=local_pou_name,
                         kind="terminal",
                         reason="Output-Port ohne ST-Assignments",
                         depth=depth + 1,
@@ -1641,7 +2057,7 @@ def _trace_token(
                     path_id=path_id,
                     token=token,
                     value=req_text,
-                    pou_name=pou_name,
+                    pou_name=local_pou_name,
                     kind="output_assignment",
                     reason=f"Output-Assignment @ {chosen['line_no']}",
                     depth=depth + 1,
@@ -1655,9 +2071,9 @@ def _trace_token(
                             graph=graph,
                             expr=cond_expr,
                             required_value=True,
-                            ctx_pou_uri=ctx_pou_uri,
-                            ctx_code=ctx_code,
-                            ctx_lang=ctx_lang,
+                            ctx_pou_uri=local_ctx_pou_uri,
+                            ctx_code=local_ctx_code,
+                            ctx_lang=local_ctx_lang,
                             path_id=path_id,
                             depth=depth + 1,
                             max_depth=max_depth,
@@ -1673,21 +2089,41 @@ def _trace_token(
             return
 
         if kind == "internal_variable":
-            trace.log(f"{indent}'{token}' ist interne Variable in {pou_name}")
+            var_ctx = _effective_trace_context(graph, cls, ctx_pou_uri, ctx_code, ctx_lang)
+            var_ctx_pou_uri = var_ctx["pou_uri"]
+            var_ctx_code = str(var_ctx.get("code", "") or "")
+            var_ctx_lang = str(var_ctx.get("lang", "") or "")
+            var_pou_name = str(var_ctx.get("pou_name", "") or pou_name)
+            trace.log(f"{indent}'{token}' ist interne Variable in {var_pou_name}")
             _add_requirement_row(
                 rows,
                 path_id=path_id,
                 token=token,
                 value=req_text,
-                pou_name=pou_name,
+                pou_name=var_pou_name,
                 kind="internal_variable",
                 reason="interne Variable",
                 depth=depth,
                 source="token",
             )
-            assigns = extract_assignments_st(ctx_code, token, trace=None)
+            assigns = extract_assignments_st(var_ctx_code, token, trace=None)
             trace.log(f"{indent}  Assignments im ST-Code: {len(assigns)}")
-            if not assigns:
+
+            candidates: List[Dict[str, Any]] = []
+            local_chosen = _pick_assignment_for_requirement(assigns, required_value)
+            if local_chosen:
+                local_rec = dict(local_chosen)
+                local_rec["source_kind"] = "local"
+                local_rec["_candidate_score"] = _score_assignment_candidate(local_rec, required_value)
+                candidates.append(local_rec)
+
+            if _is_job_method_fb(graph, var_ctx_pou_uri):
+                method_candidates = _collect_job_method_assignment_candidates(graph, var_ctx_pou_uri, token, required_value)
+                if method_candidates:
+                    trace.log(f"{indent}  Job-Method-Assignments gefunden: {len(method_candidates)}")
+                candidates.extend(method_candidates)
+
+            if not candidates:
                 md = {
                     "default_variable_value": cls.get("default_variable_value"),
                     "hardware_address": cls.get("hardware_address"),
@@ -1700,7 +2136,7 @@ def _trace_token(
                     path_id=path_id,
                     token=token,
                     value=req_text,
-                    pou_name=pou_name,
+                    pou_name=var_pou_name,
                     kind="terminal",
                     reason=f"Keine Assignments; KG-Meta: {md}",
                     depth=depth + 1,
@@ -1708,17 +2144,38 @@ def _trace_token(
                 )
                 return
 
-            wanted = [a for a in assigns if _rhs_bool_literal(a.get("rhs", "")) == required_value]
-            chosen = wanted[-1] if wanted else assigns[-1]
-            trace.log(f"{indent}    GewÃ¤hlte Assignment @ {chosen['line_no']}: {chosen['assignment'].strip()}")
+            candidates.sort(
+                key=lambda x: (
+                    -_safe_int(x.get("_candidate_score", 0), 0),
+                    _safe_int(x.get("line_no", 999999), 999999),
+                    str(x.get("method_display_name", "")),
+                )
+            )
+            chosen = candidates[0]
+            chosen_source_kind = str(chosen.get("source_kind", "")).strip().lower()
+            chosen_ctx_pou_uri = var_ctx_pou_uri
+            chosen_ctx_code = var_ctx_code
+            chosen_ctx_lang = var_ctx_lang
+            chosen_pou_name = var_pou_name
+            chosen_kind = "internal_assignment"
+            chosen_reason = f"Gewählte Assignment @ {chosen['line_no']}"
+            if chosen_source_kind == "job_method":
+                chosen_ctx_pou_uri = URIRef(str(chosen.get("method_uri", "")))
+                chosen_ctx_code = str(chosen.get("code", "") or "")
+                chosen_ctx_lang = str(chosen.get("lang", "") or "")
+                chosen_pou_name = str(chosen.get("method_display_name", "") or chosen.get("method_pou_name", "") or var_pou_name)
+                method_type = str(chosen.get("method_type", "") or "")
+                chosen_kind = "job_method_assignment"
+                chosen_reason = f"Job-Method {method_type or 'Method'} Assignment @ {chosen['line_no']}"
+            trace.log(f"{indent}    Gewählte Assignment @ {chosen['line_no']}: {chosen['assignment'].strip()}")
             _add_requirement_row(
                 rows,
                 path_id=path_id,
                 token=token,
                 value=req_text,
-                pou_name=pou_name,
-                kind="internal_assignment",
-                reason=f"GewÃ¤hlte Assignment @ {chosen['line_no']}",
+                pou_name=chosen_pou_name,
+                kind=chosen_kind,
+                reason=chosen_reason,
                 depth=depth + 1,
                 source="assignment",
                 assignment=str(chosen.get("assignment", "")).strip(),
@@ -1731,9 +2188,9 @@ def _trace_token(
                     graph=graph,
                     expr=cond_expr,
                     required_value=True,
-                    ctx_pou_uri=ctx_pou_uri,
-                    ctx_code=ctx_code,
-                    ctx_lang=ctx_lang,
+                    ctx_pou_uri=chosen_ctx_pou_uri,
+                    ctx_code=chosen_ctx_code,
+                    ctx_lang=chosen_ctx_lang,
                     path_id=path_id,
                     depth=depth + 1,
                     max_depth=max_depth,
@@ -1750,9 +2207,9 @@ def _trace_token(
                     graph=graph,
                     expr=rhs,
                     required_value=required_value,
-                    ctx_pou_uri=ctx_pou_uri,
-                    ctx_code=ctx_code,
-                    ctx_lang=ctx_lang,
+                    ctx_pou_uri=chosen_ctx_pou_uri,
+                    ctx_code=chosen_ctx_code,
+                    ctx_lang=chosen_ctx_lang,
                     path_id=path_id,
                     depth=depth + 1,
                     max_depth=max_depth,
@@ -1829,6 +2286,8 @@ def run_unified_set_and_condition_trace(
     max_depth: int = 12,
     trace_each_truth_path: bool = True,
     assumed_false_states_in_betriebsarten: Optional[Iterable[str]] = None,
+    preferred_gemma_pou_names: Optional[Iterable[str]] = None,
+    scope_hints: Optional[Iterable[str]] = None,
     verbose_trace: bool = False,
 ) -> Dict[str, Any]:
     tr = Tracer(enabled=True, print_live=verbose_trace)
@@ -1843,7 +2302,13 @@ def run_unified_set_and_condition_trace(
     if not gemma:
         return {"error": "Kein GEMMA-CustomFBType mit dp_isGEMMAStateMachine=true gefunden.", "trace_log": tr.lines}
 
-    gemma_pou_uri, gemma_pou_name = gemma[0]
+    gemma_pou_uri, gemma_pou_name = _pick_scoped_gemma_pou(
+        graph,
+        gemma,
+        preferred_names=preferred_gemma_pou_names,
+        scope_hints=scope_hints,
+        trace=tr,
+    )
     fbd_code = get_pou_code(graph, gemma_pou_uri)
     if not fbd_code:
         return {"error": f"Kein dp_hasPOUCode fÃ¼r GEMMA POU '{gemma_pou_name}'.", "trace_log": tr.lines}
@@ -1860,11 +2325,42 @@ def run_unified_set_and_condition_trace(
     if not candidates:
         return {"error": "Keine next_trace_candidates gefunden.", "d2_trace": d2_trace, "trace_log": tr.lines, "auto": auto}
 
-    suspected_input_port = candidates[0]
+    candidate_origins: List[Dict[str, Any]] = []
+    hint_list = _collect_scope_hints(scope_hints)
+    pref_list = [str(x).strip() for x in (preferred_gemma_pou_names or []) if str(x).strip()]
+    for cand in candidates:
+        origin_try = resolve_input_to_upstream_output(graph, gemma_pou_uri, cand)
+        score = 0
+        if "error" not in origin_try:
+            if bool(origin_try.get("is_wired")):
+                score += 20
+            score += _score_name_with_scope(
+                str(origin_try.get("caller_pou_name", "") or ""),
+                preferred_names=pref_list,
+                scope_hints=hint_list,
+            )
+        candidate_origins.append({"candidate": cand, "origin": origin_try, "score": score})
+
+    candidate_origins.sort(
+        key=lambda item: (
+            "error" in (item.get("origin") or {}),
+            -_safe_int(item.get("score", 0), 0),
+            str(item.get("candidate", "")),
+        )
+    )
+
+    chosen_candidate = candidate_origins[0] if candidate_origins else {"candidate": candidates[0], "origin": {}}
+    suspected_input_port = str(chosen_candidate.get("candidate", "") or candidates[0])
     tr.log(f"[RUN] Auto-suspected input port: {suspected_input_port}")
-    origin = resolve_input_to_upstream_output(graph, gemma_pou_uri, suspected_input_port)
+    origin = chosen_candidate.get("origin") if isinstance(chosen_candidate.get("origin"), dict) else {}
     if "error" in origin:
-        return {"error": origin["error"], "d2_trace": d2_trace, "auto": auto, "trace_log": tr.lines}
+        return {
+            "error": origin["error"],
+            "d2_trace": d2_trace,
+            "auto": auto,
+            "candidate_origins": candidate_origins,
+            "trace_log": tr.lines,
+        }
 
     context_pou_uri = URIRef(origin["caller_pou_uri"]) if origin.get("caller_pou_uri") else gemma_pou_uri
     context_pou_name = origin.get("caller_pou_name") or get_pou_name(graph, context_pou_uri)
@@ -1944,6 +2440,7 @@ def run_unified_set_and_condition_trace(
         "last_gemma_state_before_failure": last_gemma_state,
         "d2_trace": d2_trace,
         "auto_port": auto,
+        "candidate_origins": candidate_origins,
         "origin": origin,
         "context": {
             "pou_uri": str(context_pou_uri),

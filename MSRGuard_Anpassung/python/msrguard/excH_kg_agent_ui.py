@@ -361,7 +361,11 @@ def streamlit_main() -> None:
                 add_message("System", "Hinweis: Planner hat keine Tool-Schritte geplant (steps=[]).")
 
         if isinstance(tool_results, dict):
-            err_steps = [k for k, v in tool_results.items() if isinstance(v, dict) and "error" in v]
+            err_steps = [
+                k
+                for k, v in tool_results.items()
+                if isinstance(v, dict) and str(v.get("error", "")).strip()
+            ]
             if err_steps:
                 add_message("System", "Hinweis: Tool-Fehler in: " + ", ".join(err_steps))
 

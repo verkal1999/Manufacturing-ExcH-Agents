@@ -1,0 +1,112 @@
+{
+  "outJson": "D:/MA_Python_Agent/MSRGuard_Anpassung/python\\agent_results\\evD2-595476663638400_result.json",
+  "payload": {
+    "correlationId": "evD2-595476663638400",
+    "ingestion": {
+      "correlationId": "evD2-595476663638400",
+      "message": "ingested via single-call",
+      "rc": 1
+    },
+    "plcSnapshot": {
+      "rows": [
+        {
+          "id": "ns=1;s=PLC1.DeviceManual",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.DeviceRevision",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.HardwareRevision",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.Manufacturer",
+          "nodeClass": "Variable",
+          "t": "LocalizedText"
+        },
+        {
+          "id": "ns=1;s=PLC1.Model",
+          "nodeClass": "Variable",
+          "t": "LocalizedText"
+        },
+        {
+          "id": "ns=1;s=PLC1.RevisionCounter",
+          "nodeClass": "Variable",
+          "t": "Int32"
+        },
+        {
+          "id": "ns=1;s=PLC1.SerialNumber",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.SoftwareRevision",
+          "nodeClass": "Variable",
+          "t": "String"
+        },
+        {
+          "id": "ns=1;s=PLC1.Programs",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=1;s=PLC1.Tasks",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=1;s=PLC1.Tasks.SupportedTypes",
+          "nodeClass": "Object",
+          "t": "-"
+        },
+        {
+          "id": "ns=1;s=PLC1.Programs.SupportedTypes",
+          "nodeClass": "Object",
+          "t": "-"
+        }
+      ],
+      "vars": [
+        {
+          "id": "PLC1.SoftwareRevision",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.DeviceManual",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.SerialNumber",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.HardwareRevision",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.DeviceRevision",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "PLC1.RevisionCounter",
+          "t": "int32",
+          "v": 0
+        }
+      ]
+    },
+    "processName": "UnknownFM",
+    "summary": "KG: no failure modes for skill ''",
+    "triggerEvent": "evD2"
+  },
+  "ts_ticks": 595477495190800,
+  "type": "evAgentStart"
+}

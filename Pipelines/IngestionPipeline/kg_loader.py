@@ -178,6 +178,7 @@ class KGLoader:
             else:
                 uri = self.make_uri(f"FBType_{fb_name}")
                 self.kg.add((uri, RDF.type, self.AG.class_FBType))
+                self.kg.add((uri, RDF.type, self.AG.class_CustomFBType))
             
             self.prog_uris[fb_name] = uri
         return uri
@@ -206,6 +207,104 @@ class KGLoader:
     def get_port_instance_uri(self, parent_prog: str, fb_var_name: str, port_name: str) -> URIRef:
         uri = self.make_uri(f"PortInst_{parent_prog}_{fb_var_name}_{port_name}")
         return uri
+
+    def get_method_uri(self, method_type: str, fb_name: str) -> URIRef:
+        return self.make_uri(f"Method_{method_type}_{fb_name}")
+
+    def _get_method_scope_name(self, method_type: str, fb_name: str) -> str:
+        return f"Method_{method_type}_{fb_name}"
+
+    def _ensure_method_schema(self) -> None:
+        self.kg.add((self.OP.hasMethod, RDF.type, OWL.ObjectProperty))
+        self.kg.add((self.OP.hasStartMethod, RDF.type, OWL.ObjectProperty))
+        self.kg.add((self.OP.hasAbortMethod, RDF.type, OWL.ObjectProperty))
+        self.kg.add((self.OP.hasCheckStateMethod, RDF.type, OWL.ObjectProperty))
+        self.kg.add((self.OP.isMethodOf, RDF.type, OWL.ObjectProperty))
+
+        self.kg.add((self.DP.hasJobMethodName, RDF.type, OWL.DatatypeProperty))
+        self.kg.add((self.DP.hasMethodType, RDF.type, OWL.DatatypeProperty))
+        self.kg.add((self.DP.hasMethodReturnType, RDF.type, OWL.DatatypeProperty))
+        self.kg.add((self.DP.hasTcRpcEnabled, RDF.type, OWL.DatatypeProperty))
+
+    def _method_relation_predicate(self, method_type: str) -> URIRef:
+        normalized = re.sub(r"[^A-Za-z0-9]", "", method_type or "").lower()
+        if normalized == "start":
+            return self.OP.hasStartMethod
+        if normalized == "abort":
+            return self.OP.hasAbortMethod
+        if normalized == "checkstate":
+            return self.OP.hasCheckStateMethod
+        return self.OP.hasMethod
+
+    def _add_port_and_internal_var(
+        self,
+        owner_uri: URIRef,
+        owner_name: str,
+        var: Dict[str, Any],
+        direction: str,
+    ) -> None:
+        vname = self._pick_var(var)
+        if not vname:
+            return
+
+        port_uri = self.get_port_uri(owner_name, vname)
+        self.kg.add((port_uri, RDF.type, self.AG.class_Port))
+        self.kg.add((port_uri, self.DP.hasPortName, Literal(vname)))
+        self.kg.add((port_uri, self.DP.hasPortDirection, Literal(direction)))
+        self.kg.add((owner_uri, self.OP.hasPort, port_uri))
+
+        vtype = var.get("internal_type")
+        if vtype:
+            self.kg.add((port_uri, self.DP.hasPortType, Literal(vtype)))
+
+        internal_var_uri = self.get_local_var_uri(owner_name, vname)
+        self.kg.add((owner_uri, self.OP.usesVariable, internal_var_uri))
+        self.kg.add((owner_uri, self.OP.hasInternalVariable, internal_var_uri))
+        self.kg.add((internal_var_uri, self.OP.implementsPort, port_uri))
+
+        if vtype:
+            self.kg.add((internal_var_uri, self.DP.hasVariableType, Literal(vtype)))
+
+        external = var.get("external")
+        if external:
+            target_uri = self._get_ext_var_uri(external, owner_name)
+            if target_uri:
+                self.kg.add((target_uri, self.OP.isBoundToPort, port_uri))
+                clean_ext = self._clean_expression(external)
+                self.pending_ext_hw_links.append((target_uri, clean_ext))
+
+        if var.get("opcua_da"):
+            self.kg.add((internal_var_uri, self.DP.hasOPCUADataAccess, Literal(True)))
+        if var.get("opcua_write"):
+            self.kg.add((internal_var_uri, self.DP.hasOPCUAWriteAccess, Literal(True)))
+
+    def _add_internal_variables(self, owner_uri: URIRef, owner_name: str, temps: List[Dict[str, Any]]) -> None:
+        for temp in temps:
+            vname = temp.get("name")
+            if not vname:
+                continue
+
+            v_uri = self.get_local_var_uri(owner_name, vname)
+            self.kg.add((owner_uri, self.OP.usesVariable, v_uri))
+            self.kg.add((owner_uri, self.OP.hasInternalVariable, v_uri))
+
+            if temp.get("opcua_da"):
+                self.kg.add((v_uri, self.DP.hasOPCUADataAccess, Literal(True)))
+            if temp.get("opcua_write"):
+                self.kg.add((v_uri, self.DP.hasOPCUAWriteAccess, Literal(True)))
+
+            ttype = temp.get("type")
+            if ttype:
+                self.kg.add((v_uri, self.DP.hasVariableType, Literal(ttype)))
+
+                if not self._is_standard_type(ttype):
+                    fb_inst_uri = self.get_fb_instance_uri(owner_name, vname)
+                    self.kg.add((fb_inst_uri, RDF.type, self.AG.class_FBInstance))
+                    self.kg.add((fb_inst_uri, self.DP.hasFBInstanceName, Literal(vname, datatype=XSD.string)))
+                    self.kg.add((v_uri, self.OP.representsFBInstance, fb_inst_uri))
+
+                    fb_type_uri = self.get_fb_uri(ttype)
+                    self.kg.add((fb_inst_uri, self.OP.isInstanceOfFBType, fb_type_uri))
         
     def _is_standard_type(self, type_name: str) -> bool:
         standards = {'BOOL', 'INT', 'DINT', 'REAL', 'LREAL', 'TIME', 'STRING', 'WSTRING', 'BYTE', 'WORD', 'DWORD', 'LWORD', 'UDINT', 'UINT', 'SINT', 'USINT'}
@@ -418,6 +517,7 @@ class KGLoader:
         self.kg.add((self.DP.hasFBInstanceName, RDF.type, OWL.DatatypeProperty))
         self.kg.add((self.DP.hasFBInstanceName, RDFS.domain, self.AG.class_FBInstance))
         self.kg.add((self.DP.hasFBInstanceName, RDFS.range, XSD.string))
+        self._ensure_method_schema()
 
         for entry in prog_data:
             prog_name = entry.get("Programm_Name")
@@ -429,6 +529,7 @@ class KGLoader:
             if pou_type == "functionBlock":
                 pou_uri = self.get_fb_uri(prog_name)
                 self.kg.add((pou_uri, RDF.type, self.AG.class_FBType))
+                self.kg.add((pou_uri, RDF.type, self.AG.class_CustomFBType))
             elif pou_type == "program":
                 pou_uri = self.get_program_uri(prog_name)
                 self.kg.add((pou_uri, RDF.type, self.AG.class_Program))
@@ -439,6 +540,11 @@ class KGLoader:
             decl = self.pou_decl_headers.get(prog_name.lower())
             if decl:
                 self.kg.add((pou_uri, self.DP.hasPOUDeclarationHeader, Literal(decl, datatype=XSD.string)))
+            if entry.get("is_job_method"):
+                self.kg.add((pou_uri, self.DP.isJobMethod, Literal(True)))
+            job_method_name = entry.get("job_method_name")
+            if job_method_name:
+                self.kg.add((pou_uri, self.DP.hasJobMethodName, Literal(job_method_name, datatype=XSD.string)))
             if pou_uri is None: continue
 
             project_name = entry.get("PLCProject_Name")
@@ -446,9 +552,9 @@ class KGLoader:
                 project_uri = self.get_or_create_plc_project(project_name)
                 self.kg.add((project_uri, self.OP.consistsOfPOU, pou_uri))
 
-            # A. PORTS & INTERNE VARIABLEN (Inputs / Outputs)
-            for sec in ("inputs", "outputs"):
-                direction = "Input" if sec == "inputs" else "Output"
+            # A. PORTS & INTERNE VARIABLEN (Inputs / Outputs / InOuts)
+            for sec in ("inputs", "outputs", "inouts"):
+                direction = {"inputs": "Input", "outputs": "Output", "inouts": "InOut"}[sec]
                 for var in entry.get(sec, []):
                     vname = self._pick_var(var)
                     if not vname: continue
@@ -523,6 +629,47 @@ class KGLoader:
                 self.kg.add((pou_uri, self.DP.hasPOUCode, Literal(code)))
             if lang:
                 self.kg.add((pou_uri, self.DP.hasPOULanguage, Literal(lang)))
+
+            for method in entry.get("methods", []):
+                method_type = method.get("method_type") or method.get("name")
+                if not method_type:
+                    continue
+
+                method_uri = self.get_method_uri(method_type, prog_name)
+                method_scope_name = self._get_method_scope_name(method_type, prog_name)
+                method_name = method.get("name") or method_type
+
+                self.kg.add((method_uri, RDF.type, self.AG.class_Method))
+                self.kg.add((method_uri, self.DP.hasPOUName, Literal(method_name)))
+                self.kg.add((method_uri, self.DP.hasPOUType, Literal("Method")))
+                self.kg.add((method_uri, self.DP.hasMethodType, Literal(method_type, datatype=XSD.string)))
+                self.kg.add((pou_uri, self.OP.hasMethod, method_uri))
+                self.kg.add((pou_uri, self._method_relation_predicate(method_type), method_uri))
+                self.kg.add((method_uri, self.OP.isMethodOf, pou_uri))
+
+                method_decl = method.get("declaration_header")
+                if method_decl:
+                    self.kg.add((method_uri, self.DP.hasPOUDeclarationHeader, Literal(method_decl, datatype=XSD.string)))
+
+                method_code = method.get("method_code")
+                if method_code:
+                    self.kg.add((method_uri, self.DP.hasPOUCode, Literal(method_code)))
+
+                method_lang = method.get("programming_lang")
+                if method_lang:
+                    self.kg.add((method_uri, self.DP.hasPOULanguage, Literal(method_lang)))
+
+                method_return_type = method.get("return_type")
+                if method_return_type:
+                    self.kg.add((method_uri, self.DP.hasMethodReturnType, Literal(method_return_type, datatype=XSD.string)))
+
+                self.kg.add((method_uri, self.DP.hasTcRpcEnabled, Literal(bool(method.get("rpc_enabled", False)))))
+
+                for sec, direction in (("inputs", "Input"), ("outputs", "Output"), ("inouts", "InOut")):
+                    for var in method.get(sec, []):
+                        self._add_port_and_internal_var(method_uri, method_scope_name, var, direction)
+
+                self._add_internal_variables(method_uri, method_scope_name, method.get("temps", []))
 
     # -------------------------------------------------
     # Schritt 3 & 4

@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "started_at_utc": "2026-04-19T13:54:15.416047+00:00",
+    "event_type": "evAgentStart",
+    "correlationId": "evD2-593497931285700",
+    "processName": "VSG_Skill_SuctionProcess",
+    "out_json_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\python\\agent_results\\evD2-593497931285700_result.json"
+  },
+  "transcript": [
+    {
+      "ts_utc": "2026-04-19T13:54:15.417045+00:00",
+      "role": "System",
+      "text": "Unbekannter Fehler wurde erkannt. process=VSG_Skill_SuctionProcess | KG: no failure modes for skill 'VSG_AS_CompressorControl'"
+    },
+    {
+      "ts_utc": "2026-04-19T13:54:15.417045+00:00",
+      "role": "System",
+      "text": "Pipeline wird vor der Analyse ausgeführt. Klicke 'Weiter' um zu starten oder 'Abbrechen'."
+    },
+    {
+      "ts_utc": "2026-04-19T13:54:19.676445+00:00",
+      "role": "System",
+      "text": "Pipeline FEHLER: Pipeline returncode=1\nSTDOUT:\nLade Konfiguration von: D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion2.json\nObjektliste nach F:\\MA\\Implementierung_Sim_MA\\TwinCAT Simulator ST2\\v1.0_Tisch01_Beckhoff_I4.0_objects.json geschrieben.\n\nSTDERR:\nep.run(ctx)\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\ingestion_pipeline.py\", line 149, in run\n    parser.export_plcopen_xml()\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 602, in export_plcopen_xml\n    sys_mgr = self._get_system_manager_cached()\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 567, in _get_system_manager_cached\n    tc_project = self._get_tc_project_cached()\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 551, in _get_tc_project_cached\n    tc_project = self._com_retry(_find_tsproj, retries=20, delay=0.3)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 375, in _com_retry\n    return fn()\n           ^^^^\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 537, in _find_tsproj\n    full_name = p.FullName\n                ^^^^^^^^^^\n  File \"D:\\MA_Python_Agent\\.venv311\\Lib\\site-packages\\win32com\\client\\dynamic.py\", line 631, in __getattr__\n    raise AttributeError(f\"{self._username_}.{attr}\")\nAttributeError: Item.FullName\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\run_ingestion.py\", line 58, in <module>\n    main()\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\run_ingestion.py\", line 55, in main\n    run_pipeline(cfg, force=True, verbose=True)\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\ingestion_pipeline.py\", line 338, in run_pipeline\n    Pipeline(steps=steps, force=force).run(ctx)\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\ingestion_pipeline.py\", line 86, in run\n    raise StepError(f\"Step failed: {step.name}\") from exc\ningestion_pipeline.StepError: Step failed: export-plcopen-xml\n"
+    },
+    {
+      "ts_utc": "2026-04-19T13:54:19.893864+00:00",
+      "role": "System",
+      "text": "ChatBot init Fehler: [Errno 13] Permission denied: 'D:\\\\MA_Python_Agent\\\\MSRGuard_Anpassung\\\\build\\\\Debug'"
+    }
+  ],
+  "events": [
+    {
+      "ts_utc": "2026-04-19T13:54:15.418042+00:00",
+      "kind": "event_autoloaded_path",
+      "data": {
+        "path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\python\\agent_results\\evD2-593497931285700_event.json"
+      }
+    },
+    {
+      "ts_utc": "2026-04-19T13:54:18.808766+00:00",
+      "kind": "analysis_started",
+      "data": {
+        "pipeline_enabled": true
+      }
+    },
+    {
+      "ts_utc": "2026-04-19T13:54:19.676445+00:00",
+      "kind": "pipeline_done",
+      "data": {
+        "ok": false,
+        "error": "Pipeline returncode=1\nSTDOUT:\nLade Konfiguration von: D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion2.json\nObjektliste nach F:\\MA\\Implementierung_Sim_MA\\TwinCAT Simulator ST2\\v1.0_Tisch01_Beckhoff_I4.0_objects.json geschrieben.\n\nSTDERR:\nep.run(ctx)\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\ingestion_pipeline.py\", line 149, in run\n    parser.export_plcopen_xml()\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 602, in export_plcopen_xml\n    sys_mgr = self._get_system_manager_cached()\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 567, in _get_system_manager_cached\n    tc_project = self._get_tc_project_cached()\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 551, in _get_tc_project_cached\n    tc_project = self._com_retry(_find_tsproj, retries=20, delay=0.3)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 375, in _com_retry\n    return fn()\n           ^^^^\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\plcopen_withHW.py\", line 537, in _find_tsproj\n    full_name = p.FullName\n                ^^^^^^^^^^\n  File \"D:\\MA_Python_Agent\\.venv311\\Lib\\site-packages\\win32com\\client\\dynamic.py\", line 631, in __getattr__\n    raise AttributeError(f\"{self._username_}.{attr}\")\nAttributeError: Item.FullName\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\run_ingestion.py\", line 58, in <module>\n    main()\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\run_ingestion.py\", line 55, in main\n    run_pipeline(cfg, force=True, verbose=True)\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\ingestion_pipeline.py\", line 338, in run_pipeline\n    Pipeline(steps=steps, force=force).run(ctx)\n  File \"D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\ingestion_pipeline.py\", line 86, in run\n    raise StepError(f\"Step failed: {step.name}\") from exc\ningestion_pipeline.StepError: Step failed: export-plcopen-xml\n"
+      }
+    },
+    {
+      "ts_utc": "2026-04-19T13:54:19.869928+00:00",
+      "kind": "agent_core_done",
+      "data": {
+        "ok": true
+      }
+    },
+    {
+      "ts_utc": "2026-04-19T13:54:19.894861+00:00",
+      "kind": "chatbot_init_failed",
+      "data": {
+        "error": "[Errno 13] Permission denied: 'D:\\\\MA_Python_Agent\\\\MSRGuard_Anpassung\\\\build\\\\Debug'"
+      }
+    },
+    {
+      "ts_utc": "2026-04-19T13:54:19.896857+00:00",
+      "kind": "analysis_done",
+      "data": {}
+    }
+  ]
+}

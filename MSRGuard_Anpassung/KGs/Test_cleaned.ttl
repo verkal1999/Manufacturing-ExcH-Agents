@@ -50,6 +50,13 @@ ag:op_containsPOUCall rdf:type owl:ObjectProperty ;
                       rdfs:range ag:class_POUCall .
 
 
+###  http://www.semanticweb.org/AgentProgramParams/op_hasAbortMethod
+ag:op_hasAbortMethod rdf:type owl:ObjectProperty ;
+                     rdfs:subPropertyOf ag:op_hasMethod ;
+                     rdfs:domain ag:class_CustomFBType ;
+                     rdfs:range ag:class_Method .
+
+
 ###  http://www.semanticweb.org/AgentProgramParams/op_hasAssignment
 ag:op_hasAssignment rdf:type owl:ObjectProperty ;
                     rdfs:domain ag:class_POUCall ;
@@ -60,6 +67,13 @@ ag:op_hasAssignment rdf:type owl:ObjectProperty ;
 ag:op_hasCallerVariable rdf:type owl:ObjectProperty ;
                         rdfs:domain ag:class_POUCall ;
                         rdfs:range ag:class_Variable .
+
+
+###  http://www.semanticweb.org/AgentProgramParams/op_hasCheckStateMethod
+ag:op_hasCheckStateMethod rdf:type owl:ObjectProperty ;
+                          rdfs:subPropertyOf ag:op_hasMethod ;
+                          rdfs:domain ag:class_CustomFBType ;
+                          rdfs:range ag:class_Method .
 
 
 ###  http://www.semanticweb.org/AgentProgramParams/op_hasHypothesisAboutPOU
@@ -88,10 +102,21 @@ ag:op_hasInternalVariable rdf:type owl:ObjectProperty ;
                           rdfs:range ag:class_Variable .
 
 
+###  http://www.semanticweb.org/AgentProgramParams/op_hasMethod
+ag:op_hasMethod rdf:type owl:ObjectProperty .
+
+
 ###  http://www.semanticweb.org/AgentProgramParams/op_hasPort
 ag:op_hasPort rdf:type owl:ObjectProperty ;
-              rdfs:domain ag:class_FBType ;
+              rdfs:domain ag:class_POU ;
               rdfs:range ag:class_Port .
+
+
+###  http://www.semanticweb.org/AgentProgramParams/op_hasStartMethod
+ag:op_hasStartMethod rdf:type owl:ObjectProperty ;
+                     rdfs:subPropertyOf ag:op_hasMethod ;
+                     rdfs:domain ag:class_CustomFBType ;
+                     rdfs:range ag:class_Method .
 
 
 ###  http://www.semanticweb.org/AgentProgramParams/op_implementsMonAct
@@ -458,6 +483,12 @@ ag:dp_isGEMMAStateMachine rdf:type owl:DatatypeProperty ;
                           rdfs:range xsd:boolean .
 
 
+###  http://www.semanticweb.org/AgentProgramParams/dp_isJobMethod
+ag:dp_isJobMethod rdf:type owl:DatatypeProperty ;
+                  rdfs:domain ag:class_CustomFBType ;
+                  rdfs:range xsd:boolean .
+
+
 ###  http://www.semanticweb.org/AgentProgramParams/dp_isSpecificLayer
 ag:dp_isSpecificLayer rdf:type owl:DatatypeProperty ;
                       rdfs:subPropertyOf ag:dp_hasPOUAttribute ;
@@ -519,6 +550,12 @@ ag:class_GlobalVariableList rdf:type owl:Class ;
 ###  http://www.semanticweb.org/AgentProgramParams/class_IOChannel
 ag:class_IOChannel rdf:type owl:Class ;
                    rdfs:comment "Diese Klasse repräsentiert einen Hardwarekanal, also einen physikalischen Ein oder Ausgang, der in der Steuerung adressiert und mit Variablen verbunden werden kann. Ein IOChannel bildet damit die Brücke zwischen der semantischen Logik im Knowledge Graph und der realen Peripherie, etwa Sensoren, Ventile, Motoren oder Signallampen. Im Knowledge Graph wird ein IOChannel häufig genutzt, um Variablen mit Hardwareadressen zu verknüpfen und dadurch nachvollziehbar zu machen, welcher Code welche reale Komponente beeinflusst. Aus PLCopen XML kann ein IOChannel entweder direkt aus Hardwarezuordnungen oder indirekt aus Rohinformationen des Exports rekonstruiert werden, abhängig davon, wie vollständig das Mapping exportiert wurde. Die Klasse ist besonders wertvoll für Analysen, die Skill Ausführung mit physikalischen Effekten verbinden, da so sichtbar wird, welche Ausgänge ein Skill setzt und welche Eingänge er überwacht. Außerdem unterstützt sie Plausibilitätsprüfungen, beispielsweise ob ein Ausgang nur von einem Skill kontrolliert wird oder ob Konflikte zwischen mehreren Bausteinen existieren. Insgesamt macht class_IOChannel den Knowledge Graph hardware nah und damit für reale Automatisierungsszenarien aussagekräftig."@de .
+
+
+###  http://www.semanticweb.org/AgentProgramParams/class_Method
+ag:class_Method rdf:type owl:Class ;
+                rdfs:subClassOf ag:class_POU ;
+                rdfs:comment "Hier sind Methoden beschrieben, wie CheckState, Start und Abort, die bei JobMethoden eingesetzt werden. Nach IEC61131-3 sind sie zwar keine POUs, hier werden sie aber aufgrund der Ports deer Einfachheit halber so verwendet." .
 
 
 ###  http://www.semanticweb.org/AgentProgramParams/class_MonitoringReaction

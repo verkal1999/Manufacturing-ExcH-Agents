@@ -65,6 +65,9 @@ std::string variantToString(const UA_Variant *v, std::string &outTypeName) {
         if (v->type == &UA_TYPES[UA_TYPES_BOOLEAN]) {
             outTypeName = "Boolean";
             return (*(UA_Boolean*)v->data) ? "true" : "false";
+        } else if (v->type == &UA_TYPES[UA_TYPES_UINT16]) {
+            outTypeName = "UInt16";
+            return std::to_string(*(UA_UInt16*)v->data);
         } else if (v->type == &UA_TYPES[UA_TYPES_INT16]) {
             outTypeName = "Int16";
             return std::to_string(*(UA_Int16*)v->data);
@@ -74,6 +77,12 @@ std::string variantToString(const UA_Variant *v, std::string &outTypeName) {
         } else if (v->type == &UA_TYPES[UA_TYPES_UINT32]) {
             outTypeName = "UInt32";
             return std::to_string(*(UA_UInt32*)v->data);
+        } else if (v->type == &UA_TYPES[UA_TYPES_INT64]) {
+            outTypeName = "Int64";
+            return std::to_string(*(UA_Int64*)v->data);
+        } else if (v->type == &UA_TYPES[UA_TYPES_UINT64]) {
+            outTypeName = "UInt64";
+            return std::to_string(*(UA_UInt64*)v->data);
         } else if (v->type == &UA_TYPES[UA_TYPES_DOUBLE]) {
             outTypeName = "Double";
             std::ostringstream os; os << *(UA_Double*)v->data; return os.str();
@@ -387,6 +396,104 @@ static std::string methodSignature(UA_Client* c, const UA_NodeId &method) {
     auto outs = readArgList("OutputArguments");
     return "in: [" + join(ins) + "], out: [" + join(outs) + "]";
 }
+
+static void appendVariableRow(UA_Client* c,
+                              const UA_NodeId& target,
+                              std::vector<PLCMonitor::InventoryRow>& out) {
+    UA_NodeId dt; UA_NodeId_init(&dt);
+    std::string dtype = "?";
+    if (UA_Client_readDataTypeAttribute(c, target, &dt) == UA_STATUSCODE_GOOD) {
+        dtype = friendlyTypeName(c, dt);
+    }
+    UA_NodeId_clear(&dt);
+
+    out.push_back(PLCMonitor::InventoryRow{
+        "Variable",
+        nodeIdToString(target),
+        dtype
+    });
+}
+
+static void appendMethodRow(UA_Client* c,
+                            const UA_NodeId& target,
+                            std::vector<PLCMonitor::InventoryRow>& out) {
+    out.push_back(PLCMonitor::InventoryRow{
+        "Method",
+        nodeIdToString(target),
+        methodSignature(c, target)
+    });
+}
+
+static void appendObjectLikeRow(const char* nodeClass,
+                                const UA_NodeId& target,
+                                std::vector<PLCMonitor::InventoryRow>& out) {
+    out.push_back(PLCMonitor::InventoryRow{
+        nodeClass,
+        nodeIdToString(target),
+        "-"
+    });
+}
+
+static void collectInventorySubtree(UA_Client* c,
+                                    const UA_NodeId& root,
+                                    std::vector<PLCMonitor::InventoryRow>& out) {
+    std::vector<UA_NodeId> stack;
+    std::unordered_set<std::string> seen;
+
+    UA_NodeId start; UA_NodeId_init(&start);
+    if (UA_NodeId_copy(&root, &start) != UA_STATUSCODE_GOOD) {
+        return;
+    }
+
+    seen.insert(nodeIdToString(root));
+    stack.push_back(start);
+
+    while (!stack.empty()) {
+        UA_NodeId cur = stack.back();
+        stack.pop_back();
+
+        UA_BrowseResponse br; UA_BrowseResponse_init(&br);
+        if (!browseOne(c, cur, br)) {
+            UA_BrowseResponse_clear(&br);
+            UA_NodeId_clear(&cur);
+            continue;
+        }
+
+        for (size_t i = 0; i < br.results[0].referencesSize; ++i) {
+            const auto& ref = br.results[0].references[i];
+            const UA_NodeId target = ref.nodeId.nodeId;
+
+            const std::string targetId = nodeIdToString(target);
+            if (!seen.insert(targetId).second) {
+                continue;
+            }
+
+            if (ref.nodeClass == UA_NODECLASS_VARIABLE) {
+                appendVariableRow(c, target, out);
+                continue;
+            }
+
+            if (ref.nodeClass == UA_NODECLASS_METHOD) {
+                appendMethodRow(c, target, out);
+                continue;
+            }
+
+            if (ref.nodeClass == UA_NODECLASS_OBJECT || ref.nodeClass == UA_NODECLASS_VIEW) {
+                appendObjectLikeRow(ref.nodeClass == UA_NODECLASS_VIEW ? "View" : "Object",
+                                    target,
+                                    out);
+
+                UA_NodeId next; UA_NodeId_init(&next);
+                if (UA_NodeId_copy(&target, &next) == UA_STATUSCODE_GOOD) {
+                    stack.push_back(next);
+                }
+            }
+        }
+
+        UA_BrowseResponse_clear(&br);
+        UA_NodeId_clear(&cur);
+    }
+}
 } // namespace (helpers)
 // === Ende Namespace helpers ================================================
 
@@ -545,7 +652,7 @@ bool PLCMonitor::dumpPlcInventory(std::vector<InventoryRow>& out, const char* pl
         }
         if (bn.find(plcNameContains ? plcNameContains : "PLC") != std::string::npos) {
             if (UA_NodeId_copy(&r.nodeId.nodeId, &plcNode) == UA_STATUSCODE_GOOD) {
-                nsPLC = r.browseName.namespaceIndex;
+                nsPLC = r.nodeId.nodeId.namespaceIndex;
             }
             break;
         }
@@ -555,6 +662,10 @@ bool PLCMonitor::dumpPlcInventory(std::vector<InventoryRow>& out, const char* pl
         std::cout << "[Inventory] Kein PLC-Zweig gefunden.\n";
         return false;
     }
+
+    collectInventorySubtree(client_, plcNode, out);
+    UA_NodeId_clear(&plcNode);
+    return true;
 
     // 2) OPCUA- und MAIN-Folder im PLC-Zweig holen
     UA_NodeId opcuaFolder; UA_NodeId_init(&opcuaFolder);
@@ -792,6 +903,111 @@ bool PLCMonitor::readInt16At(const std::string& nodeIdStr,
                     val.type == &UA_TYPES[UA_TYPES_INT16] &&
                     val.data != nullptr;
     if(ok) out = *static_cast<UA_Int16*>(val.data);
+    UA_Variant_clear(&val);
+    return ok;
+}
+
+bool PLCMonitor::readUInt16At(const std::string& nodeIdStr,
+                              UA_UInt16 nsIndex,
+                              UA_UInt16 &out) const {
+    if(!client_) return false;
+
+    UA_NodeId nid = UA_NODEID_STRING_ALLOC(nsIndex,
+                          const_cast<char*>(nodeIdStr.c_str()));
+    UA_Variant val; UA_Variant_init(&val);
+
+    UA_StatusCode st = UA_Client_readValueAttribute(client_, nid, &val);
+    UA_NodeId_clear(&nid);
+
+    const bool ok = (st == UA_STATUSCODE_GOOD) &&
+                    UA_Variant_isScalar(&val) &&
+                    val.type == &UA_TYPES[UA_TYPES_UINT16] &&
+                    val.data != nullptr;
+    if(ok) out = *static_cast<UA_UInt16*>(val.data);
+    UA_Variant_clear(&val);
+    return ok;
+}
+
+bool PLCMonitor::readInt32At(const std::string& nodeIdStr,
+                             UA_UInt16 nsIndex,
+                             UA_Int32 &out) const {
+    if(!client_) return false;
+
+    UA_NodeId nid = UA_NODEID_STRING_ALLOC(nsIndex,
+                          const_cast<char*>(nodeIdStr.c_str()));
+    UA_Variant val; UA_Variant_init(&val);
+
+    UA_StatusCode st = UA_Client_readValueAttribute(client_, nid, &val);
+    UA_NodeId_clear(&nid);
+
+    const bool ok = (st == UA_STATUSCODE_GOOD) &&
+                    UA_Variant_isScalar(&val) &&
+                    val.type == &UA_TYPES[UA_TYPES_INT32] &&
+                    val.data != nullptr;
+    if(ok) out = *static_cast<UA_Int32*>(val.data);
+    UA_Variant_clear(&val);
+    return ok;
+}
+
+bool PLCMonitor::readUInt32At(const std::string& nodeIdStr,
+                              UA_UInt16 nsIndex,
+                              UA_UInt32 &out) const {
+    if(!client_) return false;
+
+    UA_NodeId nid = UA_NODEID_STRING_ALLOC(nsIndex,
+                          const_cast<char*>(nodeIdStr.c_str()));
+    UA_Variant val; UA_Variant_init(&val);
+
+    UA_StatusCode st = UA_Client_readValueAttribute(client_, nid, &val);
+    UA_NodeId_clear(&nid);
+
+    const bool ok = (st == UA_STATUSCODE_GOOD) &&
+                    UA_Variant_isScalar(&val) &&
+                    val.type == &UA_TYPES[UA_TYPES_UINT32] &&
+                    val.data != nullptr;
+    if(ok) out = *static_cast<UA_UInt32*>(val.data);
+    UA_Variant_clear(&val);
+    return ok;
+}
+
+bool PLCMonitor::readInt64At(const std::string& nodeIdStr,
+                             UA_UInt16 nsIndex,
+                             UA_Int64 &out) const {
+    if(!client_) return false;
+
+    UA_NodeId nid = UA_NODEID_STRING_ALLOC(nsIndex,
+                          const_cast<char*>(nodeIdStr.c_str()));
+    UA_Variant val; UA_Variant_init(&val);
+
+    UA_StatusCode st = UA_Client_readValueAttribute(client_, nid, &val);
+    UA_NodeId_clear(&nid);
+
+    const bool ok = (st == UA_STATUSCODE_GOOD) &&
+                    UA_Variant_isScalar(&val) &&
+                    val.type == &UA_TYPES[UA_TYPES_INT64] &&
+                    val.data != nullptr;
+    if(ok) out = *static_cast<UA_Int64*>(val.data);
+    UA_Variant_clear(&val);
+    return ok;
+}
+
+bool PLCMonitor::readUInt64At(const std::string& nodeIdStr,
+                              UA_UInt16 nsIndex,
+                              UA_UInt64 &out) const {
+    if(!client_) return false;
+
+    UA_NodeId nid = UA_NODEID_STRING_ALLOC(nsIndex,
+                          const_cast<char*>(nodeIdStr.c_str()));
+    UA_Variant val; UA_Variant_init(&val);
+
+    UA_StatusCode st = UA_Client_readValueAttribute(client_, nid, &val);
+    UA_NodeId_clear(&nid);
+
+    const bool ok = (st == UA_STATUSCODE_GOOD) &&
+                    UA_Variant_isScalar(&val) &&
+                    val.type == &UA_TYPES[UA_TYPES_UINT64] &&
+                    val.data != nullptr;
+    if(ok) out = *static_cast<UA_UInt64*>(val.data);
     UA_Variant_clear(&val);
     return ok;
 }

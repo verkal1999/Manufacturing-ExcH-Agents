@@ -1,6 +1,6 @@
 {
-  "project_dir": "F:\\MA\\TwinCAT Simulator ST2\\",
-  "sln_path": "F:\\MA\\TwinCAT Simulator ST2\\v1.0_Tisch01_Beckhoff_I4.0.sln",
+  "project_dir": "F:\\MA\\Implementierung_Sim_MA\\TwinCAT Simulator ST2\\",
+  "sln_path": "F:\\MA\\Implementierung_Sim_MA\\TwinCAT Simulator ST2\\v1.0_Tisch01_Beckhoff_I4.0.sln",
   "kg_cleaned_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\Test_cleaned.ttl",
   "kg_after_loader_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\TestSIM_nachKGLoader.ttl",
   "kg_final_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\KGs\\TestSIM_filled.ttl",

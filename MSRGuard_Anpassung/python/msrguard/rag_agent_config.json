@@ -4,14 +4,15 @@
     "enabled": true,
     "dir": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline",
     "runner": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\run_ingestion.py",
-    "config": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion.json",
+    "config": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion2.json",
     "timeout_sec": null
   },
   "rag": {
     "xml_path": "",
-    "provider": "groq",
-    "model": "llama-3.3-70b-versatile",
+    "provider": "openai",
+    "model": "gpt-4o-mini",
     "temperature": 0,
     "top_k": 6
   }
 }
+

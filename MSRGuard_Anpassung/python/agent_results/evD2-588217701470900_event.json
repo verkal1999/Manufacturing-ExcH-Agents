@@ -1,0 +1,132 @@
+{
+  "outJson": "D:/MA_Python_Agent/MSRGuard_Anpassung/python\\agent_results\\evD2-588217701470900_result.json",
+  "payload": {
+    "correlationId": "evD2-588217701470900",
+    "ingestion": {
+      "correlationId": "evD2-588217701470900",
+      "message": "ingested via single-call",
+      "rc": 1
+    },
+    "plcSnapshot": {
+      "rows": [
+        {
+          "id": "ns=4;s=OPCUA.TriggerD1",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.TriggerD2",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.TriggerD3",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Alt_found",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Alt_abort",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Diag_finished",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.Cycle_finished",
+          "nodeClass": "Variable",
+          "t": "Boolean"
+        },
+        {
+          "id": "ns=4;s=OPCUA.LastGEMMAStateBeforeFailure",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.lastExecutedSkill",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.lastExecutedProcess",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        },
+        {
+          "id": "ns=4;s=OPCUA.lastFinishedSkill",
+          "nodeClass": "Variable",
+          "t": "STRING (-> String)"
+        }
+      ],
+      "vars": [
+        {
+          "id": "OPCUA.Cycle_finished",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.TriggerD3",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.TriggerD1",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.Diag_finished",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.Alt_abort",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.Alt_found",
+          "t": "bool",
+          "v": false
+        },
+        {
+          "id": "OPCUA.TriggerD2",
+          "t": "bool",
+          "v": true
+        },
+        {
+          "id": "OPCUA.lastFinishedSkill",
+          "t": "string",
+          "v": "HRL_NMethod_Auslagern"
+        },
+        {
+          "id": "OPCUA.LastGEMMAStateBeforeFailure",
+          "t": "string",
+          "v": ""
+        },
+        {
+          "id": "OPCUA.lastExecutedProcess",
+          "t": "string",
+          "v": "VSG_Skill_SuctionProcess"
+        },
+        {
+          "id": "OPCUA.lastExecutedSkill",
+          "t": "string",
+          "v": "VSG_Skill_SuctionProcess"
+        }
+      ]
+    },
+    "processName": "VSG_Skill_SuctionProcess",
+    "summary": "KG: no failure modes for skill 'VSG_Skill_SuctionProcess'",
+    "triggerEvent": "evD2"
+  },
+  "ts_ticks": 588218692635900,
+  "type": "evAgentStart"
+}

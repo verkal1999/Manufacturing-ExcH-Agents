@@ -83,6 +83,11 @@ FailureRecorder::json FailureRecorder::snapshotToJson_flat(const InventorySnapsh
     for (const auto& [k,v] : inv.bools)   add(out["vars"], k.id, "bool",   v);
     for (const auto& [k,v] : inv.strings) add(out["vars"], k.id, "string", v);
     for (const auto& [k,v] : inv.int16s)  add(out["vars"], k.id, "int16",  v);
+    for (const auto& [k,v] : inv.uint16s) add(out["vars"], k.id, "uint16", v);
+    for (const auto& [k,v] : inv.int32s)  add(out["vars"], k.id, "int32",  v);
+    for (const auto& [k,v] : inv.uint32s) add(out["vars"], k.id, "uint32", v);
+    for (const auto& [k,v] : inv.int64s)  add(out["vars"], k.id, "int64",  v);
+    for (const auto& [k,v] : inv.uint64s) add(out["vars"], k.id, "uint64", v);
     for (const auto& [k,v] : inv.floats)  add(out["vars"], k.id, "float",  v);
     return out;
 }
@@ -107,6 +112,16 @@ FailureRecorder::json FailureRecorder::snapshotToJson(const InventorySnapshot& i
     for (const auto& [k,v] : inv.strings) j["strings"].push_back({{"k",keyToJ(k)},{"v",v}} );
     j["int16s"]  = json::array();
     for (const auto& [k,v] : inv.int16s)  j["int16s"].push_back( {{"k",keyToJ(k)},{"v",v}} );
+    j["uint16s"] = json::array();
+    for (const auto& [k,v] : inv.uint16s) j["uint16s"].push_back({{"k",keyToJ(k)},{"v",v}} );
+    j["int32s"]  = json::array();
+    for (const auto& [k,v] : inv.int32s)  j["int32s"].push_back( {{"k",keyToJ(k)},{"v",v}} );
+    j["uint32s"] = json::array();
+    for (const auto& [k,v] : inv.uint32s) j["uint32s"].push_back({{"k",keyToJ(k)},{"v",v}} );
+    j["int64s"]  = json::array();
+    for (const auto& [k,v] : inv.int64s)  j["int64s"].push_back( {{"k",keyToJ(k)},{"v",v}} );
+    j["uint64s"] = json::array();
+    for (const auto& [k,v] : inv.uint64s) j["uint64s"].push_back({{"k",keyToJ(k)},{"v",v}} );
     j["floats"]  = json::array();
     for (const auto& [k,v] : inv.floats)  j["floats"].push_back( {{"k",keyToJ(k)},{"v",v}} );
     return j;

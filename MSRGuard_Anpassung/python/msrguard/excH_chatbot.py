@@ -480,18 +480,50 @@ def _extract_root_anchor_row(point1: Dict[str, Any], point3: Dict[str, Any]) -> 
         assignment = str(row.get("assignment", "")).strip().lower()
         source = str(row.get("source", "")).strip().lower()
         reason = str(row.get("reason", "")).strip().lower()
+        kind = str(row.get("kind", "")).strip().lower()
         row_idx = int(row.get("_row_idx", 0) or 0)
+        text = " | ".join([token, pou, value, assignment, source, reason])
 
         s = 0
+        has_hw_hint = any(
+            marker in text
+            for marker in [
+                "hardware_address",
+                "dp_hashardwareaddress",
+                "%ix",
+                "%iw",
+                "%id",
+                "%qx",
+                "%qw",
+                "%qd",
+                "%mx",
+                "%mw",
+                "%md",
+            ]
+        )
+        if has_hw_hint:
+            s += 180
+        if source in {"global", "metadata"} and has_hw_hint:
+            s += 50
+        if source == "wiring":
+            s += 70
+        if kind in {"global_variable", "terminal"}:
+            s += 25
         if "default" in assignment or "default" in source or "default" in reason:
-            s += 60
-        if "fb_automatikbetrieb_f1" in pou:
-            s += 45
-        if token in {"periodicfaultperiod", "faultpulse"}:
             s += 30
-        if token == "periodicfaultperiod" and "t#60" in value:
-            s += 80
-        s += min(20, row_idx)
+        if token.startswith("gvl_") or token.startswith("opcua."):
+            s += 8
+
+        if source == "job_method" or kind == "job_method_input" or "job-method input" in reason:
+            s -= 220
+        if "methodcall" in token:
+            s -= 120
+        if token in {"hdl", "start", "abort", "checkstate"}:
+            s -= 80
+        if "jobrunning" in token:
+            s -= 40
+
+        s += min(10, row_idx)
         return s
 
     ranked = sorted(rows, key=score, reverse=True)

@@ -37,6 +37,11 @@ inline void dumpInventorySnapshot(const InventorySnapshot& inv, std::ostream& os
        << " bools="  << inv.bools.size()
        << " strings="<< inv.strings.size()
        << " int16s=" << inv.int16s.size()
+       << " uint16s=" << inv.uint16s.size()
+       << " int32s=" << inv.int32s.size()
+       << " uint32s=" << inv.uint32s.size()
+       << " int64s=" << inv.int64s.size()
+       << " uint64s=" << inv.uint64s.size()
        << " floats=" << inv.floats.size() << "\n";
 
     os << "-- rows (NodeClass | NodeId | DType/Signature)\n";
@@ -53,6 +58,16 @@ inline void dumpInventorySnapshot(const InventorySnapshot& inv, std::ostream& os
     os << "-- int16s\n";
     // Schleife: alle int16-Werte im Snapshot ausgeben.
     for (const auto& [k,v] : inv.int16s)  os << "  " << nodeKeyToStr(k) << " = " << v << "\n";
+    os << "-- uint16s\n";
+    for (const auto& [k,v] : inv.uint16s) os << "  " << nodeKeyToStr(k) << " = " << v << "\n";
+    os << "-- int32s\n";
+    for (const auto& [k,v] : inv.int32s)  os << "  " << nodeKeyToStr(k) << " = " << v << "\n";
+    os << "-- uint32s\n";
+    for (const auto& [k,v] : inv.uint32s) os << "  " << nodeKeyToStr(k) << " = " << v << "\n";
+    os << "-- int64s\n";
+    for (const auto& [k,v] : inv.int64s)  os << "  " << nodeKeyToStr(k) << " = " << v << "\n";
+    os << "-- uint64s\n";
+    for (const auto& [k,v] : inv.uint64s) os << "  " << nodeKeyToStr(k) << " = " << v << "\n";
     os << "-- floats\n";
     // Schleife: alle float/double-Werte im Snapshot ausgeben.
     for (const auto& [k,v] : inv.floats)  os << "  " << nodeKeyToStr(k) << " = " << v << "\n";

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 
 
@@ -52,6 +52,21 @@ class Subcall:
 
 
 @dataclass
+class MethodMapping:
+    name: str
+    method_type: str
+    inputs: List[IOEntry]
+    outputs: List[IOEntry]
+    inouts: List[IOEntry]
+    temps: List[TempEntry]
+    method_code: str = ""
+    declaration_header: str = ""
+    programming_lang: Optional[str] = None
+    return_type: Optional[str] = None
+    rpc_enabled: bool = False
+
+
+@dataclass
 class ProgramMapping:
     programm_name: str
     inputs: List[IOEntry]
@@ -61,6 +76,7 @@ class ProgramMapping:
     subcalls: List[Subcall]
     program_code: str = ""
     programming_lang: Optional[str] = None
+    methods: List[MethodMapping] = field(default_factory=list)
 
 
 @dataclass

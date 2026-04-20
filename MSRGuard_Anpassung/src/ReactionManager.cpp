@@ -79,6 +79,11 @@ json snapshotToJson_flat(const InventorySnapshot& inv)
     for (const auto& [k, v] : inv.bools)   add(out["vars"], k.id, "bool", v);
     for (const auto& [k, v] : inv.strings) add(out["vars"], k.id, "string", v);
     for (const auto& [k, v] : inv.int16s)  add(out["vars"], k.id, "int16", v);
+    for (const auto& [k, v] : inv.uint16s) add(out["vars"], k.id, "uint16", v);
+    for (const auto& [k, v] : inv.int32s)  add(out["vars"], k.id, "int32", v);
+    for (const auto& [k, v] : inv.uint32s) add(out["vars"], k.id, "uint32", v);
+    for (const auto& [k, v] : inv.int64s)  add(out["vars"], k.id, "int64", v);
+    for (const auto& [k, v] : inv.uint64s) add(out["vars"], k.id, "uint64", v);
     for (const auto& [k, v] : inv.floats)  add(out["vars"], k.id, "float", v);
     return out;
 }
@@ -368,6 +373,11 @@ void ReactionManager::logInventoryVariables(const InventorySnapshot& inv) const 
     log(LogLevel::Info) << "buildInventorySnapshot BOOL vars=" << inv.bools.size()
                         << " | STR vars=" << inv.strings.size()
                         << " | I16 vars=" << inv.int16s.size()
+                        << " | U16 vars=" << inv.uint16s.size()
+                        << " | I32 vars=" << inv.int32s.size()
+                        << " | U32 vars=" << inv.uint32s.size()
+                        << " | I64 vars=" << inv.int64s.size()
+                        << " | U64 vars=" << inv.uint64s.size()
                         << " | FP vars="  << inv.floats.size() << "\n";
 
     if (!isEnabled(LogLevel::Debug)) return;

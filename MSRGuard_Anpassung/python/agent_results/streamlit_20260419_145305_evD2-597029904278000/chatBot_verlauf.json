@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "started_at_utc": "2026-04-19T14:53:05.973178+00:00",
+    "event_type": "evAgentStart",
+    "correlationId": "evD2-597029904278000",
+    "processName": "VSG_Skill_SuctionProcess",
+    "out_json_path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\python\\agent_results\\evD2-597029904278000_result.json"
+  },
+  "transcript": [
+    {
+      "ts_utc": "2026-04-19T14:53:05.973178+00:00",
+      "role": "System",
+      "text": "Unbekannter Fehler wurde erkannt. process=VSG_Skill_SuctionProcess | KG: no failure modes for skill 'VSG_AS_CompressorControl'"
+    },
+    {
+      "ts_utc": "2026-04-19T14:53:05.974176+00:00",
+      "role": "System",
+      "text": "Pipeline wird vor der Analyse ausgeführt. Klicke 'Weiter' um zu starten oder 'Abbrechen'."
+    }
+  ],
+  "events": [
+    {
+      "ts_utc": "2026-04-19T14:53:05.975173+00:00",
+      "kind": "event_autoloaded_path",
+      "data": {
+        "path": "D:\\MA_Python_Agent\\MSRGuard_Anpassung\\python\\agent_results\\evD2-597029904278000_event.json"
+      }
+    }
+  ]
+}

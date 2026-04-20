@@ -5,7 +5,7 @@
     "enabled": true,
     "dir": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline",
     "runner": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\run_ingestion.py",
-    "config": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion.json",
+    "config": "D:\\MA_Python_Agent\\Pipelines\\IngestionPipeline\\config_ingestion2.json",
     "timeout_sec": null
   },
 

@@ -6,9 +6,9 @@ import re
 import inspect
 from collections import deque
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 from rdflib import Graph, URIRef, Literal, Namespace
 from rdflib.namespace import RDF
@@ -62,6 +62,277 @@ def _safe_int(value: Any, default: int = 0) -> int:
             return int(float(text))
         except Exception:
             return default
+
+
+def _leading_scope_token(text: Any) -> str:
+    s = str(text or "").strip()
+    if not s:
+        return ""
+    m = re.match(r"^([A-Za-z0-9]+)(?:[_\.].*)?$", s)
+    return str(m.group(1) or "").strip() if m else ""
+
+
+def _collect_scope_hints(*values: Any) -> List[str]:
+    out: List[str] = []
+    seen: Set[str] = set()
+    for raw in values:
+        items = list(raw) if isinstance(raw, (list, tuple, set)) else [raw]
+        for item in items:
+            text = str(item or "").strip()
+            if not text:
+                continue
+            for cand in (text, _leading_scope_token(text)):
+                key = str(cand or "").strip()
+                if not key:
+                    continue
+                norm = key.upper()
+                if norm in seen:
+                    continue
+                seen.add(norm)
+                out.append(key)
+    return out
+
+
+def _score_name_with_scope(
+    name: str,
+    *,
+    preferred_names: Optional[Iterable[str]] = None,
+    scope_hints: Optional[Iterable[str]] = None,
+) -> int:
+    text = str(name or "").strip()
+    if not text:
+        return 0
+
+    score = 0
+    name_upper = text.upper()
+    name_prefix = _leading_scope_token(text).upper()
+
+    for pref in preferred_names or []:
+        pref_text = str(pref or "").strip()
+        if not pref_text:
+            continue
+        pref_upper = pref_text.upper()
+        pref_prefix = _leading_scope_token(pref_text).upper()
+        if name_upper == pref_upper:
+            score = max(score, 100)
+            continue
+        if pref_prefix and name_prefix and pref_prefix == name_prefix:
+            score = max(score, 60)
+
+    for hint in scope_hints or []:
+        hint_text = str(hint or "").strip()
+        if not hint_text:
+            continue
+        hint_upper = hint_text.upper()
+        hint_prefix = _leading_scope_token(hint_text).upper()
+        if name_upper == hint_upper:
+            score = max(score, 90)
+            continue
+        if hint_prefix and name_prefix and hint_prefix == name_prefix:
+            score = max(score, 50)
+            continue
+        if name_upper.startswith(hint_upper + "_"):
+            score = max(score, 40)
+            continue
+        if hint_upper in name_upper:
+            score = max(score, 20)
+
+    return score
+
+
+def _unwrap_plc_snapshot(snapshot: Any) -> Dict[str, Any]:
+    if not isinstance(snapshot, dict):
+        return {}
+    if isinstance(snapshot.get("vars"), list) or isinstance(snapshot.get("rows"), list):
+        return snapshot
+    for key in ("plcSnapshot", "snapShot", "snapshot"):
+        nested = snapshot.get(key)
+        if isinstance(nested, dict):
+            return _unwrap_plc_snapshot(nested)
+    payload = snapshot.get("payload")
+    if isinstance(payload, dict):
+        return _unwrap_plc_snapshot(payload)
+    return snapshot
+
+
+def _to_bool_str(value: Any) -> Optional[str]:
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if value == 1:
+            return "TRUE"
+        if value == 0:
+            return "FALSE"
+
+    text = str(value or "").strip().upper()
+    if not text:
+        return None
+    if text in {"TRUE", "BOOL#TRUE", "1"}:
+        return "TRUE"
+    if text in {"FALSE", "BOOL#FALSE", "0"}:
+        return "FALSE"
+    if "TRUE" in text and "FALSE" not in text:
+        return "TRUE"
+    if "FALSE" in text and "TRUE" not in text:
+        return "FALSE"
+    return None
+
+
+@dataclass
+class SnapshotEvidenceHit:
+    query: str = ""
+    matched_id: str = ""
+    normalized_id: str = ""
+    source: str = ""
+    alias_kind: str = ""
+    value_raw: Any = None
+    value_bool: Optional[str] = None
+    node_class: str = ""
+    data_type: str = ""
+    score: int = 0
+
+
+@dataclass
+class SnapshotEvidenceIndex:
+    raw_snapshot: Dict[str, Any]
+    alias_index: Dict[str, List[SnapshotEvidenceHit]] = field(default_factory=dict)
+    total_items: int = 0
+
+    @staticmethod
+    def _normalize_id(identifier: Any) -> str:
+        text = str(identifier or "").strip()
+        if not text:
+            return ""
+        m = re.search(r";s=(.+)$", text, flags=re.I)
+        if m:
+            return str(m.group(1) or "").strip()
+        return text
+
+    @classmethod
+    def _candidate_aliases(cls, identifier: Any) -> List[Tuple[str, str, int]]:
+        raw = str(identifier or "").strip()
+        norm = cls._normalize_id(raw)
+        if not raw and not norm:
+            return []
+
+        out: List[Tuple[str, str, int]] = []
+        seen: Set[str] = set()
+
+        def add(alias: str, kind: str, score: int) -> None:
+            key = str(alias or "").strip()
+            if not key:
+                return
+            lk = key.lower()
+            if lk in seen:
+                return
+            seen.add(lk)
+            out.append((key, kind, score))
+
+        add(norm or raw, "symbol", 100)
+        if raw and raw != norm:
+            add(raw, "raw_id", 80)
+
+        segments = [seg.strip() for seg in re.split(r"\.", norm or raw) if seg.strip()]
+        if len(segments) >= 3:
+            add(".".join(segments[-3:]), "triple_suffix", 92)
+        if len(segments) >= 2:
+            add(".".join(segments[-2:]), "qualified_suffix", 88)
+        if segments:
+            add(segments[-1], "suffix", 55)
+
+        method_match = re.search(r"\b(Method_[A-Za-z0-9_]+|JobMethode_[A-Za-z0-9_]+)\b", norm or raw, flags=re.I)
+        if method_match:
+            add(str(method_match.group(1) or "").strip(), "method_name", 94)
+
+        return out
+
+    @classmethod
+    def build_from_snapshot(cls, snapshot: Any) -> "SnapshotEvidenceIndex":
+        snap = _unwrap_plc_snapshot(snapshot)
+        idx = cls(raw_snapshot=snap if isinstance(snap, dict) else {})
+        vars_list = snap.get("vars") if isinstance(snap, dict) else None
+        rows_list = snap.get("rows") if isinstance(snap, dict) else None
+
+        for item in vars_list if isinstance(vars_list, list) else []:
+            idx._ingest_item(item, source="vars")
+        for item in rows_list if isinstance(rows_list, list) else []:
+            idx._ingest_item(item, source="rows")
+        return idx
+
+    def _ingest_item(self, item: Any, *, source: str) -> None:
+        if not isinstance(item, dict):
+            return
+        item_id = str(item.get("id", "") or "").strip()
+        if not item_id:
+            return
+        self.total_items += 1
+        normalized_id = self._normalize_id(item_id)
+        value_raw = item.get("v")
+        value_bool = _to_bool_str(value_raw)
+        node_class = str(item.get("nodeClass", "") or "")
+        data_type = str(item.get("t", "") or "")
+
+        for alias, alias_kind, alias_score in self._candidate_aliases(item_id):
+            hit = SnapshotEvidenceHit(
+                matched_id=item_id,
+                normalized_id=normalized_id,
+                source=source,
+                alias_kind=alias_kind,
+                value_raw=value_raw,
+                value_bool=value_bool,
+                node_class=node_class,
+                data_type=data_type,
+                score=alias_score,
+            )
+            self.alias_index.setdefault(alias.lower(), []).append(hit)
+
+    def has_data(self) -> bool:
+        return self.total_items > 0
+
+    def best_hit(self, symbol: Any, *, require_boolean: bool = False) -> Optional[SnapshotEvidenceHit]:
+        query = str(symbol or "").strip()
+        if not query:
+            return None
+
+        best: Optional[SnapshotEvidenceHit] = None
+        best_score: Optional[int] = None
+        query_norm = self._normalize_id(query).lower()
+
+        for alias, _, query_score in self._candidate_aliases(query):
+            for hit in self.alias_index.get(alias.lower(), []):
+                if require_boolean and hit.value_bool not in {"TRUE", "FALSE"}:
+                    continue
+
+                total_score = _safe_int(hit.score, 0) + query_score
+                if hit.normalized_id.lower() == query_norm:
+                    total_score += 25
+                if hit.matched_id.lower() == query.lower():
+                    total_score += 20
+                if hit.source == "vars":
+                    total_score += 8
+                if hit.value_bool in {"TRUE", "FALSE"}:
+                    total_score += 6
+
+                if best_score is None or total_score > best_score:
+                    best_score = total_score
+                    best = SnapshotEvidenceHit(
+                        query=query,
+                        matched_id=hit.matched_id,
+                        normalized_id=hit.normalized_id,
+                        source=hit.source,
+                        alias_kind=hit.alias_kind,
+                        value_raw=hit.value_raw,
+                        value_bool=hit.value_bool,
+                        node_class=hit.node_class,
+                        data_type=hit.data_type,
+                        score=total_score,
+                    )
+
+        return best
+
+    def bool_for(self, symbol: Any) -> Optional[str]:
+        hit = self.best_hit(symbol, require_boolean=True)
+        return hit.value_bool if isinstance(hit, SnapshotEvidenceHit) else None
 
 
 def enforce_select_only(query: str, max_limit: int = 200) -> str:
@@ -688,7 +959,7 @@ class PLCSnapshotSearchTool(BaseAgentTool):
     )
 
     def __init__(self, plc_snapshot: Any):
-        self.snapshot = plc_snapshot if isinstance(plc_snapshot, dict) else {}
+        self.snapshot = _unwrap_plc_snapshot(plc_snapshot)
 
     @staticmethod
     def _matches(name: str, query: str, *, exact: bool) -> bool:
@@ -1760,16 +2031,30 @@ class EvD2DiagnosisTool(BaseAgentTool):
                 inst_rows = sparql_select_raw(q_insts, max_rows=max_rows)
                 skill_instances.append({"fbtype_name": ft.get("fbtype_name", ""), "fbtype_uri": fbtype_uri, "instances": inst_rows})
 
+        d2_callers = sorted({r.get("caller_pou_name", "") for r in call_chain if r.get("caller_pou_name")})
+        skill_setter_names = sorted({r.get("pou_name", "") for r in skill_setters if r.get("pou_name")})
+        overlap = sorted(set(d2_callers) & set(skill_setter_names))
+        scope_hints = _collect_scope_hints(last_skill, skill_setter_names, overlap)
+
         # 8) GEMMA FBD D2 RS-Analyse
         gemma_fbd_logic = {}
+        selected_gemma_pou_name = ""
         if gemma_rows:
-            gemma_fbd_pou_name = None
-            for gr in gemma_rows:
-                if (gr.get("lang") or "").upper() == "FBD":
-                    gemma_fbd_pou_name = gr.get("pou_name")
-                    break
-            if not gemma_fbd_pou_name:
-                gemma_fbd_pou_name = gemma_rows[0].get("pou_name")
+            ranked_gemma_rows = sorted(
+                gemma_rows,
+                key=lambda gr: (
+                    -(
+                        _score_name_with_scope(
+                            str(gr.get("pou_name", "") or ""),
+                            scope_hints=scope_hints,
+                        )
+                        + (5 if str(gr.get("lang", "") or "").strip().upper() == "FBD" else 0)
+                    ),
+                    str(gr.get("pou_name", "") or ""),
+                ),
+            )
+            gemma_fbd_pou_name = str(ranked_gemma_rows[0].get("pou_name", "") or "")
+            selected_gemma_pou_name = gemma_fbd_pou_name
 
             if gemma_fbd_pou_name:
                 q_code = f"""
@@ -1788,10 +2073,6 @@ class EvD2DiagnosisTool(BaseAgentTool):
                         "lang": rows[0].get("lang", ""),
                         "d2_logic": self._extract_d2_logic_from_fbd_code(fbd_code),
                     }
-
-        d2_callers = sorted({r.get("caller_pou_name", "") for r in call_chain if r.get("caller_pou_name")})
-        skill_setter_names = sorted({r.get("pou_name", "") for r in skill_setters if r.get("pou_name")})
-        overlap = sorted(set(d2_callers) & set(skill_setter_names))
 
         # GEMMA-State-Hint (Snapshot) nutzen, um OR-Branch einzugrenzen (one-hot Annahme)
         set_expr = ""
@@ -1895,6 +2176,8 @@ class EvD2DiagnosisTool(BaseAgentTool):
             "d2_callers": d2_callers,
             "skill_setter_pous": skill_setter_names,
             "intersection_d2callers_and_skillsetters": overlap,
+            "selected_gemma_pou_name": selected_gemma_pou_name,
+            "scope_hints": scope_hints,
             "diagnose_plan": plan_steps,
         }
 class EvD2UnifiedTraceTool(BaseAgentTool):
@@ -1996,6 +2279,10 @@ class EvD2PathTracingTool(BaseAgentTool):
         "Nutzen als Haupttool für evD2. Liefert Punkt 1/2/3 der Analyse in einer "
         "deterministischen JSON-Struktur inkl. ausgewähltem State-Path."
     )
+
+    def __init__(self, plc_snapshot: Any = None):
+        self.snapshot = _unwrap_plc_snapshot(plc_snapshot)
+        self.snapshot_index = SnapshotEvidenceIndex.build_from_snapshot(self.snapshot)
 
     @staticmethod
     def _sparql_escape(text: str) -> str:
@@ -2407,17 +2694,8 @@ class EvD2PathTracingTool(BaseAgentTool):
         self,
         req: Dict[str, Any],
         skill_trace: Dict[str, Any],
+        snapshot_index: Optional[SnapshotEvidenceIndex] = None,
     ) -> Dict[str, Any]:
-        def _to_bool_str(v: Any) -> Optional[str]:
-            s = str(v or "").strip().upper()
-            has_true = "TRUE" in s
-            has_false = "FALSE" in s
-            if has_true and not has_false:
-                return "TRUE"
-            if has_false and not has_true:
-                return "FALSE"
-            return None
-
         paths = req.get("paths") if isinstance(req.get("paths"), list) else []
         skill_reqs = skill_trace.get("requirements") if isinstance(skill_trace.get("requirements"), list) else []
 
@@ -2477,7 +2755,7 @@ class EvD2PathTracingTool(BaseAgentTool):
                     strong_row_map[token] = list(vals)[0]
 
             conflicts: List[str] = []
-            score = 0
+            static_score = 0
             exact = 0
             soft = 0
             unresolved = 0
@@ -2490,7 +2768,7 @@ class EvD2PathTracingTool(BaseAgentTool):
                 if path_val in {"TRUE", "FALSE"}:
                     if path_val == req_val:
                         exact += 1
-                        score += 2
+                        static_score += 2
                     else:
                         conflicts.append(f"{t}: skill@t-1={req_val}, state@t0={path_val}")
                     continue
@@ -2499,7 +2777,7 @@ class EvD2PathTracingTool(BaseAgentTool):
                 if me_val in {"TRUE", "FALSE"}:
                     if me_val == req_val:
                         soft += 1
-                        score += 1
+                        static_score += 1
                     else:
                         conflicts.append(f"{t}: skill@t-1={req_val}, state@t0(mutual_exclusion)={me_val}")
                     continue
@@ -2508,27 +2786,89 @@ class EvD2PathTracingTool(BaseAgentTool):
                 if strong_val in {"TRUE", "FALSE"}:
                     if strong_val == req_val:
                         soft += 1
-                        score += 1
+                        static_score += 1
                     else:
                         conflicts.append(f"{t}: skill@t-1={req_val}, state(path_rows)={strong_val}")
                     continue
 
                 unresolved += 1
 
+            snapshot_matches: List[Dict[str, Any]] = []
+            snapshot_conflicts: List[str] = []
+            snapshot_exact = 0
+            snapshot_soft = 0
+            snapshot_unresolved = 0
+            snapshot_score = 0
+            snapshot_seen: Set[str] = set()
+
+            def _apply_snapshot_evidence(token: str, expected: str, *, via: str, weight: int) -> None:
+                nonlocal snapshot_exact, snapshot_soft, snapshot_unresolved, snapshot_score
+                t = str(token or "").strip()
+                exp = str(expected or "").strip().upper()
+                if not t or exp not in {"TRUE", "FALSE"} or t in snapshot_seen:
+                    return
+                snapshot_seen.add(t)
+
+                hit = snapshot_index.best_hit(t, require_boolean=True) if isinstance(snapshot_index, SnapshotEvidenceIndex) else None
+                if not isinstance(hit, SnapshotEvidenceHit):
+                    snapshot_unresolved += 1
+                    return
+
+                evidence = {
+                    "token": t,
+                    "expected": exp,
+                    "observed": hit.value_bool,
+                    "snapshot_id": hit.matched_id,
+                    "snapshot_symbol": hit.normalized_id,
+                    "source": hit.source,
+                    "alias_kind": hit.alias_kind,
+                    "via": via,
+                }
+                if hit.value_bool == exp:
+                    if via == "literal":
+                        snapshot_exact += 1
+                    else:
+                        snapshot_soft += 1
+                    snapshot_score += weight
+                    snapshot_matches.append(evidence)
+                    return
+
+                snapshot_score -= weight + (2 if via == "literal" else 1)
+                snapshot_conflicts.append(
+                    f"{t}: snapshot={hit.value_bool}, {via}@t0={exp} ({hit.matched_id})"
+                )
+
+            if isinstance(snapshot_index, SnapshotEvidenceIndex) and snapshot_index.has_data():
+                for token, req_val in lit_map.items():
+                    _apply_snapshot_evidence(token, req_val, via="literal", weight=6)
+                for token, req_val in strong_row_map.items():
+                    if token in lit_map:
+                        continue
+                    _apply_snapshot_evidence(token, req_val, via="row", weight=3)
+
             possible = len(conflicts) == 0
+            total_score = static_score - 4 * len(conflicts) + snapshot_score
             evaluations.append(
                 {
                     "state_path": path_id,
                     "path_expr": path_expr,
                     "possible": possible,
-                    "score": score - 4 * len(conflicts),
+                    "runtime_supported": len(snapshot_conflicts) == 0 and (snapshot_exact + snapshot_soft) > 0,
+                    "score": total_score,
+                    "static_score": static_score - 4 * len(conflicts),
+                    "snapshot_evidence_score": snapshot_score,
                     "conflicts": conflicts,
+                    "snapshot_conflicts": snapshot_conflicts,
+                    "snapshot_matches": snapshot_matches,
                     "literal_map_t0": lit_map,
                     "mutual_exclusion_map_t0": mutual_exclusion_map,
                     "row_bool_map_t0": strong_row_map,
                     "exact": exact,
                     "soft": soft,
                     "unresolved": unresolved,
+                    "snapshot_exact": snapshot_exact,
+                    "snapshot_soft": snapshot_soft,
+                    "snapshot_unresolved": snapshot_unresolved,
                     "hardware_addresses": hardware_addresses,
                     "has_hardware_address": len(hardware_addresses) > 0,
                     "has_default_terminator": has_default_terminator,
@@ -2554,6 +2894,7 @@ class EvD2PathTracingTool(BaseAgentTool):
 
         return {
             "skill_requirements": skill_reqs,
+            "snapshot_available": isinstance(snapshot_index, SnapshotEvidenceIndex) and snapshot_index.has_data(),
             "path_evaluations": evaluations,
             "possible_paths": possible_paths,
             "best_paths": best_paths,
@@ -2564,8 +2905,29 @@ class EvD2PathTracingTool(BaseAgentTool):
         setters = core.get("trigger_setters") if isinstance(core.get("trigger_setters"), list) else []
         if not setters:
             return {}
-        with_true = [s for s in setters if isinstance(s, dict) and isinstance(s.get("snips_TRUE"), list) and s.get("snips_TRUE")]
-        chosen = with_true[0] if with_true else setters[0]
+        preferred_pou_names = (
+            core.get("preferred_trigger_pou_names")
+            if isinstance(core.get("preferred_trigger_pou_names"), list)
+            else []
+        )
+        scope_hints = core.get("scope_hints") if isinstance(core.get("scope_hints"), list) else []
+        ranked: List[Tuple[int, int, Dict[str, Any]]] = []
+        for idx, setter in enumerate(setters):
+            if not isinstance(setter, dict):
+                continue
+            score = 0
+            if isinstance(setter.get("snips_TRUE"), list) and setter.get("snips_TRUE"):
+                score += 50
+            score += _score_name_with_scope(
+                str(setter.get("pou_name", "") or ""),
+                preferred_names=preferred_pou_names,
+                scope_hints=scope_hints,
+            )
+            ranked.append((score, idx, setter))
+        if not ranked:
+            return {}
+        ranked.sort(key=lambda item: (-item[0], item[1]))
+        chosen = ranked[0][2]
         snip_obj = (chosen.get("snips_TRUE") or [{}])[0] if isinstance(chosen, dict) else {}
         snippet = str(snip_obj.get("snippet", "") or "")
         condition = EvD2PathTracingTool._extract_if_expr_from_snippet(snippet)
@@ -2773,12 +3135,16 @@ class EvD2PathTracingTool(BaseAgentTool):
                 score -= min(depth, 999) * 2
                 if typ_l == "internal_variable":
                     score += 20
+                elif typ_l == "job_method_assignment":
+                    score += 26
                 elif typ_l == "instance_port":
                     score += 18
                 elif typ_l == "std_fb_dependency":
                     score += 14
                 elif typ_l == "local_port":
                     score += 10
+                elif typ_l == "job_method_input":
+                    score -= 18
                 elif typ_l == "terminal":
                     score -= 8
                 if "abgelaufen" in val.lower():
@@ -2931,6 +3297,7 @@ class EvD2PathTracingTool(BaseAgentTool):
         else:
             assumed = [x.strip() for x in str(assumed_false_states or "").split(",") if x.strip()]
 
+        skill_name = str(last_skill or skill_case or "").strip()
         core = EvD2DiagnosisTool().run(
             last_skill=last_skill,
             last_gemma_state=last_gemma_state,
@@ -2939,6 +3306,23 @@ class EvD2PathTracingTool(BaseAgentTool):
             port_name_contains=state_name,
             max_rows=250,
         )
+        preferred_pous = core.get("skill_setter_pous") if isinstance(core.get("skill_setter_pous"), list) else []
+        overlap_pous = (
+            core.get("intersection_d2callers_and_skillsetters")
+            if isinstance(core.get("intersection_d2callers_and_skillsetters"), list)
+            else []
+        )
+        scope_hints = _collect_scope_hints(
+            skill_name,
+            process_name,
+            preferred_pous,
+            overlap_pous,
+            core.get("selected_gemma_pou_name", ""),
+        )
+        preferred_gemma_pous: List[str] = []
+        selected_gemma = str(core.get("selected_gemma_pou_name", "") or "")
+        if selected_gemma:
+            preferred_gemma_pous.append(selected_gemma)
         unified = run_unified_set_and_condition_trace(
             graph,
             last_gemma_state=last_gemma_state,
@@ -2947,10 +3331,23 @@ class EvD2PathTracingTool(BaseAgentTool):
             max_depth=int(max_depth),
             trace_each_truth_path=True,
             assumed_false_states_in_betriebsarten=assumed,
+            preferred_gemma_pou_names=preferred_gemma_pous,
+            scope_hints=scope_hints,
             verbose_trace=False,
         )
         req = build_requirement_tables(unified)
 
+        preferred_trigger_pous: List[str] = []
+        if isinstance(unified.get("origin"), dict):
+            origin_pou = str(unified.get("origin", {}).get("caller_pou_name", "") or "")
+            if origin_pou:
+                preferred_trigger_pous.append(origin_pou)
+        if isinstance(unified.get("context"), dict):
+            ctx_pou = str(unified.get("context", {}).get("pou_name", "") or "")
+            if ctx_pou:
+                preferred_trigger_pous.append(ctx_pou)
+        core["scope_hints"] = scope_hints
+        core["preferred_trigger_pou_names"] = preferred_trigger_pous
         trigger_info = self._select_trigger_setter(core, trigger_var)
         trigger_chain_raw: Dict[str, Any] = {}
         if trigger_info.get("pou_name") and trigger_info.get("condition_expr"):
@@ -2972,15 +3369,17 @@ class EvD2PathTracingTool(BaseAgentTool):
                 verbose_trace=False,
             )
         trigger_info["condition_chain"] = self._compact_trigger_condition_trace(trigger_chain_raw)
-        skill_name = str(last_skill or skill_case or "").strip()
         skill_identity = self._resolve_skill_identity(skill_name) if skill_name else {}
-        preferred_pous = core.get("skill_setter_pous") if isinstance(core.get("skill_setter_pous"), list) else []
         skill_trace = self._build_skill_trace(
             last_skill=str(skill_case or skill_name),
             preferred_pous=[str(x) for x in preferred_pous if str(x)],
             process_name=process_name,
         )
-        fit = self._score_state_paths(req, skill_trace if isinstance(skill_trace, dict) else {})
+        fit = self._score_state_paths(
+            req,
+            skill_trace if isinstance(skill_trace, dict) else {},
+            self.snapshot_index,
+        )
 
         best_paths = fit.get("best_paths", []) if isinstance(fit, dict) else []
         selected_path = best_paths[0] if best_paths else ""
@@ -4065,8 +4464,8 @@ def build_bot(
     registry.register(EvD2DiagnosisTool())
     registry.register(EvD2UnifiedTraceTool())
     registry.register(EvD2RequirementPathsTool())
-    registry.register(DeterministicPathSearchTool())
-    registry.register(EvD2PathTracingTool())
+    registry.register(DeterministicPathSearchTool(plc_snapshot))
+    registry.register(EvD2PathTracingTool(plc_snapshot))
     registry.register(CalledPousTool())
     registry.register(PouCallersTool())
     registry.register(PouCodeTool())

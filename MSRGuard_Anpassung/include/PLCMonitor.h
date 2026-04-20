@@ -65,6 +65,11 @@ public:
                      unsigned timeoutMs);
 
     bool readInt16At(const std::string& nodeIdStr, UA_UInt16 nsIndex, UA_Int16 &out) const;
+    bool readUInt16At(const std::string& nodeIdStr, UA_UInt16 nsIndex, UA_UInt16 &out) const;
+    bool readInt32At(const std::string& nodeIdStr, UA_UInt16 nsIndex, UA_Int32 &out) const;
+    bool readUInt32At(const std::string& nodeIdStr, UA_UInt16 nsIndex, UA_UInt32 &out) const;
+    bool readInt64At(const std::string& nodeIdStr, UA_UInt16 nsIndex, UA_Int64 &out) const;
+    bool readUInt64At(const std::string& nodeIdStr, UA_UInt16 nsIndex, UA_UInt64 &out) const;
     // Liest eine boolsche Variable (identifier string, also z.B. "OPCUA.bool1", plus Namespace)
    // PLCMonitor.h (public)
     bool readBoolAt(const std::string& nodeIdStr, UA_UInt16 nsIndex, bool& out) const;

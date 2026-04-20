@@ -36,6 +36,11 @@ struct InventorySnapshot {
     std::unordered_map<NodeKey, bool,        NodeKeyHash> bools;
     std::unordered_map<NodeKey, std::string, NodeKeyHash> strings;
     std::unordered_map<NodeKey, int16_t,     NodeKeyHash> int16s;
+    std::unordered_map<NodeKey, uint16_t,    NodeKeyHash> uint16s;
+    std::unordered_map<NodeKey, int32_t,     NodeKeyHash> int32s;
+    std::unordered_map<NodeKey, uint32_t,    NodeKeyHash> uint32s;
+    std::unordered_map<NodeKey, int64_t,     NodeKeyHash> int64s;
+    std::unordered_map<NodeKey, uint64_t,    NodeKeyHash> uint64s;
     std::unordered_map<NodeKey, double,      NodeKeyHash> floats;
 };
 

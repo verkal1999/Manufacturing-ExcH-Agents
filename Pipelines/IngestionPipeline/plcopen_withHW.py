@@ -19,6 +19,7 @@ from datamodels import (
     GVL,
     IOEntry,
     TempEntry,
+    MethodMapping,
     SubcallParam,
     Subcall,
     ProgramMapping,
@@ -864,11 +865,11 @@ class PLCOpenXMLParser:
         root_no_ns = ET.fromstring(self._strip_ns(xml_text))
         NS = {"ns": "http://www.plcopen.org/xml/tc6_0200", "html": "http://www.w3.org/1999/xhtml"}
 
-        def detect_pou_lang(pou_elem: ET.Element) -> Optional[str]:
-            body = pou_elem.find("body")
+        def detect_lang(container: ET.Element) -> Optional[str]:
+            body = container.find("./body")
             if body is None: return None
-            if body.find("FBD") is not None: return "FBD"
-            if body.find("ST") is not None: return "ST"
+            if body.find("./FBD") is not None: return "FBD"
+            if body.find("./ST") is not None: return "ST"
             return None
 
         def clean_st_code(text: str) -> str:
@@ -881,9 +882,202 @@ class PLCOpenXMLParser:
             text = text.replace('\xa0', ' ') 
             return text.strip()
 
+        def extract_xhtml_text(node: Optional[ET.Element]) -> str:
+            if node is None:
+                return ""
+            for child in node.iter():
+                if isinstance(child.tag, str) and child.tag.endswith("xhtml"):
+                    return "".join(child.itertext())
+            return node.text or ""
+
+        def extract_st_code(container: ET.Element) -> str:
+            body = container.find("./body")
+            if body is None:
+                return ""
+            st = body.find("./ST")
+            if st is None:
+                return ""
+            return clean_st_code(extract_xhtml_text(st))
+
+        def extract_direct_interface_text(container: ET.Element) -> str:
+            plain = container.find("./InterfaceAsPlainText")
+            if plain is None:
+                plain = container.find("./addData/data/InterfaceAsPlainText")
+            if plain is None:
+                plain = container.find("./interface/addData/data/InterfaceAsPlainText")
+            return extract_xhtml_text(plain).replace("\xa0", " ").strip()
+
+        def get_var_type_plain(var: ET.Element) -> Optional[str]:
+            tnode = var.find("./type")
+            if tnode is None:
+                return None
+            derived = tnode.find("./derived")
+            if derived is not None:
+                return derived.attrib.get("name")
+            for child in tnode:
+                tag = child.tag
+                return tag.split("}", 1)[1] if "}" in tag else tag
+            return None
+
+        def get_var_init_plain(var: ET.Element) -> Optional[str]:
+            init_node = var.find("./initialValue")
+            if init_node is None:
+                return None
+            simple = init_node.find("./simpleValue")
+            if simple is not None:
+                return simple.attrib.get("value")
+            for node in init_node.iter():
+                value = getattr(node, "attrib", {}).get("value")
+                if value is not None:
+                    return value
+            return None
+
+        def build_var_line(var: ET.Element) -> str:
+            vname = var.attrib.get("name")
+            if not vname:
+                return ""
+            vtype = get_var_type_plain(var) or "UNKNOWN"
+            init = get_var_init_plain(var)
+            if init is not None and str(init).strip():
+                return f"    {vname} : {vtype} := {init};"
+            return f"    {vname} : {vtype};"
+
+        def get_return_type_plain(interface: Optional[ET.Element]) -> Optional[str]:
+            if interface is None:
+                return None
+            ret = interface.find("./returnType")
+            if ret is None:
+                return None
+            derived = ret.find("./derived")
+            if derived is not None:
+                return derived.attrib.get("name")
+            for child in ret:
+                tag = child.tag
+                return tag.split("}", 1)[1] if "}" in tag else tag
+            return None
+
+        def is_rpc_enabled(method: ET.Element, decl_text: str) -> bool:
+            for attr in method.findall(".//Attribute"):
+                if attr.get("Name") == "TcRpcEnable" and str(attr.get("Value", "")).strip() == "1":
+                    return True
+            return "{attribute 'TcRpcEnable' := '1'}" in decl_text
+
+        def extract_io_section(interface: Optional[ET.Element], section_tag: str) -> list[dict[str, Any]]:
+            items: list[dict[str, Any]] = []
+            if interface is None:
+                return items
+            for section in interface.findall(f"./{section_tag}"):
+                for var in section.findall("./variable"):
+                    vname = var.attrib.get("name")
+                    if not vname:
+                        continue
+                    items.append(
+                        {
+                            "internal": vname,
+                            "external": None,
+                            "internal_type": get_var_type_plain(var),
+                            "opcua_da": False,
+                            "opcua_write": False,
+                        }
+                    )
+            return items
+
+        def extract_temp_section(interface: Optional[ET.Element], section_tag: str) -> list[dict[str, Any]]:
+            items: list[dict[str, Any]] = []
+            if interface is None:
+                return items
+            for section in interface.findall(f"./{section_tag}"):
+                for var in section.findall("./variable"):
+                    vname = var.attrib.get("name")
+                    if not vname:
+                        continue
+                    items.append(
+                        {
+                            "name": vname,
+                            "type": get_var_type_plain(var),
+                            "opcua_da": False,
+                            "opcua_write": False,
+                        }
+                    )
+            return items
+
+        def build_method_decl_header(method_name: str, interface: Optional[ET.Element]) -> str:
+            header = f"METHOD {method_name}"
+            return_type = get_return_type_plain(interface)
+            if return_type:
+                header += f" : {return_type}"
+
+            parts: list[str] = [header]
+            section_defs = [
+                ("inputVars", "VAR_INPUT"),
+                ("outputVars", "VAR_OUTPUT"),
+                ("inOutVars", "VAR_IN_OUT"),
+                ("localVars", "VAR"),
+                ("tempVars", "VAR_TEMP"),
+            ]
+            for section_tag, st_kw in section_defs:
+                lines: list[str] = []
+                if interface is not None:
+                    for section in interface.findall(f"./{section_tag}"):
+                        for var in section.findall("./variable"):
+                            line = build_var_line(var)
+                            if line:
+                                lines.append(line)
+                if not lines:
+                    continue
+                parts.append(st_kw)
+                parts.extend(lines)
+                parts.append("END_VAR")
+                parts.append("")
+            return "\n".join(parts).strip()
+
+        def extract_method_entries(pou_elem: ET.Element) -> list[dict[str, Any]]:
+            methods: list[dict[str, Any]] = []
+            method_xpath = "./addData/data[@name='http://www.3s-software.com/plcopenxml/method']/Method"
+            for method in pou_elem.findall(method_xpath):
+                method_name = (method.get("name") or "").strip()
+                if not method_name:
+                    continue
+                interface = method.find("./interface")
+                decl_text = extract_direct_interface_text(method)
+                if not decl_text:
+                    decl_text = build_method_decl_header(method_name, interface)
+                methods.append(
+                    {
+                        "name": method_name,
+                        "method_type": method_name,
+                        "inputs": extract_io_section(interface, "inputVars"),
+                        "outputs": extract_io_section(interface, "outputVars"),
+                        "inouts": extract_io_section(interface, "inOutVars"),
+                        "temps": extract_temp_section(interface, "localVars")
+                        + extract_temp_section(interface, "tempVars"),
+                        "method_code": extract_st_code(method),
+                        "declaration_header": decl_text,
+                        "programming_lang": detect_lang(method),
+                        "return_type": get_return_type_plain(interface),
+                        "rpc_enabled": is_rpc_enabled(method, decl_text),
+                    }
+                )
+            return methods
+
+        def extract_job_method_name(pou_elem: ET.Element) -> Optional[str]:
+            decl_text = extract_direct_interface_text(pou_elem)
+            match = re.search(
+                r"\{attribute\s+'OPC\.UA\.DA\.JobMethod'\s*:=\s*'([^']+)'\}",
+                decl_text,
+                flags=re.IGNORECASE,
+            )
+            if match:
+                return match.group(1).strip()
+            return None
+
         def collect_st_from_pou(pou_elem: ET.Element) -> str:
             parts: list[str] = []
             name = pou_elem.get("name", "?")
+            txt = extract_st_code(pou_elem)
+            if txt:
+                return f"// POU {name} body\n{txt}".strip()
+            return ""
             
             # --- FIX: Logik für Text-Extraktion verbessert ---
             def get_text(node):
@@ -945,7 +1139,7 @@ class PLCOpenXMLParser:
             pou_var_types[name] = type_map
 
         pou_plain_map = {p.attrib.get("name"): p for p in root_no_ns.findall(".//pou")}
-        pou_lang = {name: detect_pou_lang(p) for name, p in pou_plain_map.items()}
+        pou_lang = {name: detect_lang(p) for name, p in pou_plain_map.items()}
         
         # PyLC (hier vereinfacht/auskommentiert, da du sagtest es ist ST)
         # Wenn du FBD nutzt, stelle sicher, dass deine PyLC Imports hier stehen.
@@ -1007,8 +1201,13 @@ class PLCOpenXMLParser:
 
             lang = pou_lang.get(name)
             code_text = ""
+            method_entries: list[dict[str, Any]] = []
+            job_method_name = None
+            pou_plain = pou_plain_map.get(name)
+            if pou_plain is not None:
+                method_entries = extract_method_entries(pou_plain)
+                job_method_name = extract_job_method_name(pou_plain)
             if lang == "ST":
-                pou_plain = pou_plain_map.get(name)
                 if pou_plain is not None:
                     code_text = collect_st_from_pou(pou_plain)
             elif lang == "FBD" and pylc_available:
@@ -1025,9 +1224,21 @@ class PLCOpenXMLParser:
                     code_text = code3.read_text(encoding="utf-8").replace("__DOT__", ".")
                 except Exception as e:
                     print(f"PyLC Fehler bei {name}: {e}")
-            
-            if lang: entry["programming_lang"] = lang
-            if code_text: entry["program_code"] = code_text
+
+            entry["methods"] = method_entries
+            entry["program_code"] = code_text
+
+            if lang:
+                entry["programming_lang"] = lang
+            else:
+                entry.pop("programming_lang", None)
+
+            if job_method_name:
+                entry["job_method_name"] = job_method_name
+                entry["is_job_method"] = True
+            else:
+                entry.pop("job_method_name", None)
+                entry.pop("is_job_method", None)
 
         proj_info = self.get_plc_project_info()
         proj_name = proj_info.get("project_name")
@@ -1195,6 +1406,23 @@ class PLCOpenXMLParser:
             outputs = [IOEntry(v.get("internal"), v.get("external"), v.get("internal_type")) for v in e.get("outputs", [])]
             inouts = [IOEntry(v.get("internal"), v.get("external"), v.get("internal_type")) for v in e.get("inouts", [])] if "inouts" in e else []
             temps = [TempEntry(t["name"], t.get("type")) for t in e.get("temps", [])]
+            methods: List[MethodMapping] = []
+            for method in e.get("methods", []):
+                methods.append(
+                    MethodMapping(
+                        name=method.get("name", ""),
+                        method_type=method.get("method_type", method.get("name", "")),
+                        inputs=[IOEntry(v.get("internal"), v.get("external"), v.get("internal_type")) for v in method.get("inputs", [])],
+                        outputs=[IOEntry(v.get("internal"), v.get("external"), v.get("internal_type")) for v in method.get("outputs", [])],
+                        inouts=[IOEntry(v.get("internal"), v.get("external"), v.get("internal_type")) for v in method.get("inouts", [])],
+                        temps=[TempEntry(t["name"], t.get("type")) for t in method.get("temps", [])],
+                        method_code=method.get("method_code", ""),
+                        declaration_header=method.get("declaration_header", ""),
+                        programming_lang=method.get("programming_lang"),
+                        return_type=method.get("return_type"),
+                        rpc_enabled=bool(method.get("rpc_enabled", False)),
+                    )
+                )
             subcalls: List[Subcall] = []
             for sc in e.get("subcalls", []):
                 subcalls.append(
@@ -1215,6 +1443,7 @@ class PLCOpenXMLParser:
                     subcalls=subcalls,
                     program_code=e.get("program_code", ""),
                     programming_lang=e.get("programming_lang"),
+                    methods=methods,
                 )
             )
         self._program_models = models
