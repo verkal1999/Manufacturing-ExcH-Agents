@@ -877,6 +877,43 @@ def _collect_trigger_path_rows(point1: Dict[str, Any], max_rows_per_path: int = 
     return out
 
 
+def _row_hardware_addresses(row: Dict[str, Any]) -> List[str]:
+    text = " | ".join(
+        [
+            str(row.get("token", "") or ""),
+            str(row.get("pou", "") or ""),
+            str(row.get("value", "") or ""),
+            str(row.get("assignment", "") or ""),
+            str(row.get("source", "") or ""),
+            str(row.get("reason", "") or ""),
+        ]
+    )
+    addresses: List[str] = []
+    seen: Set[str] = set()
+
+    def add(candidate: str) -> None:
+        value = str(candidate or "").strip().strip("'\"")
+        if not value or value.lower() in {"none", "null", "false", "-"}:
+            return
+        if value not in seen:
+            seen.add(value)
+            addresses.append(value)
+
+    for m in re.finditer(r"hardware_address['\"]?\s*[:=]\s*['\"]([^'\"]+)['\"]", text, flags=re.I):
+        add(m.group(1))
+    for m in re.finditer(r"dp_hashardwareaddress\s*[:=]\s*['\"]?([^'\"\s,)}]+)", text, flags=re.I):
+        add(m.group(1))
+    for m in re.finditer(r"(%[IQM][XWDB]?[0-9][0-9A-Za-z_\.\[\]]*)", text, flags=re.I):
+        add(m.group(1))
+
+    return addresses
+
+
+def _looks_like_ack_or_reset_anchor(token: str) -> bool:
+    t = str(token or "").strip().lower()
+    return any(part in t for part in ["ack", "diagnosefinished", "diag_finished", "diagnose_finished"])
+
+
 def _extract_root_anchor_row(point1: Dict[str, Any], point3: Dict[str, Any]) -> Dict[str, Any]:
     rows: List[Dict[str, Any]] = _collect_trigger_path_rows(point1)
 
@@ -893,6 +930,10 @@ def _extract_root_anchor_row(point1: Dict[str, Any], point3: Dict[str, Any]) -> 
     if not rows:
         return {}
 
+    chain_summary = _as_dict(_as_dict(point1.get("condition_chain")).get("summary"))
+    trace_has_hardware = chain_summary.get("has_hardware_address") is True
+    software_likely = chain_summary.get("software_likely") is True
+
     def score(row: Dict[str, Any]) -> int:
         token = str(row.get("token", "")).strip().lower()
         pou = str(row.get("pou", "")).strip().lower()
@@ -902,38 +943,30 @@ def _extract_root_anchor_row(point1: Dict[str, Any], point3: Dict[str, Any]) -> 
         reason = str(row.get("reason", "")).strip().lower()
         kind = str(row.get("kind", "")).strip().lower()
         row_idx = int(row.get("_row_idx", 0) or 0)
-        text = " | ".join([token, pou, value, assignment, source, reason])
 
         s = 0
-        has_hw_hint = any(
-            marker in text
-            for marker in [
-                "hardware_address",
-                "dp_hashardwareaddress",
-                "%ix",
-                "%iw",
-                "%id",
-                "%qx",
-                "%qw",
-                "%qd",
-                "%mx",
-                "%mw",
-                "%md",
-            ]
-        )
+        has_hw_hint = bool(_row_hardware_addresses(row))
         if has_hw_hint:
             s += 180
         if source in {"global", "metadata"} and has_hw_hint:
             s += 50
         if source == "wiring":
-            s += 70
+            s += 70 if trace_has_hardware else 25
         if kind in {"global_variable", "terminal"}:
             s += 25
         if "default" in assignment or "default" in source or "default" in reason:
             s += 30
+            if not trace_has_hardware:
+                s += 45
+        if not trace_has_hardware and token in {"periodicfaultperiod", "periodic_fault_period"}:
+            s += 35
         if token.startswith("gvl_") or token.startswith("opcua."):
             s += 8
 
+        if software_likely and not has_hw_hint and token.startswith("opcua."):
+            s -= 50
+        if software_likely and not has_hw_hint and _looks_like_ack_or_reset_anchor(token):
+            s -= 80
         if source == "job_method" or kind == "job_method_input" or "job-method input" in reason:
             s -= 220
         if "methodcall" in token:

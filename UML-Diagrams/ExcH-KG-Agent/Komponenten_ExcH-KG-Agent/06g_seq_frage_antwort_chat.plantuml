@@ -1,0 +1,91 @@
+@startuml
+
+scale max 1600*900
+
+skinparam shadowing false
+skinparam responseMessageBelowArrow false
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 44
+skinparam BoxPadding 6
+skinparam DefaultFontSize 10
+skinparam maxMessageSize 120
+hide footbox
+autonumber
+
+actor "Nutzende\nInstanz" as User
+
+box "Interaktions- und Ausgabe-Komponente" #EAF3FB
+  boundary "ExcHAgent UI" as UI
+  control "Output Guardrail" as Guard
+end box
+
+box "Kontext- und Sitzungs-Komponente" #E8F5E9
+  control "ExcHChatBot Session" as Session
+  entity "Session Memory" as Memory
+end box
+
+box "Modell-, Planner- und Werkzeug-Komponente" #FDEDEC
+  control "Planner" as Planner
+  control "Werkzeug-Orchestrierung" as Tools
+  control "Foundation Model Adapter" as FM
+end box
+
+box "Ontologie- und Wissensgraph-Komponente" #FFF3CD
+  database "Persistenter KG" as KG
+end box
+
+box "Artefakt- und Ingestion-Komponente" #F4F6F7
+  collections "Normalisierte Artefaktbasis" as Artifacts
+end box
+
+User -> UI : Frage im Chat
+activate UI
+
+UI -> Session : ask(question)
+activate Session
+Session -> Memory : Verlauf und Fehlerkontext laden
+activate Memory
+Memory --> Session : Sitzungs- und Diagnosekontext
+deactivate Memory
+
+Session -> Planner : plan(question, context)
+activate Planner
+Planner --> Session : Analyseplan
+deactivate Planner
+
+Session -> Tools : execute(plan, context)
+activate Tools
+Tools -> KG : Graphkontext abfragen
+activate KG
+KG --> Tools : semantische Beziehungen
+deactivate KG
+
+Tools -> Artifacts : Code-, IO- und Projektbelege holen
+activate Artifacts
+Artifacts --> Tools : relevante Artefaktbelege
+deactivate Artifacts
+Tools --> Session : ToolResultBundle
+deactivate Tools
+
+Session -> FM : synthesize(question, context, tool_results)
+activate FM
+FM --> Session : Antwortentwurf
+deactivate FM
+
+Session -> Memory : ChatTurn speichern
+activate Memory
+Memory --> Session : gespeichert
+deactivate Memory
+
+Session --> UI : Antwortentwurf + Belege
+deactivate Session
+
+UI -> Guard : check(answer)
+activate Guard
+Guard --> UI : freigegebene Antwort
+deactivate Guard
+
+UI --> User : Antwort im Chat
+deactivate UI
+
+@enduml

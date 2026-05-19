@@ -1,0 +1,22 @@
+Sequenzdiagramm: Abstrakter Frage-Antwort-Chat des ExcH-RAG-Agenten
+
+Titel:
+Abstrakter Frage-Antwort-Chat
+
+Zweck:
+Dieses Sequenzdiagramm reduziert den RAG-Agenten auf einen einfachen Chat-Turn. Es zeigt die Interaktion der Hauptkomponenten, ohne die detaillierte Sitzungsinitialisierung oder Dokumentaufbereitung auszubreiten.
+
+Ablauf:
+
+1. Die nutzende Instanz stellt eine Frage ueber die RagAgent UI.
+2. Die UI delegiert die Frage an die SimpleRagSession.
+3. Die Session buendelt den Diagnosekontext aus RagIncidentContext und Chatverlauf.
+4. Die Retrieval-Komponente sucht im SimpleRagIndex nach passenden Kontextstellen.
+5. Der Index nutzt den DocumentCorpus und erzeugt daraus RetrievedContextBlock-Objekte.
+6. Der GroundedAnswerGenerator baut aus Frage, Kontext und Retrieval-Ergebnissen einen Prompt.
+7. Das FoundationModelGateway fuehrt den Modellaufruf aus.
+8. Die GuardrailPolicy prueft Grounding und Antwortformat.
+9. Die Session speichert den ChatTurn und gibt die Antwort ueber die UI an die nutzende Instanz zurueck.
+
+Interpretation:
+Das Diagramm zeigt den RAG-Agenten als retrievalzentrierten Chat-Agenten. Im Vergleich zum KG-Agenten steht nicht die Planung und Werkzeugausfuehrung im Vordergrund, sondern das Abrufen relevanter Dokumentstellen und die geerdete Antwortgenerierung.

@@ -1,0 +1,148 @@
+@startuml msrguard_agentenintegration_stufe3_component_diagram_slide
+
+' PowerPoint-friendly class diagram variant of msrguard_agentenintegration_stufe3_component_diagram.plantuml
+
+'top to bottom direction
+left to right direction
+scale max 1500*840
+allowmixing
+hide empty fields
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam RoundCorner 0
+skinparam nodesep 35
+skinparam ranksep 45
+skinparam wrapWidth 180
+skinparam maxMessageSize 90
+skinparam defaultTextAlignment center
+skinparam classFontSize 22
+skinparam classAttributeFontSize 18
+
+skinparam class {
+  FontSize 22
+  AttributeFontSize 18
+}
+
+skinparam package {
+  FontSize 18
+}
+
+skinparam database {
+  FontSize 24
+}
+
+skinparam rectangle<<Spacer>> {
+  BackgroundColor #FFFFFF
+  BorderColor #FFFFFF
+  FontColor #FFFFFF
+}
+
+package "MSRGuard Runtime" as MSR {
+  interface ReactiveObserver #DDEEFF{
+    + {abstract} onEvent(event)
+  }
+
+  class EventBus #DDEEFF {
+    + subscribe(...)
+    + post(event)
+    + process(...)
+    + ...
+  }
+
+  class ReactionManager #DDEEFF {
+    + onEvent(event)
+    - fetchFailureModeParameters(...)
+    - createCommandForceForPlan(...)
+    + ...
+  }
+
+  class FailureRecorder #DDEEFF {
+    + subscribeAll()
+    + onEvent(event)
+    - startIngestionWith(params)
+    + ...
+  }
+
+  class AgentGate {
+    + set(active)
+    + isActive()
+    + wait_until_inactive_for(...)
+  }
+
+  EventBus "1" o-- "*" ReactiveObserver
+  ReactiveObserver <|.. ReactionManager
+  ReactiveObserver <|.. FailureRecorder
+
+  ReactiveObserver -[hidden]right-> ReactionManager
+  ReactionManager -[hidden]right-> FailureRecorder
+  FailureRecorder -[hidden]right-> EventBus
+  EventBus -[hidden]right-> AgentGate
+}
+
+package "Integrationsschicht\nStufe 3" as INT {
+  class AgentStartCoordinator {
+    + onEvent(event)
+    - handleUnknownFM(ack)
+    - handleIngestionDone(ack)
+    - tryEmitAgentStartLocked(...)
+    + ...
+  }
+
+  class ExcHUiObserver {
+    + onEvent(event)
+    + setEnabled(enabled)
+    - launchPythonUI_async(ack)
+    + ...
+  }
+
+  AgentStartCoordinator -[hidden]down-> ExcHUiObserver
+}
+
+package "Python-Agentenlaufzeit" as PY {
+  class "Python-Agent-UI" as PythonAgentUI {
+    + loadEvent()
+    + launchAgent()
+    + writeResult()
+    + ...
+  }
+
+  class "ExcH-KG-Agent" as KGAgent {
+    + ...
+  }
+
+  class "ExcH-RAG-Agent" as RAGAgent {
+    + ...
+  }
+
+  PythonAgentUI -[hidden]down-> KGAgent
+  KGAgent -[hidden]right-> RAGAgent
+}
+
+database "FMEA-KG" as FMEAKG
+database "SPS-KG" as SPSKG
+' Invisible width anchor so the generated SVG keeps a PowerPoint-friendly 16:9 canvas.
+rectangle "........................................................................................................" as SlideWide <<Spacer>>
+
+AgentStartCoordinator -- AgentGate
+ExcHUiObserver --> PythonAgentUI
+
+PythonAgentUI ..> KGAgent
+PythonAgentUI ..> RAGAgent
+
+FailureRecorder --> FMEAKG
+PY --> FMEAKG
+PY --> SPSKG
+
+ReactiveObserver <|.. AgentStartCoordinator
+ReactiveObserver <|.. ExcHUiObserver
+
+MSR -[hidden]down-> INT
+INT -[hidden]down-> PY
+PY -[hidden]down-> FMEAKG
+FMEAKG -[hidden]right-> SPSKG
+SPSKG -[hidden]right-> SlideWide
+
+@enduml

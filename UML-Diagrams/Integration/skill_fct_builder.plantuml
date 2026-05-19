@@ -1,0 +1,69 @@
+@startuml fmea_skill_hardware_io_class_diagram
+'title FMEA Skill Function and Hardware IO Resolver
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+package "fmea_skill_function_builder" {
+  class FMEASkillFunctionBuilder {
+    - plc_kg_path: Path
+    - fmea_kg_path: Path
+    - plc_graph: Graph
+    +...
+    + suggest_functions(): list<SkillFunctionSuggestion>
+    + resolve_skill_hardware_io(suggestions, max_nodes): dict<str, SkillHardwareIOResult>
+    + build_skill_io_map(suggestions, max_nodes): dict<str, dict>
+    +...
+  }
+
+  class SkillFunctionSuggestion <<dataclass>> {
+    + function_id: str
+    + runtime_names: set<str>
+    + pou_iris: set<URIRef>
+    +...
+    + function_uri: URIRef
+  }
+
+  class SkillHardwareIOResolver {
+    - graph: Graph
+    - asrs_runtime_map: dict<str, str>
+    - skip_local_names: set<str>
+    +...
+    + resolve(suggestion, max_nodes): SkillHardwareIOResult
+    + resolve_all(suggestions, max_nodes): dict<str, SkillHardwareIOResult>
+    - _seed_calls_for_suggestion(suggestion): list<URIRef>
+    +...
+  }
+
+  class SkillHardwareIOResult <<dataclass>> {
+    + function_id: str
+    + sensors: set<URIRef>
+    + actors: set<URIRef>
+    +...
+    + has_hardware: bool
+    + debug: dict<str, object>
+    + as_skill_io_entry(): dict<str, object>
+  }
+}
+
+
+FMEASkillFunctionBuilder o-- "many" SkillFunctionSuggestion : creates
+FMEASkillFunctionBuilder ..> SkillHardwareIOResolver : delegates IO resolution
+FMEASkillFunctionBuilder ..> SkillHardwareIOResult : returns
+'SkillHardwareIOResolver --> Graph : traverses
+SkillHardwareIOResolver ..> SkillFunctionSuggestion : input
+SkillHardwareIOResolver o-- "many" SkillHardwareIOResult : creates
+'SkillFunctionSuggestion --> URIRef : pou_iris / skill_iris
+'SkillHardwareIOResult --> URIRef : sensors / actors / seed_calls
+
+'note right of SkillHardwareIOResolver
+'Starts from concrete POUCall matches.
+'Traverses assignments, expressions,
+'port instances and FB instances until
+'dp:hasHardwareAddress is reached.
+'Read-only input paths are separated from
+'signal-flow output paths.
+'end note
+
+@enduml

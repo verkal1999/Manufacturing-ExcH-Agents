@@ -123,10 +123,6 @@ ag:StandardFBType_TOF a ag:class_FBType,
         ag:Port_TOF_Q ;
     rdfs:comment "TOF ist eine Ausschaltverzögerung. Solange IN TRUE ist, ist Q TRUE. Wenn IN von TRUE auf FALSE wechselt, bleibt Q noch für die Dauer PT TRUE und ET zählt die Nachlaufzeit. Wenn IN während des Nachlaufs wieder TRUE wird, wird der Nachlauf abgebrochen und Q bleibt TRUE."@de .
 
-ag:class_CustomFBType a owl:Class ;
-    rdfs:comment "Diese Klasse kennzeichnet Function Block Typen, die projekt spezifisch implementiert wurden und nicht aus einer Standardbibliothek stammen. Sie dient dazu, benutzerdefinierte Logikbausteine semantisch von generischen Standardfunktionen zu trennen, damit Analysen gezielter durchgeführt werden können. CustomFBTypes bilden häufig die eigentlichen Skills oder spezifische Steuerungslogik ab, zum Beispiel Bewegungen einer Achse, Prozessschritte oder die Abbildung einer Stationsfunktion. Im Knowledge Graph ist die Klasse hilfreich, um Abhängigkeiten zwischen Skills zu identifizieren, Schnittstellen zu vergleichen und zentrale Bausteine zu priorisieren. Aus PLCopen XML lassen sich solche Typen meist daran erkennen, dass sie als eigene POU Definitionen im Projekt auftauchen und keinen eindeutigen Standardnamen wie TON, TOF oder RS besitzen. In späteren Auswertungen kann diese Unterscheidung genutzt werden, um automatisiert eine Liste relevanter Skills zu extrahieren und Standardkomponenten wie Timer oder Trigger auszublenden. Insgesamt unterstützt class_CustomFBType somit die fachliche Strukturierung der Projektlogik und erleichtert die Dokumentation, weil projektbezogene Funktionen klar markiert werden."@de ;
-    rdfs:subClassOf ag:class_FBType .
-
 dp:hasConfidence a owl:DatatypeProperty ;
     rdfs:subPropertyOf dp:hasHypothesisParams .
 
@@ -169,6 +165,22 @@ dp:hasHardwareAddress a owl:DatatypeProperty ;
     rdfs:domain ag:class_Variable ;
     rdfs:range xsd:string ;
     rdfs:subPropertyOf owl:topDataProperty .
+
+dp:hasHypothesisDescription a owl:DatatypeProperty ;
+    rdfs:domain ag:class_SkillImplementationHypothesis ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf dp:hasHypothesisParams .
+
+dp:hasHypothesisSource a owl:DatatypeProperty ;
+    rdfs:domain ag:class_SkillImplementationHypothesis ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf dp:hasHypothesisParams .
+
+dp:hasJobMethodName a owl:DatatypeProperty .
+
+dp:hasMethodReturnType a owl:DatatypeProperty .
+
+dp:hasMethodType a owl:DatatypeProperty .
 
 dp:hasOPCUADataAccess a owl:DatatypeProperty ;
     rdfs:domain ag:class_Variable ;
@@ -232,9 +244,26 @@ dp:hasPortType a owl:DatatypeProperty ;
 dp:hasRationale a owl:DatatypeProperty ;
     rdfs:subPropertyOf dp:hasHypothesisParams .
 
+dp:hasRuntimeSkillName a owl:DatatypeProperty ;
+    rdfs:domain ag:class_SkillImplementationHypothesis ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf dp:hasHypothesisParams .
+
 dp:hasSkillDescription a owl:DatatypeProperty ;
     rdfs:domain ag:class_Skill ;
     rdfs:range xsd:string .
+
+dp:hasSuggestedFunctionID a owl:DatatypeProperty ;
+    rdfs:domain ag:class_SkillImplementationHypothesis ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf dp:hasHypothesisParams .
+
+dp:hasSuggestedParentFunctionID a owl:DatatypeProperty ;
+    rdfs:domain ag:class_SkillImplementationHypothesis ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf dp:hasHypothesisParams .
+
+dp:hasTcRpcEnabled a owl:DatatypeProperty .
 
 dp:hasVariableName a owl:DatatypeProperty ;
     rdfs:domain ag:class_Variable ;
@@ -279,6 +308,10 @@ dp:isGEMMAStateMachine a owl:DatatypeProperty ;
     rdfs:range xsd:boolean ;
     rdfs:subPropertyOf dp:isSpecificLayer .
 
+dp:isJobMethod a owl:DatatypeProperty ;
+    rdfs:domain ag:class_CustomFBType ;
+    rdfs:range xsd:boolean .
+
 dp:isUnusedPort a owl:DatatypeProperty ;
     rdfs:domain ag:class_Port ;
     rdfs:range xsd:boolean ;
@@ -311,6 +344,11 @@ ag:op_containsPOUCall a owl:ObjectProperty ;
     rdfs:domain ag:class_POU ;
     rdfs:range ag:class_POUCall .
 
+ag:op_hasAbortMethod a owl:ObjectProperty ;
+    rdfs:domain ag:class_CustomFBType ;
+    rdfs:range ag:class_Method ;
+    rdfs:subPropertyOf ag:op_hasMethod .
+
 ag:op_hasAssignment a owl:ObjectProperty ;
     rdfs:domain ag:class_POUCall ;
     rdfs:range ag:class_ParameterAssignment .
@@ -318,6 +356,11 @@ ag:op_hasAssignment a owl:ObjectProperty ;
 ag:op_hasCallerVariable a owl:ObjectProperty ;
     rdfs:domain ag:class_POUCall ;
     rdfs:range ag:class_Variable .
+
+ag:op_hasCheckStateMethod a owl:ObjectProperty ;
+    rdfs:domain ag:class_CustomFBType ;
+    rdfs:range ag:class_Method ;
+    rdfs:subPropertyOf ag:op_hasMethod .
 
 ag:op_hasHypothesisAboutPOU a owl:ObjectProperty ;
     rdfs:domain ag:class_SkillImplementationHypothesis ;
@@ -338,8 +381,13 @@ ag:op_hasInternalVariable a owl:ObjectProperty ;
     rdfs:range ag:class_Variable .
 
 ag:op_hasPort a owl:ObjectProperty ;
-    rdfs:domain ag:class_FBType ;
+    rdfs:domain ag:class_POU ;
     rdfs:range ag:class_Port .
+
+ag:op_hasStartMethod a owl:ObjectProperty ;
+    rdfs:domain ag:class_CustomFBType ;
+    rdfs:range ag:class_Method ;
+    rdfs:subPropertyOf ag:op_hasMethod .
 
 ag:op_implementsMonAct a owl:ObjectProperty ;
     rdfs:domain ag:class_POU ;
@@ -390,6 +438,8 @@ ag:op_isMappedToVariable a owl:ObjectProperty ;
     rdfs:domain ag:class_Variable ;
     rdfs:range ag:class_Variable .
 
+ag:op_isMethodOf a owl:ObjectProperty .
+
 ag:op_isPortOfInstance a owl:ObjectProperty ;
     rdfs:domain ag:class_PortInstance ;
     rdfs:range ag:class_FBInstance .
@@ -397,6 +447,10 @@ ag:op_isPortOfInstance a owl:ObjectProperty ;
 ag:op_isSubProgramOf a owl:ObjectProperty ;
     rdfs:domain ag:class_Program ;
     rdfs:range ag:class_Program .
+
+ag:op_isSubSkillOf a owl:ObjectProperty ;
+    rdfs:domain ag:class_Skill ;
+    rdfs:range ag:class_Skill .
 
 ag:op_listsGlobalVariable a owl:ObjectProperty ;
     rdfs:domain ag:class_GlobalVariableList ;
@@ -417,6 +471,10 @@ ag:op_usesPort a owl:ObjectProperty ;
 ag:op_usesVariable a owl:ObjectProperty ;
     rdfs:domain ag:class_POU ;
     rdfs:range ag:class_Variable .
+
+ag:op_validatedFromHypothesis a owl:ObjectProperty ;
+    rdfs:domain ag:class_Skill ;
+    rdfs:range ag:class_SkillImplementationHypothesis .
 
 ag:FBInst_FB_Automatikbetrieb_F1_pPer a ag:class_FBInstance ;
     dp:hasFBInstanceName "pPer"^^xsd:string ;
@@ -1084,6 +1142,7 @@ ag:Port_TP_Q a ag:class_Port,
     rdfs:comment "Q ist der BOOL Ausgang des Impulses. Q ist für die Dauer PT TRUE."@de .
 
 ag:Program_MAIN a ag:class_Program ;
+    dp:hasJobMethodName "M_Methode1"^^xsd:string ;
     dp:hasPOUCode """// POU MAIN body
 edgeDone(CLK := fbDiag.Diagnose_beendet);
 
@@ -1154,6 +1213,7 @@ END_VAR"""^^xsd:string ;
     dp:hasPOULanguage "ST" ;
     dp:hasPOUName "MAIN" ;
     dp:hasProgramName "MAIN" ;
+    dp:isJobMethod true ;
     ag:op_hasInternalVariable ag:Var_MAIN_A2_angefordert,
         ag:Var_MAIN_D3_angefordert,
         ag:Var_MAIN_Init_erreicht,
@@ -1202,7 +1262,8 @@ ag:class_SourceLiteral a owl:Class ;
 
 ag:class_SystemReaction a owl:Class .
 
-ag:FBType_FB_Automatikbetrieb_F1 a ag:class_FBType ;
+ag:FBType_FB_Automatikbetrieb_F1 a ag:class_CustomFBType,
+        ag:class_FBType ;
     dp:hasPOUCode """// POU FB_Automatikbetrieb_F1 body
 IF GVL.Start THEN
 	AutoRestartEnable := TRUE;
@@ -1374,7 +1435,8 @@ END_VAR"""^^xsd:string ;
         ag:Var_FB_Automatikbetrieb_F1_tSchritt2,
         ag:Var_FB_Automatikbetrieb_F1_tpRestart .
 
-ag:FBType_FB_Betriebsarten a ag:class_FBType ;
+ag:FBType_FB_Betriebsarten a ag:class_CustomFBType,
+        ag:class_FBType ;
     dp:hasPOUCode """import time
 
 def FB_Betriebsarten(V_10000000001: bool, D2: bool, A5: bool, GVL.Start: bool, A1: bool, D1: bool, D3: bool, V_30000000002: bool, V_30000000005: bool, GVL.Weiter: bool, GVL.NotStopp, A6, V_30000000011: bool, Auto_Stoerung, F1, GVL.DiagnoseRequested, Alt_abort, V_40000000012: bool, Alt_found, D3_Requested, A2, Init_reached, Cycle_ended, A2_Requested, Start_Init):
@@ -1735,7 +1797,8 @@ END_VAR"""^^xsd:string ;
         ag:Var_FB_Betriebsarten_Weiter,
         ag:Var_FB_Betriebsarten_bFirstScan .
 
-ag:FBType_FB_Diagnose_D2 a ag:class_FBType ;
+ag:FBType_FB_Diagnose_D2 a ag:class_CustomFBType,
+        ag:class_FBType ;
     dp:hasPOUCode """// POU FB_Diagnose_D2 body
 rtReq(CLK := Diagnose_gefordert);
 
@@ -1809,7 +1872,8 @@ END_VAR"""^^xsd:string ;
         ag:Var_FB_Diagnose_D2_rtReq,
         ag:Var_FB_Diagnose_D2_tpPulse .
 
-ag:FBType_FB_InitFahrt_A6_A2 a ag:class_FBType ;
+ag:FBType_FB_InitFahrt_A6_A2 a ag:class_CustomFBType,
+        ag:class_FBType ;
     dp:hasPOUCode """// POU FB_InitFahrt_A6_A2 body
 IF A6 THEN
 	tInit(IN := A6, PT := T#3S);
@@ -1849,67 +1913,8 @@ END_VAR"""^^xsd:string ;
         ag:Var_FB_InitFahrt_A6_A2_Init_erreicht,
         ag:Var_FB_InitFahrt_A6_A2_tInit .
 
-ag:FBType_FB_Methode1Job a ag:class_FBType ;
-    dp:hasPOUCode """// METHOD Abort of FB_Methode1Job
-running := FALSE;
-Abort := 0;
-
-// METHOD CheckState of FB_Methode1Job
-IF running THEN
-	
-    
-    
-        
-    
-	reached := TRUE;
-
-    
-    t20s(IN := reached, PT := T#9S);
-
-    IF reached AND t20s.Q THEN
-        y := 119;
-        running := FALSE;
-    END_IF
-END_IF
-
-bBusy := running;
-yOut  := y;
-CheckState := 0;
-
-// METHOD Start of FB_Methode1Job
-counter := x;
-reached := FALSE;
-running := TRUE;
-t20s(IN := FALSE, PT := T#9S);   
-hdl := 0;                         
-Start := 0;""" ;
-    dp:hasPOUDeclarationHeader """{attribute 'OPC.UA.DA.JobMethod' := 'M_Methode1'} // Dieser FB wird als OPC-UA-Job "M_Methode1" veröffentlicht
-FUNCTION_BLOCK FB_Methode1Job
-VAR
-    running : BOOL := FALSE;
-    counter : DINT := 0;
-    reached : BOOL := FALSE;
-    t20s    : TON;        // 20-s-Timer, läuft zyklisch
-    y       : DINT := 0;  // Ergebnis
-END_VAR
-// Wichtig: Bei Job-Methoden deklariert man den Funktionsbaustein mit
-//{attribute 'OPC.UA.DA.JobMethod' := 'NameDerUAMethod'}
-//und markiert die drei PLC-METHODs Start, CheckState, Abort jeweils mit TcRpcEnable. 
-//CheckState besitzt zwingend das Output bBusy, über das der Server erkennt, ob der Job noch läuft."""^^xsd:string ;
-    dp:hasPOULanguage "ST" ;
-    dp:hasPOUName "FB_Methode1Job" ;
-    ag:op_hasInternalVariable ag:Var_FB_Methode1Job_counter,
-        ag:Var_FB_Methode1Job_reached,
-        ag:Var_FB_Methode1Job_running,
-        ag:Var_FB_Methode1Job_t20s,
-        ag:Var_FB_Methode1Job_y ;
-    ag:op_usesVariable ag:Var_FB_Methode1Job_counter,
-        ag:Var_FB_Methode1Job_reached,
-        ag:Var_FB_Methode1Job_running,
-        ag:Var_FB_Methode1Job_t20s,
-        ag:Var_FB_Methode1Job_y .
-
-ag:FBType_FB_Notaus_D1 a ag:class_FBType ;
+ag:FBType_FB_Notaus_D1 a ag:class_CustomFBType,
+        ag:class_FBType ;
     dp:hasPOUCode """// POU FB_Notaus_D1 body
 IF D1 THEN
     OPCUA.TriggerD1 := TRUE;         
@@ -1950,7 +1955,8 @@ END_VAR"""^^xsd:string ;
         ag:Var_FB_Notaus_D1_Notaus_Entriegelt,
         ag:Var_FB_Notaus_D1_ton5s .
 
-ag:FBType_FB_ProduktionMitStoerung_D3 a ag:class_FBType ;
+ag:FBType_FB_ProduktionMitStoerung_D3 a ag:class_CustomFBType,
+        ag:class_FBType ;
     dp:hasPOUCode """// POU FB_ProduktionMitStoerung_D3 body
 rStart(CLK := ProduktionMitStoerung_Starten);
 IF rStart.Q THEN
@@ -2062,6 +2068,96 @@ END_VAR"""^^xsd:string ;
         ag:Var_FB_ProduktionMitStoerung_D3_tSchritt4,
         ag:Var_FB_ProduktionMitStoerung_D3_tpRestart,
         ag:Var_FB_ProduktionMitStoerung_D3_z .
+
+ag:Method_Abort_FB_Methode1Job a ag:class_Method ;
+    dp:hasMethodReturnType "HRESULT"^^xsd:string ;
+    dp:hasMethodType "Abort"^^xsd:string ;
+    dp:hasPOUCode """running := FALSE;
+Abort := 0;""" ;
+    dp:hasPOUDeclarationHeader """{attribute 'TcRpcEnable' := '1'}
+METHOD PUBLIC Abort : HRESULT
+// Aufräumen bei Server-Shutdown/Abbruch"""^^xsd:string ;
+    dp:hasPOULanguage "ST" ;
+    dp:hasPOUName "Abort" ;
+    dp:hasPOUType "Method" ;
+    dp:hasTcRpcEnabled true ;
+    ag:op_isMethodOf ag:FBType_FB_Methode1Job .
+
+ag:Method_CheckState_FB_Methode1Job a ag:class_Method ;
+    dp:hasMethodReturnType "HRESULT"^^xsd:string ;
+    dp:hasMethodType "CheckState"^^xsd:string ;
+    dp:hasPOUCode """IF running THEN
+	
+    
+    
+        
+    
+	reached := TRUE;
+
+    
+    t20s(IN := reached, PT := T#9S);
+
+    IF reached AND t20s.Q THEN
+        y := 119;
+        running := FALSE;
+    END_IF
+END_IF
+
+bBusy := running;
+yOut  := y;
+CheckState := 0;""" ;
+    dp:hasPOUDeclarationHeader """{attribute 'TcRpcEnable' := '1'}
+METHOD PUBLIC CheckState : HRESULT
+VAR_INPUT
+    hdl : UDINT;       // vom Server übergeben (wenn genutzt)
+END_VAR
+VAR_OUTPUT
+    bBusy : BOOL;      // **erforderlich** für Job-Methode
+    yOut  : DINT;      // UA-Output
+END_VAR"""^^xsd:string ;
+    dp:hasPOULanguage "ST" ;
+    dp:hasPOUName "CheckState" ;
+    dp:hasPOUType "Method" ;
+    dp:hasTcRpcEnabled true ;
+    ag:op_hasInternalVariable ag:Var_Method_CheckState_FB_Methode1Job_bBusy,
+        ag:Var_Method_CheckState_FB_Methode1Job_hdl,
+        ag:Var_Method_CheckState_FB_Methode1Job_yOut ;
+    ag:op_hasPort ag:Port_Method_CheckState_FB_Methode1Job_bBusy,
+        ag:Port_Method_CheckState_FB_Methode1Job_hdl,
+        ag:Port_Method_CheckState_FB_Methode1Job_yOut ;
+    ag:op_isMethodOf ag:FBType_FB_Methode1Job ;
+    ag:op_usesVariable ag:Var_Method_CheckState_FB_Methode1Job_bBusy,
+        ag:Var_Method_CheckState_FB_Methode1Job_hdl,
+        ag:Var_Method_CheckState_FB_Methode1Job_yOut .
+
+ag:Method_Start_FB_Methode1Job a ag:class_Method ;
+    dp:hasMethodReturnType "HRESULT"^^xsd:string ;
+    dp:hasMethodType "Start"^^xsd:string ;
+    dp:hasPOUCode """counter := x;
+reached := FALSE;
+running := TRUE;
+t20s(IN := FALSE, PT := T#9S);   
+hdl := 0;                         
+Start := 0;""" ;
+    dp:hasPOUDeclarationHeader """{attribute 'TcRpcEnable' := '1'}
+METHOD PUBLIC Start : HRESULT
+VAR_INPUT
+    x : DINT;           // Eingabe der UA-Methode
+END_VAR
+VAR_OUTPUT
+    hdl : UDINT;        // optionaler Handle für parallele Aufrufe
+END_VAR"""^^xsd:string ;
+    dp:hasPOULanguage "ST" ;
+    dp:hasPOUName "Start" ;
+    dp:hasPOUType "Method" ;
+    dp:hasTcRpcEnabled true ;
+    ag:op_hasInternalVariable ag:Var_Method_Start_FB_Methode1Job_hdl,
+        ag:Var_Method_Start_FB_Methode1Job_x ;
+    ag:op_hasPort ag:Port_Method_Start_FB_Methode1Job_hdl,
+        ag:Port_Method_Start_FB_Methode1Job_x ;
+    ag:op_isMethodOf ag:FBType_FB_Methode1Job ;
+    ag:op_usesVariable ag:Var_Method_Start_FB_Methode1Job_hdl,
+        ag:Var_Method_Start_FB_Methode1Job_x .
 
 ag:Port_FB_Automatikbetrieb_F1_AutoRestartEnable a ag:class_Port ;
     dp:hasPortDirection "Input" ;
@@ -2252,6 +2348,31 @@ ag:Port_FB_ProduktionMitStoerung_D3_Stoerung_erkannt a ag:class_Port ;
     dp:hasPortDirection "Output" ;
     dp:hasPortName "Stoerung_erkannt" ;
     dp:hasPortType "BOOL" .
+
+ag:Port_Method_CheckState_FB_Methode1Job_bBusy a ag:class_Port ;
+    dp:hasPortDirection "Output" ;
+    dp:hasPortName "bBusy" ;
+    dp:hasPortType "BOOL" .
+
+ag:Port_Method_CheckState_FB_Methode1Job_hdl a ag:class_Port ;
+    dp:hasPortDirection "Input" ;
+    dp:hasPortName "hdl" ;
+    dp:hasPortType "UDINT" .
+
+ag:Port_Method_CheckState_FB_Methode1Job_yOut a ag:class_Port ;
+    dp:hasPortDirection "Output" ;
+    dp:hasPortName "yOut" ;
+    dp:hasPortType "DINT" .
+
+ag:Port_Method_Start_FB_Methode1Job_hdl a ag:class_Port ;
+    dp:hasPortDirection "Output" ;
+    dp:hasPortName "hdl" ;
+    dp:hasPortType "UDINT" .
+
+ag:Port_Method_Start_FB_Methode1Job_x a ag:class_Port ;
+    dp:hasPortDirection "Input" ;
+    dp:hasPortName "x" ;
+    dp:hasPortType "DINT" .
 
 ag:Var_FB_Automatikbetrieb_F1_AutoRestartEnable a ag:class_Variable ;
     dp:hasVariableName "AutoRestartEnable" ;
@@ -2843,6 +2964,31 @@ ag:Var_MAIN_fbProStoer a ag:class_Variable ;
     dp:hasVariableType "FB_ProduktionMitStoerung_D3" ;
     ag:op_representsFBInstance ag:FBInst_MAIN_fbProStoer .
 
+ag:Var_Method_CheckState_FB_Methode1Job_bBusy a ag:class_Variable ;
+    dp:hasVariableName "bBusy" ;
+    dp:hasVariableType "BOOL" ;
+    ag:op_implementsPort ag:Port_Method_CheckState_FB_Methode1Job_bBusy .
+
+ag:Var_Method_CheckState_FB_Methode1Job_hdl a ag:class_Variable ;
+    dp:hasVariableName "hdl" ;
+    dp:hasVariableType "UDINT" ;
+    ag:op_implementsPort ag:Port_Method_CheckState_FB_Methode1Job_hdl .
+
+ag:Var_Method_CheckState_FB_Methode1Job_yOut a ag:class_Variable ;
+    dp:hasVariableName "yOut" ;
+    dp:hasVariableType "DINT" ;
+    ag:op_implementsPort ag:Port_Method_CheckState_FB_Methode1Job_yOut .
+
+ag:Var_Method_Start_FB_Methode1Job_hdl a ag:class_Variable ;
+    dp:hasVariableName "hdl" ;
+    dp:hasVariableType "UDINT" ;
+    ag:op_implementsPort ag:Port_Method_Start_FB_Methode1Job_hdl .
+
+ag:Var_Method_Start_FB_Methode1Job_x a ag:class_Variable ;
+    dp:hasVariableName "x" ;
+    dp:hasVariableType "DINT" ;
+    ag:op_implementsPort ag:Port_Method_Start_FB_Methode1Job_x .
+
 ag:class_Expression a owl:Class ;
     rdfs:comment "Bbehandelt Ausrücke, wie z.B. AND, OR etc. aus mehreren Variablen oder Werten. Hat zudem immer ExpressionText und einen Verweis auf die erzeugenden Elemente." ;
     rdfs:subClassOf ag:class_SignalSource .
@@ -2900,9 +3046,7 @@ ag:class_Program a owl:Class ;
     rdfs:comment "Diese Klasse repräsentiert ein SPS Programm, das im Normalfall zyklisch von der Runtime ausgeführt wird und daher die oberste Ebene der Steuerungslogik bildet. Programme sind die Haupt Einstiegspunkte für die Ausführung, da sie typische Betriebsartenlogiken, Sequenzen oder Skill Orchestrierungen enthalten. Im Knowledge Graph dient diese Klasse dazu, die Gesamtabläufe sichtbar zu machen und die enthaltenen Aufrufe von Function Blocks als POUCalls explizit zu modellieren. Ein Programm besitzt in der Regel Beziehungen zu den aufgerufenen Bausteinen und deren Parameterzuweisungen, wodurch die Signalflüsse und Startbedingungen nachvollziehbar werden. Aus einem PLCopen XML Export entsteht diese Struktur aus den Program POUs, die häufig als zentrale Knoten für Skill Sets oder Stationslogik fungieren. Für Analysen ist class_Program besonders wichtig, weil hier häufig entschieden wird, welche Subsysteme wann aktiviert werden und welche Ausgänge überhaupt freigegeben werden dürfen. Damit ist die Klasse ideal, um Skill Trigger, Betriebsmodi und globale Abhängigkeiten im Gesamtprojekt zu verstehen."@de ;
     rdfs:subClassOf ag:class_POU .
 
-ag:class_Skill a owl:Class .
-
-ag:class_SkillImplementationHypothesis a owl:Class .
+ag:op_hasMethod a owl:ObjectProperty .
 
 ag:class_GlobalVariableList a owl:Class ;
     rdfs:comment "Diese Klasse beschreibt eine globale Variablenliste als Container, der projektweit zugängliche Variablen zusammenfasst. GlobalVariableLists werden in SPS Projekten verwendet, um gemeinsame Signale, Zustände oder Hardwarezuordnungen zentral zu verwalten und in mehreren Programmen oder Function Blocks nutzbar zu machen. Im Knowledge Graph ermöglicht diese Klasse eine klare Gruppierung der globalen Symbolik und erleichtert Abfragen, die sich auf globale Signale beziehen, etwa auf Safety Signale, Betriebsartenflags oder I O Variablen. Aus PLCopen XML wird eine solche Liste typischerweise aus GVL Bereichen abgeleitet, wobei jede enthaltene Variable separat als class_Variable modelliert wird. Die Klasse unterstützt außerdem die Nachvollziehbarkeit, weil sichtbar wird, welche Variablen tatsächlich global sind und welche nur lokal innerhalb eines Bausteins existieren. Für die Dokumentation ist class_GlobalVariableList hilfreich, um globale Schnittstellen der Anlage zu beschreiben und zentrale Signalgruppen systematisch zu erläutern. Außerdem lassen sich hieraus automatisch Listen für Hardwaremapping oder Schnittstellendokumente erzeugen."@de .
@@ -2912,12 +3056,50 @@ ag:class_POUCall a owl:Class ;
 
 dp:hasPortAttribute a owl:DatatypeProperty .
 
-dp:hasHypothesisParams a owl:DatatypeProperty ;
-    rdfs:domain ag:class_SkillImplementationHypothesis ;
-    rdfs:range xsd:string .
+ag:FBType_FB_Methode1Job a ag:class_CustomFBType,
+        ag:class_FBType ;
+    dp:hasJobMethodName "M_Methode1"^^xsd:string ;
+    dp:hasPOUDeclarationHeader """{attribute 'OPC.UA.DA.JobMethod' := 'M_Methode1'} // Dieser FB wird als OPC-UA-Job "M_Methode1" veröffentlicht
+FUNCTION_BLOCK FB_Methode1Job
+VAR
+    running : BOOL := FALSE;
+    counter : DINT := 0;
+    reached : BOOL := FALSE;
+    t20s    : TON;        // 20-s-Timer, läuft zyklisch
+    y       : DINT := 0;  // Ergebnis
+END_VAR
+// Wichtig: Bei Job-Methoden deklariert man den Funktionsbaustein mit
+//{attribute 'OPC.UA.DA.JobMethod' := 'NameDerUAMethod'}
+//und markiert die drei PLC-METHODs Start, CheckState, Abort jeweils mit TcRpcEnable. 
+//CheckState besitzt zwingend das Output bBusy, über das der Server erkennt, ob der Job noch läuft."""^^xsd:string ;
+    dp:hasPOULanguage "ST" ;
+    dp:hasPOUName "FB_Methode1Job" ;
+    dp:isJobMethod true ;
+    ag:op_hasAbortMethod ag:Method_Abort_FB_Methode1Job ;
+    ag:op_hasCheckStateMethod ag:Method_CheckState_FB_Methode1Job ;
+    ag:op_hasInternalVariable ag:Var_FB_Methode1Job_counter,
+        ag:Var_FB_Methode1Job_reached,
+        ag:Var_FB_Methode1Job_running,
+        ag:Var_FB_Methode1Job_t20s,
+        ag:Var_FB_Methode1Job_y ;
+    ag:op_hasMethod ag:Method_Abort_FB_Methode1Job,
+        ag:Method_CheckState_FB_Methode1Job,
+        ag:Method_Start_FB_Methode1Job ;
+    ag:op_hasStartMethod ag:Method_Start_FB_Methode1Job ;
+    ag:op_usesVariable ag:Var_FB_Methode1Job_counter,
+        ag:Var_FB_Methode1Job_reached,
+        ag:Var_FB_Methode1Job_running,
+        ag:Var_FB_Methode1Job_t20s,
+        ag:Var_FB_Methode1Job_y .
+
+ag:class_Method a owl:Class ;
+    rdfs:comment "Hier sind Methoden beschrieben, wie CheckState, Start und Abort, die bei JobMethoden eingesetzt werden. Nach IEC61131-3 sind sie zwar keine POUs, hier werden sie aber aufgrund der Ports deer Einfachheit halber so verwendet." ;
+    rdfs:subClassOf ag:class_POU .
 
 ag:class_SignalSource a owl:Class ;
     rdfs:comment "Diese Klasse stellt eine abstrakte Signalquelle dar und dient als gemeinsamer Oberbegriff für unterschiedliche Ursprünge von Werten im FBD Netzwerk. Eine Signalquelle kann beispielsweise eine Variable sein, eine PortInstance eines Bausteins oder ein konstant definierter Literalwert. Im Knowledge Graph ist diese Abstraktion wichtig, weil Parameterzuweisungen immer nach dem gleichen Muster funktionieren, unabhängig davon, ob der Wert aus einer Variable oder aus einer Bausteinausgabe stammt. Dadurch können Signalflüsse einheitlich modelliert und abgefragt werden, ohne für jede Quelle unterschiedliche Datenstrukturen zu benötigen. Aus PLCopen XML entstehen Signalquellen aus Verdrahtungen, die entweder direkt auf Variablen verweisen oder die Ausgänge anderer Bausteine als Quelle verwenden. Die Klasse unterstützt komplexe Analysen wie Abhängigkeitsgraphen, Datenflussverfolgung oder die Ermittlung von Skill Vorbedingungen, da sich jede Eingangsbelegung auf eine SignalSource zurückführen lässt. Insgesamt sorgt class_SignalSource dafür, dass der Knowledge Graph die semantische Struktur des FBD Netzwerks vollständig und flexibel repräsentieren kann."@de .
+
+ag:class_Skill a owl:Class .
 
 dp:hasVariableAttribute a owl:DatatypeProperty ;
     rdfs:subPropertyOf dp:hasSignalSourceAttribute .
@@ -2937,8 +3119,18 @@ ag:StandardFBType_TON a ag:class_FBType,
         ag:Port_TON_Q ;
     rdfs:comment "TON ist eine Einschaltverzögerung. Wenn IN TRUE wird, startet die Zeitmessung. ET zählt die verstrichene Zeit hoch. Sobald ET die Vorgabezeit PT erreicht und IN weiterhin TRUE ist, wird Q TRUE. Wenn IN FALSE wird, wird der Baustein zurückgesetzt und Q wird FALSE."@de .
 
+ag:class_SkillImplementationHypothesis a owl:Class .
+
 ag:class_StandardFBType a owl:Class ;
     rdfs:comment "Diese Klasse beschreibt Standard Function Block Typen, die typischerweise aus der SPS Bibliothek oder dem IEC 61131 3 Standard stammen, zum Beispiel RS Speicher, Triggerbausteine oder Zeitfunktionen. Sie wird eingesetzt, um wiederkehrende Basiskomponenten gesondert zu behandeln und nicht mit den projekt spezifischen Skill Bausteinen zu vermischen. StandardFBTypes dienen häufig als Infrastruktur für Zustandsbildung, Flankenerkennung, Zeitverhalten und Zählfunktionen und sind daher in vielen CustomFBTypes als interne Aufrufe enthalten. Im Knowledge Graph ermöglicht diese Klasse eine robuste Erkennung typischer Muster, etwa dass ein Skill durch einen R_TRIG gestartet wird, durch einen RS gehalten wird und durch Timerbedingungen gestoppt wird. Für die Analyse des Signalflusses sind Standardbausteine besonders relevant, weil sie häufig die eigentlichen Zustandswechsel erzwingen, auch wenn sie fachlich nicht als eigener Skill gelten. Aus PLCopen XML werden sie als POUCalls sichtbar, die innerhalb eines Bausteins auf solche Standardtypen verweisen. Die explizite Modellierung als StandardFBType verbessert außerdem das Filtering in Abfragen, sodass sich beispielsweise reine Skill Graphen ohne Bibliothekslogik erzeugen lassen."@de ;
+    rdfs:subClassOf ag:class_FBType .
+
+dp:hasHypothesisParams a owl:DatatypeProperty ;
+    rdfs:domain ag:class_SkillImplementationHypothesis ;
+    rdfs:range xsd:string .
+
+ag:class_CustomFBType a owl:Class ;
+    rdfs:comment "Diese Klasse kennzeichnet Function Block Typen, die projekt spezifisch implementiert wurden und nicht aus einer Standardbibliothek stammen. Sie dient dazu, benutzerdefinierte Logikbausteine semantisch von generischen Standardfunktionen zu trennen, damit Analysen gezielter durchgeführt werden können. CustomFBTypes bilden häufig die eigentlichen Skills oder spezifische Steuerungslogik ab, zum Beispiel Bewegungen einer Achse, Prozessschritte oder die Abbildung einer Stationsfunktion. Im Knowledge Graph ist die Klasse hilfreich, um Abhängigkeiten zwischen Skills zu identifizieren, Schnittstellen zu vergleichen und zentrale Bausteine zu priorisieren. Aus PLCopen XML lassen sich solche Typen meist daran erkennen, dass sie als eigene POU Definitionen im Projekt auftauchen und keinen eindeutigen Standardnamen wie TON, TOF oder RS besitzen. In späteren Auswertungen kann diese Unterscheidung genutzt werden, um automatisiert eine Liste relevanter Skills zu extrahieren und Standardkomponenten wie Timer oder Trigger auszublenden. Insgesamt unterstützt class_CustomFBType somit die fachliche Strukturierung der Projektlogik und erleichtert die Dokumentation, weil projektbezogene Funktionen klar markiert werden."@de ;
     rdfs:subClassOf ag:class_FBType .
 
 ag:StandardFBType_RS a ag:class_FBType,

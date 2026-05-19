@@ -13,8 +13,8 @@ skinparam DefaultFontSize 12
 skinparam packageTitleFontSize 13
 skinparam classFontSize 12
 hide empty members
-left to right direction
-'top to bottom direction
+'left to right direction
+top to bottom direction
 scale max 1400 width
 
 'title Evaluationsaufbau - vereinfachte Uebersicht

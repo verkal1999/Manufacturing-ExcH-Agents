@@ -1,0 +1,86 @@
+@startuml
+
+scale max 1600*900
+
+skinparam shadowing false
+skinparam responseMessageBelowArrow false
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 44
+skinparam BoxPadding 6
+skinparam DefaultFontSize 10
+skinparam maxMessageSize 120
+hide footbox
+autonumber
+
+actor "Nutzende\nInstanz" as User
+
+box "Interaktions- und Sitzungs-Komponente" #EAF3FB
+  boundary "RagAgent UI" as UI
+  control "SimpleRag Session" as Session
+end box
+
+box "Kontext-Komponente" #E8F5E9
+  entity "RagIncident Context" as Ctx
+end box
+
+box "Artefakt- und Dokumenten-Komponente" #F4F6F7
+  collections "Document Corpus" as Corpus
+end box
+
+box "Retrieval-Komponente" #FFF3CD
+  control "SimpleRag Index" as Index
+  entity "Retrieved Context Block" as Block
+end box
+
+box "Generierungs- und Leitplanken-Komponente" #FDEDEC
+  control "GroundedAnswer Generator" as Generator
+  control "Guardrail Policy" as Guard
+end box
+
+box "Foundation-Modell-Komponente" #F9F3E6
+  control "Foundation Model Gateway" as FM
+end box
+
+User -> UI : Frage im Chat
+activate UI
+
+UI -> Session : ask(question)
+activate Session
+Session -> Ctx : Kontext und Verlauf buendeln
+activate Ctx
+Ctx --> Session : kompakter Diagnosekontext
+deactivate Ctx
+
+Session -> Index : retrieve(question, context)
+activate Index
+Index -> Corpus : relevante Chunks suchen
+activate Corpus
+Corpus --> Index : Dokument- und PLCOpenXML-Stellen
+deactivate Corpus
+create Block
+Index -> Block : create ranked context block
+Index --> Session : RetrievedContextBlock[]
+deactivate Index
+
+Session -> Generator : generate(question, context, blocks)
+activate Generator
+Generator -> FM : call(prompt)
+activate FM
+FM --> Generator : ModelResponse
+deactivate FM
+
+Generator -> Guard : pruefe Grounding und Antwortformat
+activate Guard
+Guard --> Generator : freigegebene Antwort
+deactivate Guard
+Generator --> Session : grounded answer
+deactivate Generator
+
+Session -> Session : ChatTurn speichern
+Session --> UI : Antwort + Quellenkontext
+deactivate Session
+
+UI --> User : Antwort im Chat
+deactivate UI
+
+@enduml

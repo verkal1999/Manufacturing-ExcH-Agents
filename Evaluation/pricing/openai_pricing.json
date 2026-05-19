@@ -1,5 +1,5 @@
 {
-  "_comment": "Preise in USD pro 1.000 Tokens (Stand: April 2026). Bitte aktuell halten.",
+  "_comment": "Preise in USD pro 1.000 Tokens (Stand: April 2026).",
   "gpt-4o-mini": {
     "input_per_1k":  0.00015,
     "output_per_1k": 0.0006

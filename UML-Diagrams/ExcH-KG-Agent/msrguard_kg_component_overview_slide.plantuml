@@ -1,0 +1,127 @@
+@startuml msrguard_kg_component_overview_slide
+' PowerPoint-friendly landscape component overview based on the uploaded KG-Agent sketch
+
+left to right direction
+scale max 1600*900
+
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam dpi 180
+skinparam nodesep 50
+skinparam ranksep 75
+skinparam padding 10
+skinparam wrapWidth 130
+skinparam maxMessageSize 90
+hide stereotype
+
+skinparam backgroundColor #FAFAFA
+
+skinparam component {
+  BackgroundColor #EAF3FB
+  BorderColor #2E86C1
+  BorderThickness 1.5
+  FontColor #1A252F
+  FontSize 11
+  FontStyle bold
+}
+
+skinparam package {
+  BackgroundColor #F4F6F7
+  BorderColor #2E4057
+  BorderThickness 2
+  FontColor #2E4057
+  FontSize 13
+  FontStyle bold
+}
+
+skinparam actor {
+  BackgroundColor #D5E8D4
+  BorderColor #2D6A4F
+  FontColor #1A252F
+  FontSize 11
+}
+
+skinparam database {
+  BackgroundColor #EAF3FB
+  BorderColor #2E86C1
+  FontColor #1A252F
+  FontSize 11
+  FontStyle bold
+}
+
+skinparam rectangle<<External>> {
+  BackgroundColor #D5E8D4
+  BorderColor #2D6A4F
+  FontColor #1A252F
+  FontSize 11
+}
+
+skinparam arrow {
+  Color #2E4057
+  FontColor #2E4057
+  FontSize 10
+  Thickness 1.5
+}
+
+database "Statische\nSteuerungsartefakte\nPLCOpenXML, IO-Mappings\nund Projektinformationen" as Artifacts
+rectangle "Nutzende\nInstanz" as User <<External>>
+component "Laufzeitumgebung\nFehlerereignis und Snapshot" as Runtime
+
+package "ExcH-KG-Agent" {
+  component "Artefakt- und\nIngestion-Komponente" as Ingestion
+  component "Ontologie-\nKomponente" as Ontology
+  database "Persistenter\nKG" as KG
+
+  component "Interaktions- und\nAusgabe-\nKomponente" as UI
+  component "Kontext- und\nSitzungs-\nKomponente" as Session
+
+  package "Modell-, Planner- und\nWerkzeugkomponente" as PlannerBlock {
+    component "Planner" as Planner
+    component "Foundation-\nModell" as FM
+
+    component "Struktur- und\nCodeanalyse" as StructureTool
+    component "KG-\nAbfrage" as KGQuery
+    component "Pfadrekon-\nstruktion" as PathTool
+    component "Variablen-\nund Signal-\nanalyse" as SignalTool
+
+    Planner -[hidden]right-> FM
+    Planner -[hidden]down-> StructureTool
+    FM -[hidden]down-> SignalTool
+    StructureTool -[hidden]right-> KGQuery
+    KGQuery -[hidden]right-> PathTool
+    PathTool -[hidden]right-> SignalTool
+  }
+
+  Ingestion -[hidden]right-> Ontology
+  Ontology -[hidden]right-> KG
+  KG -[hidden]right-> UI
+  UI -[hidden]down-> Session
+  KG -[hidden]down-> PlannerBlock
+  PlannerBlock -[hidden]right-> Session
+}
+
+User -[hidden]down-> UI
+Session -[hidden]down-> Runtime
+
+Artifacts --> Ingestion : Artefakte aufnehmen\nund normalisieren
+Ingestion --> Ontology : Strukturierte\nAusgangsbasis
+Ontology --> KG : Semantische Überführung\nund Ablage
+
+User --> UI : Anfrage,\nRückfrage,\nErgebnisnutzung
+UI --> Session : Folgefragen,\nSitzungsfortsetzung
+FM --> UI : Antwort
+
+Runtime --> Session : Fehlerkontext,\nSnapshot,\nProzessbezug
+Session <--> PlannerBlock : Daten
+KG ..> Session : Wissensbezug,\nGraph-Kontext
+
+Session --> Planner : Diagnosekontext
+Planner --> FM : Modellauswahl\nfür Aufgabe
+Planner --> StructureTool : Auswahl und\nOrchestrierung\nvon Werkzeugen
+SignalTool --> FM : Teilergebnisse\nder Werkzeuge
+KG --> KGQuery : Abfragen durch\nWerkzeuge
+
+@enduml

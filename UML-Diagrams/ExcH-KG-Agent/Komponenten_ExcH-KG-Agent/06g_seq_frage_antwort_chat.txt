@@ -1,0 +1,22 @@
+Sequenzdiagramm: Abstrakter Frage-Antwort-Chat des ExcH-KG-Agenten
+
+Titel:
+Abstrakter Frage-Antwort-Chat
+
+Zweck:
+Dieses Sequenzdiagramm reduziert den KG-Agenten auf einen einfachen Chat-Turn. Es zeigt die Interaktion der Hauptkomponenten, ohne die detaillierte Initialisierung, Ingestion oder einzelne Werkzeugimplementierungen auszubreiten.
+
+Ablauf:
+
+1. Die nutzende Instanz stellt eine Frage ueber die ExcHAgent UI.
+2. Die UI delegiert die Frage an die ExcHChatBotSession.
+3. Die Session laedt Verlauf und Fehlerkontext aus der SessionMemory.
+4. Der Planner erzeugt einen abstrakten Analyseplan fuer die Frage.
+5. Die Werkzeug-Orchestrierung fuehrt die geplanten Schritte aus.
+6. Die Werkzeuge fragen semantische Beziehungen aus dem persistenten KG ab.
+7. Bei Bedarf holen die Werkzeuge normalisierte Artefaktbelege aus der Artefaktbasis.
+8. Die Session laesst aus Frage, Kontext und ToolResultBundle eine Antwort synthetisieren.
+9. Die Antwort wird als ChatTurn gespeichert, ueber die OutputGuardrail geprueft und an die nutzende Instanz ausgegeben.
+
+Interpretation:
+Das Diagramm zeigt den KG-Agenten als planenden, werkzeugbasierten Chat-Agenten. Der entscheidende Unterschied zu einem reinen RAG-Ablauf ist die explizite Planungs- und Werkzeugphase mit Wissensgraph- und Artefaktzugriff.

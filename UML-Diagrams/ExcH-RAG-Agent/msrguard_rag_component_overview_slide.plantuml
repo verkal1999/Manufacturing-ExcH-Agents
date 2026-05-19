@@ -1,0 +1,112 @@
+@startuml msrguard_rag_component_overview_slide
+' PowerPoint-friendly landscape variant of msrguard_rag_component_overview_a4.plantuml
+
+left to right direction
+scale max 1600*900
+
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam dpi 180
+skinparam nodesep 50
+skinparam ranksep 75
+skinparam padding 10
+skinparam wrapWidth 130
+skinparam maxMessageSize 90
+hide stereotype
+
+skinparam backgroundColor #FAFAFA
+
+skinparam component {
+  BackgroundColor #EAF3FB
+  BorderColor #2E86C1
+  BorderThickness 1.5
+  FontColor #1A252F
+  FontSize 11
+  FontStyle bold
+}
+
+skinparam package {
+  BackgroundColor #F4F6F7
+  BorderColor #2E4057
+  BorderThickness 2
+  FontColor #2E4057
+  FontSize 13
+  FontStyle bold
+}
+
+skinparam actor {
+  BackgroundColor #D5E8D4
+  BorderColor #2D6A4F
+  FontColor #1A252F
+  FontSize 11
+}
+
+skinparam database {
+  BackgroundColor #F4F6F7
+  BorderColor #2E4057
+  FontColor #1A252F
+  FontSize 11
+}
+
+skinparam rectangle<<InfoBox>> {
+  BackgroundColor #FFF3CD
+  BorderColor #B7791F
+  FontColor #1A252F
+  FontSize 9
+}
+
+skinparam arrow {
+  Color #2E4057
+  FontColor #2E4057
+  FontSize 10
+  Thickness 1.5
+}
+
+actor "Nutzende\nInstanz" as User
+component "Laufzeitumgebung\nFehlerereignis und Snapshot" as Runtime
+database "Statische\nSteuerungsartefakte\nPLCOpenXML / Dokumentkontext" as Docs
+
+package "ExcH-RAG-Agent" {
+  component "Interaktions- und\nSitzungs-Komponente" as UI
+  component "Kontext-\nKomponente" as Context
+  component "Artefakt- und\nDokumenten-Komponente" as Artifact
+  component "Retrieval-\nKomponente" as Retrieval
+  component "Generierungs- und\nLeitplanken-Komponente" as Generation
+  component "Foundation-Modell-\nKomponente" as FM
+
+  rectangle "Interaktion / Sitzung\nNimmt Fragen auf\nund führt die Sitzung." as UIInfo <<InfoBox>>
+  rectangle "Kontext\nVerdichtet Ereignis\nund Snapshot." as ContextInfo <<InfoBox>>
+  rectangle "Artefakte\nBereitet PLCOpenXML\nund Dokumente auf." as ArtifactInfo <<InfoBox>>
+  rectangle "Retrieval\nWählt relevante\nKontextsegmente." as RetrievalInfo <<InfoBox>>
+  rectangle "Generierung\nFormt Diagnose\nmit Leitplanken." as GenerationInfo <<InfoBox>>
+  rectangle "Foundation-Modell\nStellt das\nSprachmodell bereit." as FMInfo <<InfoBox>>
+
+  UI       -[hidden]right-> Context
+  Context  -[hidden]right-> Retrieval
+  Retrieval -[hidden]right-> Generation
+  Retrieval -[hidden]down-> Artifact
+  Generation -[hidden]down-> FM
+
+  UI       -[hidden]down-> UIInfo
+  Context  -[hidden]down-> ContextInfo
+  Artifact -[hidden]down-> ArtifactInfo
+  Retrieval -[hidden]down-> RetrievalInfo
+  Generation -[hidden]down-> GenerationInfo
+  FM       -[hidden]down-> FMInfo
+}
+
+User    --> UI       : Anfrage /\nRückfrage
+Runtime --> Context  : Fehlerkontext\nund Snapshot
+Docs    --> Artifact : Statische\nWissensbasis
+
+UI         --> Context    : Sitzungsaufbau
+Context    --> Retrieval  : Analysekontext
+Artifact   --> Retrieval  : Dokumentsegmente
+Retrieval  --> Generation : Kontextauswahl
+FM         --> Generation : LLM-Aufruf
+Generation --> UI         : Diagnose\nund Antwort
+
+@enduml
