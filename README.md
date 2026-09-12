@@ -9,6 +9,10 @@ The thesis compares two diagnosis strategies:
 
 The repository combines runtime integration, knowledge-graph ingestion, thesis experiments, and benchmark results in one place.
 
+## Related exception-handling framework
+
+The adapted MSRGuard runtime in this repository provides the integration basis for the diagnosis agents. For a more detailed description of MSRGuard as a runtime exception-handling framework—including OPC UA monitoring, event dispatch, monitoring and system reactions, failure recording, and the PFMEA-MSR knowledge-graph bridge—see the [FMEA-MSR Event System](https://github.com/verkal1999/FMEA-MSR-EventSystem) repository.
+
 ## Repository structure
 
 - `MSRGuard_Anpassung/`: adapted MSRGuard runtime, Python agent package, local knowledge graphs, certificates, and internal UML diagrams
@@ -39,7 +43,6 @@ At a high level, the repository is organized around one end-to-end diagnosis wor
 - KG agent UI: `MSRGuard_Anpassung/python/msrguard/excH_kg_agent_ui.py`
 - RAG agent UI: `MSRGuard_Anpassung/python/msrguard/rag_agent_ui.py`
 - KG agent internals: `MSRGuard_Anpassung/python/msrguard/excH_chatbot.py`
-- Deterministic D2 trace logic: `MSRGuard_Anpassung/python/msrguard/d2_trace_analysis.py`
 - Ingestion runner: `Pipelines/IngestionPipeline/run_ingestion.py`
 - Evaluation wrapper: `scripts/run_eval.py`
 

@@ -4,6 +4,7 @@
 skinparam classAttributeIconSize 0
 skinparam shadowing false
 skinparam linetype ortho
+left to right direction
 
 package "fmea_skill_function_builder" {
   class FMEASkillFunctionBuilder {

@@ -13,13 +13,13 @@ skinparam DefaultFontSize 12
 skinparam packageTitleFontSize 13
 skinparam classFontSize 12
 hide empty members
-'left to right direction
-top to bottom direction
+left to right direction
+'top to bottom direction
 scale max 1400 width
 
 'title Evaluationsaufbau - vereinfachte Uebersicht
 
-package "Eval-Orchestrierung" {
+package "Evaluation Orchestration" {
 
   class ModelConfig <<dataclass>> {
     +provider, model: str
@@ -29,9 +29,11 @@ package "Eval-Orchestrierung" {
   }
   class EvalConfig <<dataclass>> {
     +agent: str
+    +event_json_path: str
     +question: str
-    +ground_truth: str
-    +from_json_file(path: str): EvalConfig
+    +model: ModelConfig
+    +ground_truth: Optional[str]
+    +{static} from_json_file(path: str): EvalConfig
   }
 
   class EvalRunner <<module>> {
@@ -48,13 +50,14 @@ package "Eval-Orchestrierung" {
   }
 
   EvalConfig *-- ModelConfig
-  EvalRunner --> EvalConfig : liest
-  EvalRunner --> EvalResult : erzeugt
+  EvalRunner --> EvalConfig : reads
+  EvalRunner --> EvalResult : creates
 }
 
 package "ExcH KG Agent (Black Box)" {
   class KgAgent <<api>> {
     +run_initial_analysis(): Dict
+    '+ensure_bootstrap_plan(): Dict
     +ask(question): Dict
   }
 }
@@ -62,18 +65,20 @@ package "ExcH KG Agent (Black Box)" {
 package "ExcH RAG Agent (Black Box)" {
   class RagAgent <<api>> {
     +run_initial_analysis(): Dict
+    '+build_default_prompt(): Dict
+    '+search(question, k): List[Chunk]
     +ask(question): Dict
   }
 }
 
-package "LLM Judge (optional)" {
+package "LLM Judge" {
   class JudgeAPI <<api>> {
     +evaluate(question, ground_truth, answer): JSON
   }
 }
 
-EvalRunner --> KgAgent : agent = kg
-EvalRunner --> RagAgent : agent = rag
-EvalRunner --> JudgeAPI : falls ground_truth vorhanden
+EvalRunner ..> KgAgent : agent = kg
+EvalRunner ..> RagAgent : agent = rag
+EvalRunner --> JudgeAPI : evaluates if ground_truth exists
 
 @enduml
