@@ -50,6 +50,15 @@ At a high level, the repository is organized around one end-to-end diagnosis wor
 
 The current thesis evaluation is documented in `Evaluation/`.
 
+The benchmark is based on two PLC/TwinCAT engineering examples. The second and central evaluation example uses the Fischertechnik high-bay warehouse simulation from the [Fischertechnik I4.0 Modules Simulator for TwinCAT](https://github.com/verkal1999/Fischertechnik_I4.0_Modules_Simulator_TwinCAT) repository.
+
+| Evaluation example | Test cases | System under analysis | Evaluation material |
+| --- | --- | --- | --- |
+| Example 1 | `TC-001`, `TC-002` | Smaller TwinCAT test project | `config_ingestion.json` and the corresponding local event, KG, configuration, and result artifacts |
+| Example 2 | `TC-003`, `TC-004` | Fischertechnik I4.0 module simulation in TwinCAT | `config_ingestion2.json` and the corresponding local event, KG, configuration, and result artifacts |
+
+See [`Evaluation/README.md`](Evaluation/README.md) for the scenario descriptions, test-case mapping, repository boundaries, and artifact locations.
+
 - `Evaluation/configs/` stores per-test-case benchmark configurations.
 - `Evaluation/results/` stores generated result JSON files for KG and RAG runs.
 - `Evaluation/pricing/` stores provider pricing tables used for cost reporting.
