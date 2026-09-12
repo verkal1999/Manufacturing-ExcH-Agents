@@ -39,7 +39,7 @@ At a high level, the repository is organized around one end-to-end diagnosis wor
 
 ### Diagnosis and evaluation workflow
 
-![Architecture and evaluation workflow comparing the PLCOpenXML-based RAG baseline with the knowledge-graph-based ExcH agent](GitHub.svg)
+![Architecture and evaluation workflow comparing the PLCOpenXML-based RAG baseline with the knowledge-graph-based ExcH agent](GitHub.png)
 
 *Figure: Shared engineering and runtime inputs are processed through the two diagnosis approaches evaluated in this repository.*
 
