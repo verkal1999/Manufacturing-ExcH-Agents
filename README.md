@@ -37,6 +37,21 @@ At a high level, the repository is organized around one end-to-end diagnosis wor
 4. The KG-based or RAG-based Python agent analyzes incidents.
 5. Results are stored as JSON artifacts and reused for evaluation in the thesis.
 
+### Diagnosis and evaluation workflow
+
+![Architecture and evaluation workflow comparing the PLCOpenXML-based RAG baseline with the knowledge-graph-based ExcH agent](GitHub.svg)
+
+*Figure: Shared engineering and runtime inputs are processed through the two diagnosis approaches evaluated in this repository.*
+
+The figure summarizes the two processing paths used in the evaluation:
+
+- **Shared input:** Both approaches use PLCOpenXML engineering data together with runtime events captured by MSRGuard. This provides a common technical basis for the comparison.
+- **RAG baseline:** The PLCOpenXML-based `ExcH-RAG-Agent` retrieves relevant source-code context directly from the engineering export. It serves as the baseline and does not require a project-specific knowledge graph.
+- **Knowledge-graph path:** The ingestion pipeline transforms the engineering data into a project-specific knowledge graph. I/O mappings and information from other knowledge graphs can enrich this representation before it is queried by the `ExcH-KG-Agent`.
+- **Common evaluation:** The responses from both agents are passed to the same analysis and evaluation stage. Their diagnostic quality, root-cause identification, runtime, token usage, and estimated cost can therefore be compared under the same test-case conditions.
+
+The diagram shows the conceptual data flow. The concrete input files, test-case configurations, generated results, and the mapping between evaluation examples are documented in [`Evaluation/README.md`](Evaluation/README.md).
+
 ## Key entry points
 
 - Runtime entry point: `MSRGuard_Anpassung/src/main.cpp`
