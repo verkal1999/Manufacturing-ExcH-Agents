@@ -1,4 +1,4 @@
-# MA_Python_Agent
+# Manufacturing ExcHAgents
 
 This repository contains the implementation, experiments, documentation, and evaluation artifacts for a master's thesis on LLM-assisted exception handling and root-cause analysis for PLC/TwinCAT-based systems.
 
